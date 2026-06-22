@@ -32,6 +32,7 @@ class AuthService:
             subject="Confirmez votre adresse email",
             body=f"Bienvenue sur Zulu Starter !\n\nCliquez sur le lien pour confirmer votre adresse email :\n{verify_url}\n\nCe lien expire dans 24 heures.",
         )
+        setattr(user, '_verification_url', verify_url)
         return user
 
     def verify_email(self, token):
