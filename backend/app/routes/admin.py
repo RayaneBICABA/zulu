@@ -33,6 +33,21 @@ assign_schema = AssignRoleSchema()
 @jwt_required()
 @role_required("admin")
 def list_roles():
+    """
+    Lister tous les roles.
+    ---
+    tags:
+      - Administration
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Liste des roles
+      401:
+        description: Token manquant ou invalide
+      403:
+        description: Acces refuse (role admin requis)
+    """
     roles = role_service.get_all_roles()
     return jsonify([r.to_dict() for r in roles]), 200
 
@@ -41,6 +56,38 @@ def list_roles():
 @jwt_required()
 @role_required("admin")
 def create_role():
+    """
+    Creer un nouveau role.
+    ---
+    tags:
+      - Administration
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+              minLength: 2
+            description:
+              type: string
+    responses:
+      201:
+        description: Role cree
+      400:
+        description: Erreur de validation
+      401:
+        description: Token manquant ou invalide
+      403:
+        description: Acces refuse (role admin requis)
+      409:
+        description: Le role existe deja
+    """
     try:
         data = role_schema.load(request.get_json())
     except ValidationError as err:
@@ -57,6 +104,21 @@ def create_role():
 @jwt_required()
 @role_required("admin")
 def list_permissions():
+    """
+    Lister toutes les permissions.
+    ---
+    tags:
+      - Administration
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Liste des permissions
+      401:
+        description: Token manquant ou invalide
+      403:
+        description: Acces refuse (role admin requis)
+    """
     permissions = role_service.get_all_permissions()
     return jsonify([p.to_dict() for p in permissions]), 200
 
@@ -65,6 +127,40 @@ def list_permissions():
 @jwt_required()
 @role_required("admin")
 def create_permission():
+    """
+    Creer une nouvelle permission.
+    ---
+    tags:
+      - Administration
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - codename
+          properties:
+            codename:
+              type: string
+              minLength: 2
+            name:
+              type: string
+            description:
+              type: string
+    responses:
+      201:
+        description: Permission creee
+      400:
+        description: Erreur de validation
+      401:
+        description: Token manquant ou invalide
+      403:
+        description: Acces refuse (role admin requis)
+      409:
+        description: La permission existe deja
+    """
     try:
         data = perm_schema.load(request.get_json())
     except ValidationError as err:
@@ -81,6 +177,37 @@ def create_permission():
 @jwt_required()
 @role_required("admin")
 def assign_role(user_id):
+    """
+    Assigner un role a un utilisateur.
+    ---
+    tags:
+      - Administration
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: user_id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - role_name
+          properties:
+            role_name:
+              type: string
+    responses:
+      200:
+        description: Role assigne
+      400:
+        description: Erreur de validation
+      401:
+        description: Token manquant ou invalide
+      403:
+        description: Acces refuse (role admin requis)
+    """
     data = request.get_json() or {}
     role_name = data.get("role_name")
     if not role_name:
@@ -97,6 +224,37 @@ def assign_role(user_id):
 @jwt_required()
 @role_required("admin")
 def remove_role(user_id):
+    """
+    Retirer un role a un utilisateur.
+    ---
+    tags:
+      - Administration
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: user_id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - role_name
+          properties:
+            role_name:
+              type: string
+    responses:
+      200:
+        description: Role retire
+      400:
+        description: Erreur de validation
+      401:
+        description: Token manquant ou invalide
+      403:
+        description: Acces refuse (role admin requis)
+    """
     data = request.get_json() or {}
     role_name = data.get("role_name")
     if not role_name:
@@ -113,6 +271,28 @@ def remove_role(user_id):
 @jwt_required()
 @role_required("admin")
 def get_user_roles(user_id):
+    """
+    Voir les roles d'un utilisateur.
+    ---
+    tags:
+      - Administration
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: user_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Liste des roles de l'utilisateur
+      401:
+        description: Token manquant ou invalide
+      403:
+        description: Acces refuse (role admin requis)
+      404:
+        description: Utilisateur introuvable
+    """
     try:
         roles = role_service.get_user_roles(user_id)
         return jsonify([r.to_dict() for r in roles]), 200
@@ -124,6 +304,37 @@ def get_user_roles(user_id):
 @jwt_required()
 @role_required("admin")
 def assign_permission(role_name):
+    """
+    Assigner une permission a un role.
+    ---
+    tags:
+      - Administration
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: role_name
+        type: string
+        required: true
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - permission_codename
+          properties:
+            permission_codename:
+              type: string
+    responses:
+      200:
+        description: Permission assignee au role
+      400:
+        description: Erreur de validation
+      401:
+        description: Token manquant ou invalide
+      403:
+        description: Acces refuse (role admin requis)
+    """
     data = request.get_json() or {}
     permission_codename = data.get("permission_codename")
     if not permission_codename:
