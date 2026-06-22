@@ -1,0 +1,38 @@
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: zulu_db
+    environment:
+      POSTGRES_DB: zulu_db
+      POSTGRES_USER: zulu_user
+      POSTGRES_PASSWORD: zulu_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zulu_user -d zulu_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: zulu_backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://zulu_user:zulu_pass@db:5432/zulu_db
+      FLASK_ENV: development
+      SECRET_KEY: dev-secret
+      JWT_SECRET_KEY: dev-jwt-secret
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+    command: flask run --host=0.0.0.0 --port=5000 --reload
+
+volumes:
+  pgdata:

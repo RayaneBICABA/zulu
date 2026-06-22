@@ -216,3 +216,63 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Docker
+.dockerignore
+
+# Node / Frontend
+node_modules/
+dist/
+.vite/
+*.local
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Coverage
+htmlcov/
+.coverage
+coverage.xml
+
+# Logs
+*.log
+
+# Docker
+.dockerignore
+
+# Node / Frontend
+node_modules/
+dist/
+.vite/
+*.local
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Coverage
+htmlcov/
+.coverage
+coverage.xml
+
+# Logs
+*.log
