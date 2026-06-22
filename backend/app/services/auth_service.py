@@ -26,7 +26,7 @@ class AuthService:
         user.save()
 
         token = generate_verification_token(email)
-        verify_url = f"{current_app.config.get('FRONTEND_URL', 'http://localhost:5173')}/verify-email?token={token}"
+        verify_url = f"{current_app.config.get('FRONTEND_URL', 'http://localhost:5173')}/verifier-email?token={token}"
         send_email(
             to=email,
             subject="Confirmez votre adresse email",
@@ -98,7 +98,7 @@ class AuthService:
             return
 
         token = generate_reset_token(email)
-        reset_url = f"{current_app.config.get('FRONTEND_URL', 'http://localhost:5173')}/reset-password?token={token}"
+        reset_url = f"{current_app.config.get('FRONTEND_URL', 'http://localhost:5173')}/reinitialiser-mot-de-passe?token={token}"
         send_email(
             to=email,
             subject="Reinitialisation de votre mot de passe",
