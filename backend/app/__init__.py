@@ -37,4 +37,7 @@ def create_app(env="default"):
     from .routes import register_routes
     register_routes(app)
 
+    from .services.oauth_service import init_oauth
+    init_oauth(app)
+
     return app
