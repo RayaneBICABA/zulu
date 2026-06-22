@@ -1,6 +1,6 @@
 from flask import Flask, jsonify
 from .config import config
-from .extensions import db, migrate, jwt, cors, swagger
+from .extensions import db, migrate, jwt, cors, swagger, limiter
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
@@ -13,6 +13,7 @@ def create_app(env="default"):
     migrate.init_app(app, db)
     jwt.init_app(app)
     cors.init_app(app, resources={r"/api/*": {"origins": "*"}})
+    limiter.init_app(app)
 
     if not app.config.get("TESTING"):
         swagger.init_app(app)
@@ -28,6 +29,10 @@ def create_app(env="default"):
     @jwt.unauthorized_loader
     def missing_token_callback(error):
         return jsonify({"error": "Token manquant."}), 401
+
+    @app.errorhandler(429)
+    def ratelimit_handler(error):
+        return jsonify({"error": "Trop de tentatives. Reessayez dans une minute."}), 429
 
     from .routes import register_routes
     register_routes(app)

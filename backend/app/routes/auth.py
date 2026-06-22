@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
 from ..schemas import RegisterSchema, LoginSchema, UserSchema
 from ..services import auth_service
+from ..extensions import limiter
 
 auth_bp = Blueprint("auth", __name__)
 register_schema = RegisterSchema()
@@ -11,6 +12,7 @@ user_schema = UserSchema()
 
 
 @auth_bp.route("/auth/register", methods=["POST"])
+@limiter.limit("3 per minute")
 def register():
     """
     Inscription d'un nouvel utilisateur.
@@ -62,6 +64,7 @@ def register():
 
 
 @auth_bp.route("/auth/login", methods=["POST"])
+@limiter.limit("5 per minute")
 def login():
     """
     Connexion d'un utilisateur.
