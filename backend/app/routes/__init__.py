@@ -1,3 +1,5 @@
 def register_routes(app):
     from .health import health_bp
+    from .auth import auth_bp
     app.register_blueprint(health_bp, url_prefix="/api")
+    app.register_blueprint(auth_bp, url_prefix="/api")
