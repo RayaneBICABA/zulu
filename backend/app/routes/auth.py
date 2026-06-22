@@ -1,0 +1,138 @@
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from marshmallow import ValidationError
+from ..schemas import RegisterSchema, LoginSchema, UserSchema
+from ..services import auth_service
+
+auth_bp = Blueprint("auth", __name__)
+register_schema = RegisterSchema()
+login_schema = LoginSchema()
+user_schema = UserSchema()
+
+
+@auth_bp.route("/auth/register", methods=["POST"])
+def register():
+    """
+    Inscription d'un nouvel utilisateur.
+    ---
+    tags:
+      - Authentification
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - email
+            - password
+          properties:
+            email:
+              type: string
+              format: email
+            password:
+              type: string
+              minLength: 8
+            first_name:
+              type: string
+            last_name:
+              type: string
+    responses:
+      201:
+        description: Utilisateur cree avec succes
+      400:
+        description: Erreur de validation
+      409:
+        description: Email deja utilise
+    """
+    try:
+        data = register_schema.load(request.get_json())
+    except ValidationError as err:
+        return jsonify({"error": err.messages}), 400
+
+    try:
+        user = auth_service.register(
+            email=data["email"],
+            password=data["password"],
+            first_name=data.get("first_name"),
+            last_name=data.get("last_name"),
+        )
+        return jsonify({"message": "Inscription reussie.", "user": user.to_dict()}), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 409
+
+
+@auth_bp.route("/auth/login", methods=["POST"])
+def login():
+    """
+    Connexion d'un utilisateur.
+    ---
+    tags:
+      - Authentification
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - email
+            - password
+          properties:
+            email:
+              type: string
+            password:
+              type: string
+    responses:
+      200:
+        description: Connexion reussie, retourne les tokens
+      400:
+        description: Erreur de validation
+      401:
+        description: Identifiants incorrects
+    """
+    try:
+        data = login_schema.load(request.get_json())
+    except ValidationError as err:
+        return jsonify({"error": err.messages}), 400
+
+    try:
+        result = auth_service.login(data["email"], data["password"])
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 401
+
+
+@auth_bp.route("/auth/refresh", methods=["POST"])
+@jwt_required(refresh=True)
+def refresh():
+    """
+    Rafraichir le token d'acces.
+    ---
+    tags:
+      - Authentification
+    responses:
+      200:
+        description: Nouveau token d'acces
+    """
+    identity = get_jwt_identity()
+    result = auth_service.refresh(identity)
+    return jsonify(result), 200
+
+
+@auth_bp.route("/auth/me", methods=["GET"])
+@jwt_required()
+def me():
+    """
+    Recuperer les informations de l'utilisateur connecte.
+    ---
+    tags:
+      - Authentification
+    responses:
+      200:
+        description: Informations de l'utilisateur
+    """
+    user_id = int(get_jwt_identity())
+    try:
+        data = auth_service.me(user_id)
+        return jsonify(data), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
