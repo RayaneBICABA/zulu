@@ -42,6 +42,7 @@ Le projet suit les principes de **Clean Architecture** avec une separation stric
 | Tailwind CSS v4 | Styling utilitaire |
 | Framer Motion 12 | Animations |
 | Lucide React | Icones |
+| Capacitor 7 | Pont natif pour Android |
 | ESLint 10 | Linting et conventions |
 
 ### Infrastructure
@@ -64,13 +65,15 @@ zulu-starter/
 │   │   └── services/     Logique metier
 │   ├── tests/            Tests unitaires et d'integration
 │   └── requirements.txt  Dependances Python
-├── frontend/             Application React (SPA)
+├── frontend/             Application React (SPA + mobile)
+│   ├── android/          Projet natif Android (Capacitor)
 │   ├── src/
 │   │   ├── components/   Composants UI et layout
 │   │   ├── constants/    Configuration centralisee
 │   │   ├── hooks/        Hooks reutilisables
 │   │   ├── pages/        Ecrans de l'application
 │   │   └── services/     Appels API
+│   ├── capacitor.config.ts
 │   └── package.json
 ├── docs/                 Documentation
 │   ├── BACKEND.md
@@ -86,6 +89,7 @@ zulu-starter/
 - Docker et Docker Compose installes (pour la base de donnees et le backend)
 - Node.js >= 18 (pour le frontend)
 - Python 3.11+ (pour le backend si lance sans Docker)
+- Android Studio (optionnel -- requis pour compiler et lancer l'application mobile)
 
 ## Demarrage rapide
 
@@ -148,6 +152,8 @@ npm run dev                 # Serveur local
 npm run dev:network         # Serveur accessible sur le reseau
 npm run build               # Build de production
 npm run lint                # Verification du code
+npm run cap:build           # Build web + sync Android
+npm run cap:open:android    # Ouvrir dans Android Studio
 ```
 
 ## Documentation

@@ -4,6 +4,8 @@
 
 - Node.js >= 18 installe
 - Les dependances installees : `npm install`
+- Android Studio installe (pour compiler et lancer l'application mobile)
+- Optionnel : un appareil Android ou un emulateur pour tester l'application mobile
 
 ---
 
@@ -56,6 +58,45 @@ npm run preview
 ```
 
 Sert le contenu du dossier `dist/` en local pour verifier le rendu final avant deploiement.
+
+---
+
+## Application mobile (Capacitor)
+
+### Synchroniser le build web avec le projet Android
+
+```bash
+cd frontend
+npm run cap:sync
+```
+
+Copie les fichiers du dossier `dist/` (build web) dans le projet Android (`android/app/src/main/assets/public`).
+
+### Ouvrir le projet dans Android Studio
+
+```bash
+cd frontend
+npm run cap:open:android
+```
+
+Lance Android Studio avec le projet Android pre-configure. A partir de la, vous pouvez compiler et lancer l'application sur un emulateur ou un appareil physique.
+
+### Builder le web puis synchroniser
+
+```bash
+cd frontend
+npm run cap:build
+```
+
+Raccourci qui execute `npm run build` puis `npm run cap:sync` en une seule commande.
+
+### Ajouter un plugin Capacitor
+
+```bash
+cd frontend
+npm install @capacitor/nom-du-plugin
+npx cap sync
+```
 
 ---
 
