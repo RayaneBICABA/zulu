@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Zulu Starter</string>
+    <string name="title_activity_main">Zulu Starter</string>
+    <string name="package_name">com.zulustarter.app</string>
+    <string name="custom_url_scheme">com.zulustarter.app</string>
+</resources>

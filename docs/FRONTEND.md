@@ -10,6 +10,7 @@
 | Tailwind CSS v4 | Styling utilitaire (plugin Vite, pas de fichier de config separe) |
 | Framer Motion 12 | Animations |
 | Lucide React | Icones |
+| Capacitor 7 | Pont natif pour iOS et Android |
 | ESLint 10 + react-hooks + react-refresh | Linting et conventions |
 
 ---
@@ -38,6 +39,8 @@ frontend/
 │   ├── App.jsx                Definition des routes
 │   ├── main.jsx               Point d'entree React
 │   └── index.css              Import Tailwind, theme et styles globaux
+├── android/                  Projet natif Android (generé par Capacitor)
+├── capacitor.config.ts       Configuration Capacitor
 ├── index.html
 ├── vite.config.js
 ├── package.json
@@ -46,6 +49,67 @@ frontend/
 ├── .env
 └── .env.example
 ```
+
+---
+
+## Capacitor (application mobile)
+
+Capacitor transforme l'application web en une application Android native. Le projet natif se trouve dans `android/`.
+
+### Configuration
+
+Le fichier `capacitor.config.ts` definit les parametres :
+
+```typescript
+import { CapacitorConfig } from '@capacitor/cli'
+
+const config: CapacitorConfig = {
+  appId: 'com.zulustarter.app',    // Identifiant unique de l'application
+  appName: 'Zulu Starter',          // Nom affiche sur l'appareil
+  webDir: 'dist',                    // Dossier du build web (output de Vite)
+  server: {
+    androidScheme: 'https',          // Schema utilise pour les requetes reseau
+  },
+}
+
+export default config
+```
+
+### Workflow de developpement mobile
+
+1. **Developper le web** comme d'habitude (`npm run dev`)
+2. **Builder le web** : `npm run build`
+3. **Synchroniser** : `npm run cap:sync` (copie le build dans `android/`)
+4. **Ouvrir Android Studio** : `npm run cap:open:android`
+5. **Lancer l'application** depuis Android Studio sur un emulateur ou un appareil physique
+
+Pour un cycle rapide : `npm run cap:build` combine les etapes 2 et 3.
+
+### Live reload sur appareil
+
+Pour voir les modifications en temps reel sur un appareil Android :
+
+1. Lancer le serveur de dev : `npm run dev:network`
+2. Modifier temporairement `capacitor.config.ts` :
+
+```typescript
+server: {
+  url: 'http://192.168.1.42:5173',  // Adresse IP locale de votre machine
+  cleartext: true,                    // Necessaire pour HTTP en dev
+  androidScheme: 'http',
+}
+```
+
+3. Synchroniser et lancer : `npm run cap:sync && npm run cap:open:android`
+
+Ne pas committer la configuration `server.url` -- elle est propre au developpement local.
+
+### Notes importantes
+
+- Le dossier `android/` est versionne (commit). Il contient le projet Android generee une seule fois par `npx cap add android`
+- Les fichiers generes dans `android/app/src/main/assets/` ne sont pas commit (ignores par le `.gitignore` d'Android)
+- Le build de production passe par Vercel pour le web et par Android Studio pour le mobile
+- Node.js >= 18 requis (>= 22 recommande pour Capacitor 8)
 
 ---
 
@@ -207,6 +271,7 @@ const LoginPage = () => {
 - Page d'accueil (HomePage) et page 404
 - Navbar responsive avec menu mobile
 - Sidebar generique pour dashboard
+- Capacitor 7 configure pour Android (projet natif dans `android/`)
 - Dossier features/ cree, vide en attendant le sujet
 
 **A implementer :**
