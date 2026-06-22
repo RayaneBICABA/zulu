@@ -284,7 +284,7 @@ def resend_verification():
         return jsonify({"error": "Email deja verifie."}), 400
 
     token = generate_verification_token(user.email)
-    verify_url = f"{current_app.config.get('FRONTEND_URL', 'http://localhost:5173')}/verify-email?token={token}"
+    verify_url = f"{current_app.config.get('FRONTEND_URL', 'http://localhost:5173')}/verifier-email?token={token}"
     send_email(
         to=user.email,
         subject="Confirmez votre adresse email",
