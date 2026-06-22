@@ -1,9 +1,11 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
 from ..schemas import RegisterSchema, LoginSchema, UserSchema
 from ..services import auth_service
 from ..extensions import limiter
+from ..models.user import User
+from ..services.email_service import generate_verification_token, send_email
 
 auth_bp = Blueprint("auth", __name__)
 register_schema = RegisterSchema()
@@ -139,3 +141,67 @@ def me():
         return jsonify(data), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
+
+
+@auth_bp.route("/auth/verify-email", methods=["POST"])
+def verify_email():
+    """
+    Confirmer l'adresse email via un token.
+    ---
+    tags:
+      - Authentification
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - token
+          properties:
+            token:
+              type: string
+    responses:
+      200:
+        description: Email verifie avec succes
+      400:
+        description: Token invalide ou expire
+    """
+    data = request.get_json() or {}
+    token = data.get("token")
+    if not token:
+        return jsonify({"error": "Token requis."}), 400
+
+    try:
+        user = auth_service.verify_email(token)
+        return jsonify({"message": "Email verifie avec succes.", "user": user.to_dict()}), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@auth_bp.route("/auth/resend-verification", methods=["POST"])
+@jwt_required()
+def resend_verification():
+    """
+    Renvoyer l'email de verification.
+    ---
+    tags:
+      - Authentification
+    responses:
+      200:
+        description: Email de verification renvoye
+    """
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "Utilisateur introuvable."}), 404
+    if user.is_verified:
+        return jsonify({"error": "Email deja verifie."}), 400
+
+    token = generate_verification_token(user.email)
+    verify_url = f"{current_app.config.get('FRONTEND_URL', 'http://localhost:5173')}/verify-email?token={token}"
+    send_email(
+        to=user.email,
+        subject="Confirmez votre adresse email",
+        body=f"Cliquez sur le lien pour confirmer votre adresse email :\n{verify_url}",
+    )
+    return jsonify({"message": "Email de verification renvoye."}), 200

@@ -8,6 +8,7 @@ class Config:
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret")
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 class DevelopmentConfig(Config):
     DEBUG = True

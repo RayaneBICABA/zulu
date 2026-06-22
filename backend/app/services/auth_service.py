@@ -2,6 +2,8 @@ from ..extensions import db, jwt
 from ..models.user import User
 from flask_jwt_extended import create_access_token, create_refresh_token
 from datetime import timedelta
+from .email_service import generate_verification_token, confirm_verification_token, send_email
+from flask import current_app
 
 
 class AuthService:
@@ -16,6 +18,30 @@ class AuthService:
         )
         user.set_password(password)
         user.save()
+
+        token = generate_verification_token(email)
+        verify_url = f"{current_app.config.get('FRONTEND_URL', 'http://localhost:5173')}/verify-email?token={token}"
+        send_email(
+            to=email,
+            subject="Confirmez votre adresse email",
+            body=f"Bienvenue sur Zulu Starter !\n\nCliquez sur le lien pour confirmer votre adresse email :\n{verify_url}\n\nCe lien expire dans 24 heures.",
+        )
+        return user
+
+    def verify_email(self, token):
+        email = confirm_verification_token(token)
+        if not email:
+            raise ValueError("Token invalide ou expire.")
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            raise ValueError("Utilisateur introuvable.")
+
+        if user.is_verified:
+            raise ValueError("Email deja verifie.")
+
+        user.is_verified = True
+        user.save()
         return user
 
     def login(self, email, password):
@@ -28,7 +54,7 @@ class AuthService:
 
         access_token = create_access_token(
             identity=str(user.id),
-            additional_claims={"email": user.email},
+            additional_claims={"email": user.email, "is_verified": user.is_verified},
             expires_delta=timedelta(minutes=15),
         )
         refresh_token = create_refresh_token(
@@ -48,7 +74,7 @@ class AuthService:
 
         access_token = create_access_token(
             identity=str(user.id),
-            additional_claims={"email": user.email},
+            additional_claims={"email": user.email, "is_verified": user.is_verified},
             expires_delta=timedelta(minutes=15),
         )
         return {"access_token": access_token}
