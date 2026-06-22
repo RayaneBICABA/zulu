@@ -261,9 +261,17 @@ def resend_verification():
     ---
     tags:
       - Authentification
+    security:
+      - Bearer: []
     responses:
       200:
         description: Email de verification renvoye
+      400:
+        description: Email deja verifie
+      401:
+        description: Token manquant ou invalide
+      404:
+        description: Utilisateur introuvable
     """
     user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
