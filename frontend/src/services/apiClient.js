@@ -26,8 +26,10 @@ const refreshToken = async () => {
   if (!refresh) throw new Error('No refresh token')
   const res = await fetch(`${API_URL}/auth/refresh`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh_token: refresh }),
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${refresh}`,
+    },
   })
   if (!res.ok) throw new Error('Refresh failed')
   const data = await res.json()
