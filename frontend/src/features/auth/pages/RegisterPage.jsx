@@ -23,6 +23,7 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
   const [success, setSuccess] = useState(false)
+  const [verificationUrl, setVerificationUrl] = useState(null)
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -47,12 +48,13 @@ const RegisterPage = () => {
     setError(null)
     setLoading(true)
     try {
-      await register({
+      const data = await register({
         email: form.email,
         password: form.password,
         first_name: form.first_name,
         last_name: form.last_name,
       })
+      if (data?.verification_url) setVerificationUrl(data.verification_url)
       setSuccess(true)
     } catch (err) {
       setError(err.message)
@@ -79,9 +81,17 @@ const RegisterPage = () => {
               <h1 className="text-xl font-bold text-secondary-500 mb-2">
                 Inscription reussie
               </h1>
-              <p className="text-sm text-gray-400 mb-6">
+              <p className="text-sm text-gray-400 mb-4">
                 Un email de verification vous a ete envoye. Veuillez cliquer sur le lien pour activer votre compte.
               </p>
+              {verificationUrl && (
+                <a
+                  href={verificationUrl}
+                  className="block mb-6 text-sm text-primary-500 hover:text-primary-600 underline break-all"
+                >
+                  {verificationUrl}
+                </a>
+              )}
               <Button onClick={() => navigate(ROUTES.login)}>
                 Se connecter
               </Button>
