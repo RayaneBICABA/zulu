@@ -2,7 +2,13 @@ from ..extensions import db, jwt
 from ..models.user import User
 from flask_jwt_extended import create_access_token, create_refresh_token
 from datetime import timedelta
-from .email_service import generate_verification_token, confirm_verification_token, send_email
+from .email_service import (
+    generate_verification_token,
+    confirm_verification_token,
+    generate_reset_token,
+    confirm_reset_token,
+    send_email,
+)
 from flask import current_app
 
 
@@ -84,3 +90,29 @@ class AuthService:
         if not user:
             raise ValueError("Utilisateur introuvable.")
         return user.to_dict()
+
+    def forgot_password(self, email):
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            return
+
+        token = generate_reset_token(email)
+        reset_url = f"{current_app.config.get('FRONTEND_URL', 'http://localhost:5173')}/reset-password?token={token}"
+        send_email(
+            to=email,
+            subject="Reinitialisation de votre mot de passe",
+            body=f"Cliquez sur le lien pour reinitialiser votre mot de passe :\n{reset_url}\n\nCe lien expire dans 1 heure.",
+        )
+
+    def reset_password(self, token, new_password):
+        email = confirm_reset_token(token)
+        if not email:
+            raise ValueError("Token invalide ou expire.")
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            raise ValueError("Utilisateur introuvable.")
+
+        user.set_password(new_password)
+        user.save()
+        return user

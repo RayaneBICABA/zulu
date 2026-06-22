@@ -178,6 +178,81 @@ def verify_email():
         return jsonify({"error": str(e)}), 400
 
 
+@auth_bp.route("/auth/forgot-password", methods=["POST"])
+@limiter.limit("3 per minute")
+def forgot_password():
+    """
+    Envoyer un email de reinitialisation de mot de passe.
+    ---
+    tags:
+      - Authentification
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - email
+          properties:
+            email:
+              type: string
+    responses:
+      200:
+        description: Email envoye si le compte existe
+    """
+    data = request.get_json() or {}
+    email = data.get("email")
+    if not email:
+        return jsonify({"error": "Email requis."}), 400
+
+    auth_service.forgot_password(email)
+    return jsonify({"message": "Si un compte existe avec cet email, un lien de reinitialisation a ete envoye."}), 200
+
+
+@auth_bp.route("/auth/reset-password", methods=["POST"])
+@limiter.limit("3 per minute")
+def reset_password():
+    """
+    Reinitialiser le mot de passe avec un token.
+    ---
+    tags:
+      - Authentification
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - token
+            - password
+          properties:
+            token:
+              type: string
+            password:
+              type: string
+              minLength: 8
+    responses:
+      200:
+        description: Mot de passe reinitialise avec succes
+      400:
+        description: Token invalide ou expire
+    """
+    data = request.get_json() or {}
+    token = data.get("token")
+    password = data.get("password")
+
+    if not token or not password:
+        return jsonify({"error": "Token et mot de passe requis."}), 400
+    if len(password) < 8:
+        return jsonify({"error": "Le mot de passe doit contenir au moins 8 caracteres."}), 400
+
+    try:
+        auth_service.reset_password(token, password)
+        return jsonify({"message": "Mot de passe reinitialise avec succes."}), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
 @auth_bp.route("/auth/resend-verification", methods=["POST"])
 @jwt_required()
 def resend_verification():
