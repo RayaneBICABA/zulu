@@ -48,7 +48,7 @@ def _send_smtp(to, subject, html_body):
     msg.attach(MIMEText(html_body, "html", "utf-8"))
 
     try:
-        server = smtplib.SMTP(config["MAIL_SERVER"], config["MAIL_PORT"], timeout=10)
+        server = smtplib.SMTP(config["MAIL_SERVER"], config["MAIL_PORT"], timeout=5)
         if config.get("MAIL_USE_TLS", True):
             server.starttls()
         server.login(config["MAIL_USERNAME"], mail_password)
@@ -57,7 +57,6 @@ def _send_smtp(to, subject, html_body):
         logger.info(f"[EMAIL] Sent to {to}")
     except Exception as e:
         logger.error(f"[EMAIL] Failed to send to {to}: {e}")
-        raise
 
 
 def send_verification_email(to, token):
