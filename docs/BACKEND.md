@@ -10,10 +10,13 @@
 | Flask-Migrate | Migrations de base de données (Alembic) |
 | Flask-JWT-Extended | Authentification par tokens JWT |
 | Flask-Cors | Gestion du CORS |
+| Flask-Limiter | Rate limiting |
 | Marshmallow | Validation et sérialisation des données |
 | PostgreSQL 15 | Base de données relationnelle |
 | Docker + Docker Compose | Conteneurisation |
 | Swagger / Flasgger | Documentation interactive des API |
+| Redis 7 | Stockage du rate limiting (flask-limiter) |
+| smtplib | Envoi d'emails SMTP (Gmail, Brevo, etc.) |
 | Pytest | Tests unitaires et d'intégration |
 
 ---
@@ -24,30 +27,102 @@
 backend/
 ├── app/
 │   ├── __init__.py          # Factory create_app — initialise l'app et enregistre les blueprints
-│   ├── config.py            # Configuration par environnement (dev, prod)
-│   ├── extensions.py        # Instanciation des extensions Flask (db, jwt, migrate, cors)
+│   ├── config.py            # Configuration par environnement (dev, prod, test)
+│   ├── extensions.py        # Instanciation des extensions Flask (db, jwt, migrate, cors, swagger, limiter)
 │   ├── models/              # Modèles SQLAlchemy — représentent les tables de la base
 │   │   ├── __init__.py      # Exports centralisés des modèles
-│   │   └── base.py          # Modèle abstrait dont héritent tous les modèles
+│   │   ├── base.py          # Modèle abstrait dont héritent tous les modèles
+│   │   ├── user.py          # User (email, password_hash, first_name, last_name, is_verified, is_active, roles M2M)
+│   │   └── role.py          # Role (name, description, permissions M2M) + Permission (codename, name, description)
 │   ├── routes/              # Blueprints Flask — définissent les endpoints HTTP
 │   │   ├── __init__.py      # Enregistrement centralisé de tous les blueprints
-│   │   └── health.py        # Endpoint GET /api/health
+│   │   ├── health.py        # Endpoint GET /api/health
+│   │   ├── auth.py          # Blueprint /api/auth/* (register, login, refresh, me, verify-email, forgot-password, reset-password)
+│   │   ├── oauth.py         # Blueprint /api/auth/google/* (login, callback)
+│   │   └── admin.py         # Blueprint /api/admin/* (roles, permissions, assignation)
 │   ├── schemas/             # Schémas Marshmallow — validation entrée et sérialisation sortie
+│   │   ├── __init__.py
+│   │   └── auth_schema.py   # RegisterSchema, LoginSchema, UserSchema
 │   └── services/            # Logique métier pure — sans dépendance à Flask ou HTTP
+│       ├── __init__.py      # Instances des services (auth_service, role_service)
+│       ├── auth_service.py  # AuthService : register, login, refresh, me, verify_email, forgot_password, reset_password
+│       ├── role_service.py  # RoleService : CRUD roles/permissions, assignation + décorateurs @role_required, @permission_required
+│       ├── email_service.py # Génération/confirmation de tokens (itsdangerous), envoi SMTP (smtplib)
+│       └── oauth_service.py # Authlib OAuth, init OAuth providers, google_login
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py          # Fixtures Pytest (app de test, client HTTP, DB en mémoire)
 │   ├── unit/                # Tests unitaires — testent les services isolément
-│   │   └── __init__.py
+│   │   ├── __init__.py
+│   │   ├── test_auth_service.py
+│   │   └── test_role_service.py
 │   └── integration/         # Tests d'intégration — testent les routes HTTP complètes
-│       └── __init__.py
+│       ├── __init__.py
+│       ├── test_health.py
+│       ├── test_auth.py
+│       └── test_admin.py
 ├── migrations/              # Fichiers de migration générés automatiquement par Alembic
 ├── Dockerfile               # Image Docker du backend
 ├── requirements.txt         # Dépendances Python de production
-├── requirements-dev.txt     # Dépendances Python de développement (pytest, etc.)
 ├── run.py                   # Point d'entrée de l'application
+├── pytest.ini               # Configuration Pytest
 └── .env.example             # Template des variables d'environnement
 ```
+
+---
+
+## Authentification
+
+Voir `docs/AUTH.md` pour la documentation complète du système d'authentification et RBAC.
+
+### Architecture
+
+```
+Client
+  POST /api/auth/login
+    -> auth_bp.login()
+      -> LoginSchema.load()      # Validation Marshmallow
+      -> auth_service.login()    # Logique métier
+        -> User.check_password() # Vérification bcrypt
+        -> create_access_token() # JWT 15min
+        -> create_refresh_token() # JWT 7 jours
+      -> jsonify(result), 200
+```
+
+### Routes disponibles
+
+#### Authentification publique
+
+| Méthode | Endpoint | Rate limit | Description |
+|---|---|---|---|
+| POST | /api/auth/register | 3/min | Inscription |
+| POST | /api/auth/login | 5/min | Connexion |
+| POST | /api/auth/refresh | -- | Rafraîchir le token (Bearer refresh_token) |
+| POST | /api/auth/verify-email | -- | Confirmer l'email |
+| POST | /api/auth/forgot-password | 3/min | Demander un reset |
+| POST | /api/auth/reset-password | 3/min | Réinitialiser le mot de passe |
+| GET | /api/auth/google/login | -- | Redirection Google OAuth |
+| GET | /api/auth/google/callback | 5/min | Callback Google |
+
+#### Authentification requise (Bearer token)
+
+| Méthode | Endpoint | Description |
+|---|---|---|
+| GET | /api/auth/me | Profil utilisateur |
+| POST | /api/auth/resend-verification | Renvoyer l'email de confirmation |
+
+#### Administration (Bearer token + admin role)
+
+| Méthode | Endpoint | Description |
+|---|---|---|
+| GET | /api/admin/roles | Lister les rôles |
+| POST | /api/admin/roles | Créer un rôle |
+| GET | /api/admin/permissions | Lister les permissions |
+| POST | /api/admin/permissions | Créer une permission |
+| POST | /api/admin/users/<id>/roles | Assigner un rôle |
+| DELETE | /api/admin/users/<id>/roles | Retirer un rôle |
+| GET | /api/admin/users/<id>/roles | Voir les rôles d'un utilisateur |
+| POST | /api/admin/roles/<name>/permissions | Assigner une permission à un rôle |
 
 ---
 
@@ -87,20 +162,33 @@ Le rôle d'une route est strictement limité à :
 Une route ne contient pas de logique métier.
 Une route ne fait pas de requête directe à la base de données.
 
-### schemas/
-Un schéma par ressource.
-Utiliser load() pour valider et désérialiser les données entrantes.
-Utiliser dump() pour sérialiser les données sortantes.
-
 ### config.py
-Trois classes : Config (base), DevelopmentConfig, ProductionConfig.
+Trois classes : Config (base), DevelopmentConfig, ProductionConfig, TestingConfig.
 Toutes les valeurs sensibles viennent du fichier .env via python-dotenv.
 Jamais de valeur sensible en dur dans le code.
 
 ### extensions.py
-Instancie les extensions sans les lier à une application concrète.
-Le lien se fait dans create_app() via la méthode init_app() de chaque extension.
-Ce pattern (Application Factory) évite les imports circulaires et facilite les tests.
+Instancie les extensions sans les lier à une application concrète :
+- db (SQLAlchemy)
+- migrate (Flask-Migrate)
+- jwt (Flask-JWT-Extended)
+- cors (Flask-Cors)
+- swagger (Flasgger)
+- limiter (Flask-Limiter avec support Redis via LIMITER_STORAGE_URL)
+
+### Decorators RBAC
+
+```python
+from app.services.role_service import role_required, permission_required
+
+@role_required("admin")
+def admin_only_route():
+    pass
+
+@permission_required("users:delete")
+def delete_user():
+    pass
+```
 
 ---
 
@@ -135,30 +223,30 @@ def get_products():
     return jsonify([p.to_dict() for p in products]), 200
 ```
 
-### Installer Flasgger
+### Sécurité JWT dans Swagger
 
-Ajouter dans requirements.txt :
-
-```
-flasgger==0.9.7.1
-```
-
-Initialiser dans extensions.py :
+Pour documenter qu'une route nécessite un token JWT, ajouter la section security :
 
 ```python
-from flasgger import Swagger
-swagger = Swagger()
+responses:
+  401:
+    description: Token manquant ou invalide
+security:
+  - Bearer: []
 ```
 
-Lier dans create_app() :
-
-```python
-swagger.init_app(app)
-```
+**Toutes les routes admin et les routes protégées sont documentées avec Swagger.**
 
 ---
 
 ## Tests — Pytest
+
+### Lancer les tests
+
+```bash
+cd backend
+python -m pytest -v
+```
 
 ### Structure des tests
 
@@ -166,7 +254,12 @@ swagger.init_app(app)
 tests/
 ├── conftest.py        # Fixtures partagées entre tous les tests
 ├── unit/              # Tests des services (logique métier isolée)
+│   ├── test_auth_service.py
+│   └── test_role_service.py
 └── integration/       # Tests des routes HTTP complètes
+    ├── test_health.py
+    ├── test_auth.py
+    └── test_admin.py
 ```
 
 ### conftest.py — Fixtures de base
@@ -190,6 +283,10 @@ def client(app):
 
 @pytest.fixture(autouse=True)
 def clean_db(app):
+    """
+    Nettoie toutes les tables après chaque test.
+    Garantit l'isolation entre les tests.
+    """
     yield
     with app.app_context():
         for table in reversed(_db.metadata.sorted_tables):
@@ -197,42 +294,53 @@ def clean_db(app):
         _db.session.commit()
 ```
 
-### Exemple de test unitaire (service)
+### Couverture des tests (66 tests)
 
-```python
-# tests/unit/test_product_service.py
-def test_create_product(app):
-    with app.app_context():
-        product = product_service.create({"name": "Mil", "price": 500})
-        assert product.id is not None
-        assert product.name == "Mil"
-```
+| Fichier | Tests | Ce qui est testé |
+|---|---|---|
+| `unit/test_auth_service.py` | 12 | register (validation, doublon), login (succès, mauvais password, email inconnu, inactif), verify_email (succès, token invalide), forgot/reset (envoi silencieux, changement, token invalide), me (succès, introuvable), refresh (succès, inactif) |
+| `unit/test_role_service.py` | 10 | create_role (succès, doublon), list_roles, get_user_roles (introuvable), create_permission (succès, doublon), list_permissions, assign_role (succès, introuvable, doublon), remove_role, assign_permission (succès, role introuvable), has_permission |
+| `integration/test_health.py` | 2 | Status 200, body correct |
+| `integration/test_auth.py` | 15 | Register (201, 400, 409), Login (200, 401, 400), Me (200, 401), Refresh (200, 401), VerifyEmail (200, 400 x2), ForgotPassword (200 x2, 400), ResetPassword (200, 400 x2) |
+| `integration/test_admin.py` | 15 | Roles (list admin/403/401, create 201/400/409), Permissions (list, create 201/409), Assign/remove role (200), Get user roles (200/404), Assign permission (200/400) |
 
-### Exemple de test d'intégration (route)
+---
 
-```python
-# tests/integration/test_product_routes.py
-def test_get_products_returns_200(client):
-    response = client.get("/api/products")
-    assert response.status_code == 200
-    assert isinstance(response.get_json(), list)
-```
+## Sécurité
 
-### Lancer les tests
+### Rate limiting (Redis)
+- Login : 5 tentatives par minute
+- Register : 3 tentatives par minute
+- Forgot/reset password : 3 tentatives par minute
+- Google callback : 5 tentatives par minute
+- Réponse 429 avec message explicatif
+- Désactivé en mode test (RATELIMIT_ENABLED = False)
+- Stockage : Redis via `LIMITER_STORAGE_URL`. Si vide, utilise la mémoire (warning).
 
-```bash
-# Tous les tests
-docker compose exec backend pytest
+### Mots de passe
+- Hashés avec `werkzeug.security.generate_password_hash` (pbkdf2:sha256)
+- bcrypt installé en dépendance, utilisé si disponible
+- Validation longueur minimale : 8 caractères
 
-# Avec détail
-docker compose exec backend pytest -v
+### Tokens JWT
+- Access token : 15 minutes
+- Refresh token : 7 jours
+- Claims inclus : email, is_verified
+- Gestion des erreurs : expired, invalid, missing
 
-# Un seul fichier
-docker compose exec backend pytest tests/unit/test_product_service.py
+### Tokens de vérification
+- Email verification : itsdangerous URLSafeTimedSerializer, expire 24h
+- Password reset : itsdangerous URLSafeTimedSerializer, expire 1h
+- Stockés dans l'URL, envoyés par email
 
-# Avec couverture de code
-docker compose exec backend pytest --cov=app
-```
+### Emails (SMTP)
+- Utilise `smtplib` avec TLS sur le port 587
+- `MAIL_PASSWORD` obligatoire (pas de fallback) — lève une erreur si absent
+- Pour Gmail : créer un [App Password](https://support.google.com/accounts/answer/185833) (pas le mot de passe du compte)
+- Compatible avec tout fournisseur SMTP (Brevo 300/jour gratuit, SendGrid, Mailgun, etc.)
+
+### Protection anti-énumération
+- Forgot password retourne le même message que l'email existe ou non
 
 ---
 
@@ -259,15 +367,25 @@ Copier .env.example en .env et renseigner toutes les valeurs avant de démarrer.
 | Variable | Description | Exemple |
 |---|---|---|
 | FLASK_APP | Point d'entrée Flask | run.py |
-| FLASK_ENV | Environnement actif | development |
-| SECRET_KEY | Clé secrète Flask | une-chaine-aleatoire-longue |
-| JWT_SECRET_KEY | Clé de signature JWT | une-autre-chaine-aleatoire |
+| FLASK_ENV | Environnement actif | production |
+| SECRET_KEY | Clé secrète Flask / itsdangerous | une-chaine-aleatoire-longue |
+| JWT_SECRET_KEY | Clé de signature JWT (>= 32 bytes) | une-autre-chaine-longue |
 | DATABASE_URL | URL complète PostgreSQL | postgresql://user:pass@localhost:5432/db |
 | DB_HOST | Hôte de la base | localhost |
 | DB_PORT | Port PostgreSQL | 5432 |
 | DB_NAME | Nom de la base | zulu_db |
 | DB_USER | Utilisateur PostgreSQL | zulu_user |
 | DB_PASSWORD | Mot de passe PostgreSQL | zulu_pass |
+| FRONTEND_URL | URL du frontend (liens email) | http://localhost:5173 |
+| LIMITER_STORAGE_URL | Redis URI pour le rate limiting (vide = mémoire) | redis://localhost:6379/0 |
+| MAIL_SERVER | Serveur SMTP | smtp.gmail.com |
+| MAIL_PORT | Port SMTP | 587 |
+| MAIL_USERNAME | Utilisateur SMTP | rayanebicaba.dev@gmail.com |
+| MAIL_PASSWORD | Mot de passe ou App Password SMTP | (obligatoire en prod) |
+| MAIL_DEFAULT_SENDER | Adresse d'envoi par défaut | rayanebicaba.dev@gmail.com |
+| MAIL_USE_TLS | TLS actif ou non | true |
+| GOOGLE_CLIENT_ID | ID client Google OAuth (obligatoire pour Google login) | (optionnel) |
+| GOOGLE_CLIENT_SECRET | Secret client Google OAuth (obligatoire pour Google login) | (optionnel) |
 
 ---
 
