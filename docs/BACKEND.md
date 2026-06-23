@@ -47,7 +47,7 @@ backend/
 │       ├── __init__.py      # Instances des services (auth_service, role_service)
 │       ├── auth_service.py  # AuthService : register, login, refresh, me, verify_email, forgot_password, reset_password
 │       ├── role_service.py  # RoleService : CRUD roles/permissions, assignation + décorateurs @role_required, @permission_required
-│       ├── email_service.py # Génération/confirmation de tokens (itsdangerous), mock email logger
+│       ├── email_service.py # Génération/confirmation de tokens (itsdangerous), envoi SMTP (smtplib)
 │       └── oauth_service.py # Authlib OAuth, init OAuth providers, google_login
 ├── tests/
 │   ├── __init__.py
@@ -367,7 +367,7 @@ Copier .env.example en .env et renseigner toutes les valeurs avant de démarrer.
 | Variable | Description | Exemple |
 |---|---|---|
 | FLASK_APP | Point d'entrée Flask | run.py |
-| FLASK_ENV | Environnement actif | development |
+| FLASK_ENV | Environnement actif | production |
 | SECRET_KEY | Clé secrète Flask / itsdangerous | une-chaine-aleatoire-longue |
 | JWT_SECRET_KEY | Clé de signature JWT (>= 32 bytes) | une-autre-chaine-longue |
 | DATABASE_URL | URL complète PostgreSQL | postgresql://user:pass@localhost:5432/db |
@@ -384,8 +384,8 @@ Copier .env.example en .env et renseigner toutes les valeurs avant de démarrer.
 | MAIL_PASSWORD | Mot de passe ou App Password SMTP | (obligatoire en prod) |
 | MAIL_DEFAULT_SENDER | Adresse d'envoi par défaut | rayanebicaba.dev@gmail.com |
 | MAIL_USE_TLS | TLS actif ou non | true |
-| GOOGLE_CLIENT_ID | ID client Google OAuth | (optionnel) |
-| GOOGLE_CLIENT_SECRET | Secret client Google OAuth | (optionnel) |
+| GOOGLE_CLIENT_ID | ID client Google OAuth (obligatoire pour Google login) | (optionnel) |
+| GOOGLE_CLIENT_SECRET | Secret client Google OAuth (obligatoire pour Google login) | (optionnel) |
 
 ---
 

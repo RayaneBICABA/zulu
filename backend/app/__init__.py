@@ -1,3 +1,4 @@
+import os
 from flask import Flask, jsonify
 from .config import config
 from .extensions import db, migrate, jwt, cors, swagger, limiter
@@ -5,7 +6,11 @@ from flask_jwt_extended.exceptions import NoAuthorizationError
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
 
-def create_app(env="default"):
+def create_app(env=None):
+    if env is None:
+        env = os.getenv("FLASK_ENV", "production")
+        if env not in config:
+            env = "production"
     app = Flask(__name__)
     app.config.from_object(config[env])
 
