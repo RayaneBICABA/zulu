@@ -17,17 +17,37 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: zulu_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   backend:
     build: ./backend
     container_name: zulu_backend
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgresql://zulu_user:zulu_pass@db:5432/zulu_db
       FLASK_ENV: development
       SECRET_KEY: dev-secret
       JWT_SECRET_KEY: dev-jwt-secret
+      FRONTEND_URL: http://localhost:5173
+      LIMITER_STORAGE_URL: redis://redis:6379/0
+      MAIL_SERVER: smtp.gmail.com
+      MAIL_PORT: "587"
+      MAIL_USERNAME: rayanebicaba.dev@gmail.com
+      MAIL_PASSWORD: ""
+      MAIL_DEFAULT_SENDER: rayanebicaba.dev@gmail.com
     ports:
       - "5000:5000"
     volumes:
