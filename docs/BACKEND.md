@@ -39,7 +39,8 @@ backend/
 │   │   ├── health.py        # Endpoint GET /api/health
 │   │   ├── auth.py          # Blueprint /api/auth/* (register, login, refresh, me, verify-email, forgot-password, reset-password)
 │   │   ├── oauth.py         # Blueprint /api/auth/google/* (login, callback)
-│   │   └── admin.py         # Blueprint /api/admin/* (roles, permissions, assignation)
+│   │   ├── admin.py         # Blueprint /api/admin/* (roles, permissions, assignation)
+│   │   └── diagram.py       # Blueprint /api/diagram/* (génération automatique de diagramme de classes UML)
 │   ├── schemas/             # Schémas Marshmallow — validation entrée et sérialisation sortie
 │   │   ├── __init__.py
 │   │   └── auth_schema.py   # RegisterSchema, LoginSchema, UserSchema
@@ -48,7 +49,8 @@ backend/
 │       ├── auth_service.py  # AuthService : register, login, refresh, me, verify_email, forgot_password, reset_password
 │       ├── role_service.py  # RoleService : CRUD roles/permissions, assignation + décorateurs @role_required, @permission_required
 │       ├── email_service.py # Génération/confirmation de tokens (itsdangerous), envoi SMTP (smtplib)
-│       └── oauth_service.py # Authlib OAuth, init OAuth providers, google_login
+│       ├── oauth_service.py # Authlib OAuth, init OAuth providers, google_login
+│       └── diagram_service.py # Génération de diagramme de classes UML (Mermaid.js) par introspection SQLAlchemy
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py          # Fixtures Pytest (app de test, client HTTP, DB en mémoire)
@@ -344,7 +346,46 @@ def clean_db(app):
 
 ---
 
-## Ajouter une nouvelle ressource
+## Diagramme de classes UML
+
+Le module `diagram_service.py` inspecte tous les modèles SQLAlchemy enregistrés dans `app.extensions.db` et génère un diagramme de classes au format [Mermaid.js](https://mermaid.js.org/).
+
+### Fonctionnement
+
+1. Parcourt tous les modèles héritant de `BaseModel`
+2. Extrait pour chaque modèle : les colonnes (nom, type, PK, FK, nullable, défaut), les relations (type de lien, multiplicité), l'héritage
+3. Génère le texte Mermaid avec la syntaxe `classDiagram`
+4. Retourne soit le texte brut, soit une page HTML interactive
+
+### Endpoints
+
+| Méthode | Endpoint | Description |
+|---|---|---|
+| GET | /api/diagram | Texte brut Mermaid (Content-Type: text/plain) |
+| GET | /api/diagram/view | Page HTML avec rendu visuel du diagramme |
+
+### Page HTML interactive (`/api/diagram/view`)
+
+- Diagramme rendu avec Mermaid.js (CDN v11)
+- Bouton **Telecharger PNG** : exporte le diagramme en PNG 2x via canvas + base64 data URI
+- Bouton **Code source** : affiche le texte Mermaid brut
+- Bouton **Copier le code** : copie le texte Mermaid dans le presse-papier
+- Couleurs : rose `#c61458` et bleu foncé `#08275d`
+
+### Architecture du code
+
+```
+app/services/diagram_service.py   — Logique pure (introspection, génération Mermaid, HTML)
+app/routes/diagram.py            — Endpoints HTTP
+```
+
+Le service est découplé de Flask : `generate_mermaid()` retourne du texte, `get_html_diagram()` retourne du HTML. Les routes ne font que déléguer.
+
+### Ajouter un modèle au diagramme
+
+Le diagramme est généré dynamiquement. Il suffit de créer un modèle héritant de `BaseModel` et de l'exporter dans `app/models/__init__.py`. Le diagramme l'inclura automatiquement au prochain appel.
+
+---
 
 Exemple complet : ajouter la ressource "Produit"
 

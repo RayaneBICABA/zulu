@@ -79,7 +79,11 @@ zulu-starter/
 │   ├── BACKEND.md
 │   ├── FRONTEND.md
 │   ├── COMMANDS.md
-│   └── FRONTEND_COMMANDS.md
+│   ├── FRONTEND_COMMANDS.md
+│   └── api-convention-designer.md   ← Template de contrat API frontend/backend
+├── tools/                Outils autonomes (HTML, sans build)
+│   ├── zulu-taskboard.html          ← Gestion de taches equipe
+│   └── api-contract-designer.html   ← Editeur de contrat API interactif
 ├── docker-compose.yml    Services Docker (PostgreSQL + backend)
 └── ZULU.png              Logo du projet
 ```
@@ -164,6 +168,9 @@ npm run cap:open:android    # Ouvrir dans Android Studio
 | `docs/FRONTEND.md` | Architecture frontend, roles des couches, conventions, travail en equipe |
 | `docs/COMMANDS.md` | Commandes Docker, Python, migrations, tests, Git workflow |
 | `docs/FRONTEND_COMMANDS.md` | Commandes frontend (dev, build, lint, preview, deploiement) |
+| `docs/api-convention-designer.md` | Template de contrat API — conventions, formats, workflow frontend/backend |
+| `tools/zulu-taskboard.html` | Tableau de gestion de taches (ouvrir dans le navigateur) |
+| `tools/api-contract-designer.html` | Editeur interactif de contrat API (ouvrir dans le navigateur) |
 
 ## Variables d'environnement
 

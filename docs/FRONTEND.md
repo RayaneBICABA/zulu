@@ -259,6 +259,15 @@ Toute communication avec le backend passe exclusivement par ce dossier. Aucun co
 | `apiClient.js` | Client HTTP bas niveau (get, post, put, delete). Ajoute automatiquement le header Authorization si un token JWT existe en localStorage. Intercepte les 401 et tente un refresh automatique. En cas d'echec, emet un evenement `auth:logout` pour forcer la deconnexion. |
 | `authService.js` | Fonctions liees a l'authentification (login, register, logout, me, refresh, verifyEmail, forgotPassword, resetPassword, resendVerification). Geres les tokens (access + refresh) en localStorage. |
 
+### Diagramme de classes UML
+
+Le backend expose un diagramme de classes UML automatique, genere par introspection SQLAlchemy et rendu avec Mermaid.js :
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/diagram` | Texte Mermaid brut |
+| `GET /api/diagram/view` | Page HTML interactive avec rendu, téléchargement PNG et copie du code |
+
 #### apiClient -- Auto-refresh JWT
 
 Le apiClient implemente un mecanisme d'auto-refresh :
