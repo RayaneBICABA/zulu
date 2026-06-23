@@ -1,5 +1,8 @@
 import logging
-from flask import current_app
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from flask import current_app, render_template
 from itsdangerous import URLSafeTimedSerializer
 
 logger = logging.getLogger(__name__)
@@ -31,6 +34,65 @@ def confirm_reset_token(token, expiration=3600):
         return None
 
 
-def send_email(to, subject, body):
-    logger.info(f"[EMAIL] To: {to} | Subject: {subject}")
-    logger.info(f"[EMAIL] Body: {body}")
+def _send_smtp(to, subject, html_body):
+    config = current_app.config
+    mail_password = config.get("MAIL_PASSWORD", "")
+
+    if not mail_password:
+        logger.info(f"[EMAIL] To: {to} | Subject: {subject}")
+        logger.info(f"[EMAIL] Body: {html_body}")
+        return
+
+    msg = MIMEMultipart("alternative")
+    msg["From"] = config["MAIL_DEFAULT_SENDER"]
+    msg["To"] = to
+    msg["Subject"] = subject
+    msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+    try:
+        server = smtplib.SMTP(config["MAIL_SERVER"], config["MAIL_PORT"], timeout=10)
+        if config.get("MAIL_USE_TLS", True):
+            server.starttls()
+        server.login(config["MAIL_USERNAME"], mail_password)
+        server.sendmail(config["MAIL_DEFAULT_SENDER"], to, msg.as_string())
+        server.quit()
+        logger.info(f"[EMAIL] Sent to {to}")
+    except Exception as e:
+        logger.error(f"[EMAIL] Failed to send to {to}: {e}")
+        raise
+
+
+def send_verification_email(to, token):
+    link = f"{current_app.config['FRONTEND_URL']}/verifier-email?token={token}"
+    html = f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Verifiez votre email</h2>
+        <p>Bonjour,</p>
+        <p>Cliquez sur le lien ci-dessous pour activer votre compte :</p>
+        <p><a href="{link}" style="background: #2563eb; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block;">Verifier mon email</a></p>
+        <p>Ou copiez ce lien dans votre navigateur :</p>
+        <p style="word-break: break-all; color: #2563eb;">{link}</p>
+        <p>Ce lien expire dans 24 heures.</p>
+      </body>
+    </html>
+    """
+    _send_smtp(to, "Zulu — Verification de votre email", html)
+
+
+def send_reset_password_email(to, token):
+    link = f"{current_app.config['FRONTEND_URL']}/reinitialiser-mot-de-passe?token={token}"
+    html = f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Reinitialisation de mot de passe</h2>
+        <p>Bonjour,</p>
+        <p>Cliquez sur le lien ci-dessous pour reinitialiser votre mot de passe :</p>
+        <p><a href="{link}" style="background: #2563eb; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block;">Reinitialiser mon mot de passe</a></p>
+        <p>Ou copiez ce lien dans votre navigateur :</p>
+        <p style="word-break: break-all; color: #2563eb;">{link}</p>
+        <p>Ce lien expire dans 1 heure. Si vous n'avez pas demande cette reinitialisation, ignorez cet email.</p>
+      </body>
+    </html>
+    """
+    _send_smtp(to, "Zulu — Reinitialisation de mot de passe", html)

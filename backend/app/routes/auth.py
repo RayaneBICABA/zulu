@@ -5,7 +5,7 @@ from ..schemas import RegisterSchema, LoginSchema, UserSchema
 from ..services import auth_service
 from ..extensions import limiter
 from ..models.user import User
-from ..services.email_service import generate_verification_token, send_email
+from ..services.email_service import generate_verification_token, send_verification_email
 
 auth_bp = Blueprint("auth", __name__)
 register_schema = RegisterSchema()
@@ -284,10 +284,5 @@ def resend_verification():
         return jsonify({"error": "Email deja verifie."}), 400
 
     token = generate_verification_token(user.email)
-    verify_url = f"{current_app.config.get('FRONTEND_URL', 'http://localhost:5173')}/verifier-email?token={token}"
-    send_email(
-        to=user.email,
-        subject="Confirmez votre adresse email",
-        body=f"Cliquez sur le lien pour confirmer votre adresse email :\n{verify_url}",
-    )
+    send_verification_email(user.email, token)
     return jsonify({"message": "Email de verification renvoye."}), 200

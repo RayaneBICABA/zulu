@@ -7,7 +7,8 @@ from .email_service import (
     confirm_verification_token,
     generate_reset_token,
     confirm_reset_token,
-    send_email,
+    send_verification_email,
+    send_reset_password_email,
 )
 from flask import current_app
 
@@ -26,13 +27,7 @@ class AuthService:
         user.save()
 
         token = generate_verification_token(email)
-        verify_url = f"{current_app.config.get('FRONTEND_URL', 'http://localhost:5173')}/verifier-email?token={token}"
-        send_email(
-            to=email,
-            subject="Confirmez votre adresse email",
-            body=f"Bienvenue sur Zulu Starter !\n\nCliquez sur le lien pour confirmer votre adresse email :\n{verify_url}\n\nCe lien expire dans 24 heures.",
-        )
-        setattr(user, '_verification_url', verify_url)
+        send_verification_email(email, token)
         return user
 
     def verify_email(self, token):
@@ -98,12 +93,7 @@ class AuthService:
             return
 
         token = generate_reset_token(email)
-        reset_url = f"{current_app.config.get('FRONTEND_URL', 'http://localhost:5173')}/reinitialiser-mot-de-passe?token={token}"
-        send_email(
-            to=email,
-            subject="Reinitialisation de votre mot de passe",
-            body=f"Cliquez sur le lien pour reinitialiser votre mot de passe :\n{reset_url}\n\nCe lien expire dans 1 heure.",
-        )
+        send_reset_password_email(email, token)
 
     def reset_password(self, token, new_password):
         email = confirm_reset_token(token)

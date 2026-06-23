@@ -15,6 +15,8 @@
 | PostgreSQL 15 | Base de données relationnelle |
 | Docker + Docker Compose | Conteneurisation |
 | Swagger / Flasgger | Documentation interactive des API |
+| Redis 7 | Stockage du rate limiting (flask-limiter) |
+| smtplib | Envoi d'emails SMTP (Gmail, Brevo, etc.) |
 | Pytest | Tests unitaires et d'intégration |
 
 ---
@@ -172,7 +174,7 @@ Instancie les extensions sans les lier à une application concrète :
 - jwt (Flask-JWT-Extended)
 - cors (Flask-Cors)
 - swagger (Flasgger)
-- limiter (Flask-Limiter)
+- limiter (Flask-Limiter avec support Redis via LIMITER_STORAGE_URL)
 
 ### Decorators RBAC
 
@@ -306,13 +308,14 @@ def clean_db(app):
 
 ## Sécurité
 
-### Rate limiting
+### Rate limiting (Redis)
 - Login : 5 tentatives par minute
 - Register : 3 tentatives par minute
 - Forgot/reset password : 3 tentatives par minute
 - Google callback : 5 tentatives par minute
 - Réponse 429 avec message explicatif
 - Désactivé en mode test (RATELIMIT_ENABLED = False)
+- Stockage : Redis via `LIMITER_STORAGE_URL`. Si vide, utilise la mémoire (warning).
 
 ### Mots de passe
 - Hashés avec `werkzeug.security.generate_password_hash` (pbkdf2:sha256)
@@ -329,6 +332,12 @@ def clean_db(app):
 - Email verification : itsdangerous URLSafeTimedSerializer, expire 24h
 - Password reset : itsdangerous URLSafeTimedSerializer, expire 1h
 - Stockés dans l'URL, envoyés par email
+
+### Emails (SMTP)
+- Utilise `smtplib` avec TLS sur le port 587
+- Si `MAIL_PASSWORD` est vide, les emails sont loggés dans la console (mode dev)
+- Pour Gmail : créer un [App Password](https://support.google.com/accounts/answer/185833) (pas le mot de passe du compte)
+- Compatible avec tout fournisseur SMTP (Brevo 300/jour gratuit, SendGrid, Mailgun, etc.)
 
 ### Protection anti-énumération
 - Forgot password retourne le même message que l'email existe ou non
@@ -368,6 +377,13 @@ Copier .env.example en .env et renseigner toutes les valeurs avant de démarrer.
 | DB_USER | Utilisateur PostgreSQL | zulu_user |
 | DB_PASSWORD | Mot de passe PostgreSQL | zulu_pass |
 | FRONTEND_URL | URL du frontend (liens email) | http://localhost:5173 |
+| LIMITER_STORAGE_URL | Redis URI pour le rate limiting (vide = mémoire) | redis://localhost:6379/0 |
+| MAIL_SERVER | Serveur SMTP | smtp.gmail.com |
+| MAIL_PORT | Port SMTP | 587 |
+| MAIL_USERNAME | Utilisateur SMTP | rayanebicaba.dev@gmail.com |
+| MAIL_PASSWORD | Mot de passe ou App Password SMTP | (laisser vide = log only) |
+| MAIL_DEFAULT_SENDER | Adresse d'envoi par défaut | rayanebicaba.dev@gmail.com |
+| MAIL_USE_TLS | TLS actif ou non | true |
 | GOOGLE_CLIENT_ID | ID client Google OAuth | (optionnel) |
 | GOOGLE_CLIENT_SECRET | Secret client Google OAuth | (optionnel) |
 
