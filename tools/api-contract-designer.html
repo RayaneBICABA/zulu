@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>API Contract Designer — Zulu Starter</title>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  :root {
+    --bg:        #0f1117;
+    --surface:   #181c27;
+    --surface2:  #1f2435;
+    --border:    #2a3048;
+    --border2:   #3a4262;
+    --text:      #e4e8f5;
+    --muted:     #7b85a3;
+    --accent:    #5b7fff;
+    --accent-dim:#2a3a7a;
+
+    --get:       #22c55e;
+    --get-bg:    #0d2e1a;
+    --get-border:#14532d;
+
+    --post:      #3b82f6;
+    --post-bg:   #0d1e3a;
+    --post-border:#1e3a6e;
+
+    --put:       #f59e0b;
+    --put-bg:    #2e1f06;
+    --put-border:#78350f;
+
+    --patch:     #a78bfa;
+    --patch-bg:  #1e1530;
+    --patch-border:#4c1d95;
+
+    --delete:    #ef4444;
+    --delete-bg: #2d0f0f;
+    --delete-border:#7f1d1d;
+
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --font-ui:   'Inter', system-ui, sans-serif;
+    --radius:    8px;
+    --radius-lg: 12px;
+    --shadow:    0 4px 24px rgba(0,0,0,.45);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── TOPBAR ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 56px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: .02em;
+  }
+  .logo span { color: var(--accent); }
+  .logo-sub { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 4px; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: var(--font-ui);
+    font-weight: 500;
+    transition: background .15s, border-color .15s, opacity .15s;
+    white-space: nowrap;
+  }
+  .btn-ghost {
+    background: transparent;
+    border-color: var(--border2);
+    color: var(--text);
+  }
+  .btn-ghost:hover { background: var(--surface2); border-color: var(--accent); }
+
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { opacity: .85; }
+
+  .btn-danger {
+    background: transparent;
+    border-color: var(--delete-border);
+    color: var(--delete);
+  }
+  .btn-danger:hover { background: var(--delete-bg); }
+
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* ── LAYOUT ── */
+  .app-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    height: calc(100vh - 56px);
+  }
+
+  /* ── SIDEBAR ── */
+  aside {
+    width: 260px;
+    min-width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .sidebar-header h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 10px;
+  }
+  .search-box input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 13px;
+    width: 100%;
+    font-family: var(--font-ui);
+  }
+  .search-box input::placeholder { color: var(--muted); }
+  .sidebar-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .sidebar-list::-webkit-scrollbar { width: 4px; }
+  .sidebar-list::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .ep-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background .12s;
+    border: 1px solid transparent;
+  }
+  .ep-item:hover { background: var(--surface2); }
+  .ep-item.active { background: var(--accent-dim); border-color: var(--accent); }
+  .ep-path {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+  .ep-item.active .ep-path { color: var(--text); }
+
+  .group-label {
+    padding: 12px 10px 4px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ── MAIN ── */
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  main::-webkit-scrollbar { width: 6px; }
+  main::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 16px;
+    color: var(--muted);
+    text-align: center;
+    padding: 40px;
+  }
+  .empty-state h2 { font-size: 20px; color: var(--text); }
+  .empty-state p { max-width: 360px; line-height: 1.6; }
+
+  /* ── META BAR ── */
+  .meta-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .meta-bar h1 {
+    font-size: 18px;
+    font-weight: 700;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  /* ── METHOD BADGE ── */
+  .method-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    border: 1px solid;
+    cursor: pointer;
+    user-select: none;
+  }
+  .method-GET    { color: var(--get);    background: var(--get-bg);    border-color: var(--get-border); }
+  .method-POST   { color: var(--post);   background: var(--post-bg);   border-color: var(--post-border); }
+  .method-PUT    { color: var(--put);    background: var(--put-bg);    border-color: var(--put-border); }
+  .method-PATCH  { color: var(--patch);  background: var(--patch-bg);  border-color: var(--patch-border); }
+  .method-DELETE { color: var(--delete); background: var(--delete-bg); border-color: var(--delete-border); }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .card-header h2 { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; flex: 1; }
+  .card-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* ── FORM ── */
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  label { font-size: 12px; color: var(--muted); font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .required-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--delete); display: inline-block; }
+
+  input[type="text"], input[type="number"], select, textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: var(--font-ui);
+    outline: none;
+    transition: border-color .15s;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+  }
+  textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+  input.mono, textarea.mono { font-family: var(--font-mono); font-size: 12px; }
+  select { cursor: pointer; }
+  select option { background: var(--surface); }
+
+  /* ── PARAMS TABLE ── */
+  .params-table { display: flex; flex-direction: column; gap: 8px; }
+  .param-row {
+    display: grid;
+    grid-template-columns: 140px 100px 1fr auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .param-row input, .param-row select { padding: 7px 10px; font-size: 12px; }
+  .add-param-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--accent); cursor: pointer;
+    border: 1px dashed var(--accent-dim);
+    border-radius: var(--radius);
+    padding: 6px 12px;
+    background: transparent;
+    transition: background .15s;
+    font-family: var(--font-ui);
+    margin-top: 4px;
+  }
+  .add-param-btn:hover { background: var(--accent-dim); }
+
+  /* ── RESPONSES ── */
+  .response-block {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .response-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface2);
+  }
+  .response-body { padding: 12px 14px; }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid;
+  }
+  .status-2xx { color: var(--get);    background: var(--get-bg);    border-color: var(--get-border); }
+  .status-4xx { color: var(--put);    background: var(--put-bg);    border-color: var(--put-border); }
+  .status-5xx { color: var(--delete); background: var(--delete-bg); border-color: var(--delete-border); }
+  .status-badge[contenteditable]:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ── METHOD PICKER ── */
+  .method-picker {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  /* ── AUTH CHIPS ── */
+  .auth-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid var(--border2);
+    cursor: pointer;
+    background: var(--bg);
+    color: var(--muted);
+    transition: all .15s;
+    user-select: none;
+  }
+  .chip.active { background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
+
+  /* ── SUMMARY SECTION ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .stat-card .stat-label { font-size: 11px; color: var(--muted); }
+  .stat-card .stat-value { font-size: 24px; font-weight: 700; }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 0 0 4px;
+    flex-wrap: wrap;
+  }
+  .toolbar-sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+
+  /* ── NOTIFICATION ── */
+  .notif {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 12px 18px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: var(--shadow);
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity .2s, transform .2s;
+    pointer-events: none;
+  }
+  .notif.show { opacity: 1; transform: none; }
+
+  /* ── PROJECT META ── */
+  .project-meta {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+  }
+  .project-meta input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid transparent;
+    border-radius: 0;
+    padding: 2px 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+  }
+  .project-meta input:focus { border-bottom-color: var(--accent); outline: none; }
+
+  /* ── MODAL ── */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200;
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .modal-backdrop.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    width: 520px;
+    max-width: 95vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    box-shadow: var(--shadow);
+    transform: translateY(16px); transition: transform .2s;
+  }
+  .modal-backdrop.open .modal { transform: none; }
+  .modal h2 { font-size: 16px; }
+
+  /* Print / export area */
+  @media print {
+    header, aside, .toolbar, .header-actions, .btn, .add-param-btn,
+    .modal-backdrop, .notif, #export-controls { display: none !important; }
+    body { background: #fff; color: #111; }
+    main { padding: 20px; }
+    .card { border: 1px solid #ccc; page-break-inside: avoid; }
+  }
+
+  hr { border: none; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="logo">
+    <i data-lucide="zap" style="color:var(--accent);width:18px;height:18px;"></i>
+    <span>API</span>Contract<span class="logo-sub">Zulu Starter</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost btn-sm" onclick="openProjectModal()">
+      <i data-lucide="settings" style="width:14px;height:14px;"></i> Projet
+    </button>
+    <button class="btn btn-ghost btn-sm" onclick="exportMD()">
+      <i data-lucide="file-text" style="width:14px;height:14px;"></i> Export MD
+    </button>
+    <button class="btn btn-ghost btn-sm" onclick="exportPDF()">
+      <i data-lucide="printer" style="width:14px;height:14px;"></i> Export PDF
+    </button>
+    <button class="btn btn-primary btn-sm" onclick="addEndpoint()">
+      <i data-lucide="plus" style="width:14px;height:14px;"></i> Nouvel endpoint
+    </button>
+  </div>
+</header>
+
+<div class="app-body">
+
+  <!-- ── SIDEBAR ── -->
+  <aside>
+    <div class="sidebar-header">
+      <h3>Endpoints</h3>
+      <div class="search-box">
+        <i data-lucide="search" style="width:13px;height:13px;color:var(--muted);flex-shrink:0;"></i>
+        <input id="search-input" type="text" placeholder="Rechercher..." oninput="filterEndpoints(this.value)" />
+      </div>
+    </div>
+    <div class="sidebar-list" id="sidebar-list">
+      <!-- populated by JS -->
+    </div>
+  </aside>
+
+  <!-- ── MAIN CONTENT ── -->
+  <main id="main-content">
+    <div class="empty-state" id="empty-state">
+      <i data-lucide="layers" style="width:48px;height:48px;opacity:.3;"></i>
+      <h2>Aucun endpoint défini</h2>
+      <p>Commence par créer un endpoint. Chaque décision ici évite une heure de debug front/back plus tard.</p>
+      <button class="btn btn-primary" onclick="addEndpoint()">
+        <i data-lucide="plus" style="width:14px;height:14px;"></i> Créer le premier endpoint
+      </button>
+    </div>
+    <div id="endpoint-view" style="display:none; flex-direction:column; gap:24px;"></div>
+  </main>
+
+</div>
+
+<!-- ── MODAL PROJECT ── -->
+<div class="modal-backdrop" id="project-modal">
+  <div class="modal">
+    <h2><i data-lucide="folder" style="width:16px;height:16px;vertical-align:middle;margin-right:8px;"></i>Paramètres du projet</h2>
+    <div class="field">
+      <label>Nom du projet</label>
+      <input type="text" id="proj-name" value="Zulu Starter" />
+    </div>
+    <div class="field">
+      <label>Base URL</label>
+      <input type="text" id="proj-base" class="mono" value="https://api.zulu.dev/v1" />
+    </div>
+    <div class="field">
+      <label>Version</label>
+      <input type="text" id="proj-version" value="1.0.0" />
+    </div>
+    <div class="field">
+      <label>Description</label>
+      <textarea id="proj-desc" rows="3" placeholder="Description du contrat API..."></textarea>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeProjectModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="saveProject()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── NOTIFICATION ── -->
+<div class="notif" id="notif">
+  <i data-lucide="check-circle" style="width:15px;height:15px;color:var(--get);"></i>
+  <span id="notif-text">Sauvegardé</span>
+</div>
+
+<script>
+/* ================================================================
+   STATE
+================================================================ */
+let project = {
+  name: 'Zulu Starter',
+  baseUrl: 'https://api.zulu.dev/v1',
+  version: '1.0.0',
+  description: ''
+};
+
+let endpoints = [];
+let currentId = null;
+let _uid = 0;
+const uid = () => 'ep_' + (++_uid);
+
+const METHODS = ['GET','POST','PUT','PATCH','DELETE'];
+const AUTH_TYPES = ['None','Bearer JWT','API Key','OAuth2','Basic'];
+const STATUS_DEFAULTS = {
+  GET:    [{code:'200',desc:'Succès',body:'{ "data": [...] }'}],
+  POST:   [{code:'201',desc:'Créé',body:'{ "id": "..." }'},{code:'400',desc:'Payload invalide',body:'{ "error": "..." }'}],
+  PUT:    [{code:'200',desc:'Mis à jour',body:''},{code:'404',desc:'Introuvable',body:''}],
+  PATCH:  [{code:'200',desc:'Mis à jour',body:''},{code:'404',desc:'Introuvable',body:''}],
+  DELETE: [{code:'204',desc:'Supprimé',body:''},{code:'404',desc:'Introuvable',body:''}],
+};
+
+/* ================================================================
+   BOOTSTRAP
+================================================================ */
+function boot() {
+  const saved = localStorage.getItem('zulu_api_contract');
+  if (saved) {
+    const d = JSON.parse(saved);
+    project = d.project || project;
+    endpoints = d.endpoints || [];
+    if (endpoints.length) _uid = Math.max(...endpoints.map(e => parseInt(e.id.split('_')[1])||0));
+  } else {
+    // demo endpoint
+    addEndpoint(true);
+  }
+  renderSidebar();
+  if (endpoints.length) selectEndpoint(endpoints[0].id);
+  lucide.createIcons();
+}
+
+/* ================================================================
+   PERSIST
+================================================================ */
+function save() {
+  localStorage.setItem('zulu_api_contract', JSON.stringify({ project, endpoints }));
+  showNotif('Sauvegardé automatiquement');
+}
+
+/* ================================================================
+   ENDPOINT CRUD
+================================================================ */
+function addEndpoint(demo = false) {
+  const id = uid();
+  const method = demo ? 'GET' : 'POST';
+  const ep = {
+    id,
+    method,
+    path: demo ? '/users' : '/resource',
+    name: demo ? 'Lister les utilisateurs' : 'Nouvel endpoint',
+    description: '',
+    tag: demo ? 'Users' : '',
+    auth: 'Bearer JWT',
+    headers: [{ key: 'Content-Type', type: 'string', desc: 'application/json', required: true }],
+    pathParams: demo ? [{ key: 'id', type: 'string', desc: 'ID utilisateur', required: true }] : [],
+    queryParams: demo ? [{ key: 'page', type: 'number', desc: 'Page courante', required: false }] : [],
+    bodySchema: method === 'GET' ? '' : '{\n  "name": "string",\n  "email": "string"\n}',
+    responses: STATUS_DEFAULTS[method] ? [...STATUS_DEFAULTS[method]] : [],
+    notes: demo ? 'Retourne la liste paginée des utilisateurs actifs.' : '',
+  };
+  endpoints.push(ep);
+  renderSidebar();
+  selectEndpoint(id);
+  save();
+  if (!demo) lucide.createIcons();
+}
+
+function deleteEndpoint(id) {
+  endpoints = endpoints.filter(e => e.id !== id);
+  currentId = null;
+  renderSidebar();
+  if (endpoints.length) selectEndpoint(endpoints[0].id);
+  else showEmpty();
+  save();
+}
+
+function getEP(id) { return endpoints.find(e => e.id === id); }
+
+/* ================================================================
+   SIDEBAR
+================================================================ */
+function renderSidebar(filter = '') {
+  const list = document.getElementById('sidebar-list');
+  list.innerHTML = '';
+  const groups = {};
+  endpoints.forEach(ep => {
+    if (filter && !ep.path.includes(filter) && !ep.name.toLowerCase().includes(filter.toLowerCase())) return;
+    const tag = ep.tag || 'Général';
+    if (!groups[tag]) groups[tag] = [];
+    groups[tag].push(ep);
+  });
+  Object.keys(groups).forEach(tag => {
+    const lbl = document.createElement('div');
+    lbl.className = 'group-label';
+    lbl.innerHTML = `<i data-lucide="folder" style="width:12px;height:12px;"></i>${tag}`;
+    list.appendChild(lbl);
+    groups[tag].forEach(ep => {
+      const item = document.createElement('div');
+      item.className = 'ep-item' + (ep.id === currentId ? ' active' : '');
+      item.dataset.id = ep.id;
+      item.innerHTML = `
+        <span class="method-badge method-${ep.method}" style="font-size:9px;padding:2px 6px;">${ep.method}</span>
+        <span class="ep-path">${ep.path}</span>
+      `;
+      item.onclick = () => selectEndpoint(ep.id);
+      list.appendChild(item);
+    });
+  });
+  lucide.createIcons();
+}
+
+function filterEndpoints(v) { renderSidebar(v); }
+
+/* ================================================================
+   SELECT / RENDER ENDPOINT
+================================================================ */
+function selectEndpoint(id) {
+  currentId = id;
+  document.querySelectorAll('.ep-item').forEach(el => el.classList.toggle('active', el.dataset.id === id));
+  document.getElementById('empty-state').style.display = 'none';
+  const view = document.getElementById('endpoint-view');
+  view.style.display = 'flex';
+  view.innerHTML = buildEndpointForm(getEP(id));
+  lucide.createIcons();
+}
+
+function showEmpty() {
+  document.getElementById('empty-state').style.display = 'flex';
+  document.getElementById('endpoint-view').style.display = 'none';
+}
+
+/* ================================================================
+   FORM BUILDER
+================================================================ */
+function buildEndpointForm(ep) {
+  const methodBtns = METHODS.map(m => `
+    <button class="method-badge method-${m}" onclick="setMethod('${ep.id}','${m}')"
+      style="${ep.method===m ? 'opacity:1;' : 'opacity:.35;'}">
+      ${m}
+    </button>`).join('');
+
+  const authChips = AUTH_TYPES.map(a => `
+    <span class="chip${ep.auth===a?' active':''}" onclick="setAuth('${ep.id}','${a}')">${a}</span>
+  `).join('');
+
+  const headerRows = (ep.headers||[]).map((h,i) => paramRow(ep.id, 'headers', i, h)).join('');
+  const pathRows   = (ep.pathParams||[]).map((h,i) => paramRow(ep.id, 'pathParams', i, h)).join('');
+  const queryRows  = (ep.queryParams||[]).map((h,i) => paramRow(ep.id, 'queryParams', i, h)).join('');
+  const responseBlocks = (ep.responses||[]).map((r,i) => responseBlock(ep.id, i, r)).join('');
+
+  const statusClass = code => code.startsWith('2') ? 'status-2xx' : code.startsWith('4') ? 'status-4xx' : 'status-5xx';
+
+  return `
+  <!-- META BAR -->
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:200px;">
+      <input type="text" value="${esc(ep.name)}" style="font-size:20px;font-weight:700;background:transparent;border:none;border-bottom:2px solid var(--border);border-radius:0;padding:4px 2px;width:100%;"
+        oninput="upd('${ep.id}','name',this.value)" placeholder="Nom de l'endpoint" />
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="duplicateEP('${ep.id}')">
+        <i data-lucide="copy" style="width:13px;height:13px;"></i> Dupliquer
+      </button>
+      <button class="btn btn-danger btn-sm" onclick="deleteEndpoint('${ep.id}')">
+        <i data-lucide="trash-2" style="width:13px;height:13px;"></i> Supprimer
+      </button>
+    </div>
+  </div>
+
+  <!-- METHOD + PATH -->
+  <div class="card">
+    <div class="card-header">
+      <i data-lucide="route" style="width:14px;height:14px;"></i>
+      <h2>Méthode & Route</h2>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Méthode HTTP <span class="required-dot"></span></label>
+        <div class="method-picker">${methodBtns}</div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Path <span class="required-dot"></span></label>
+          <input type="text" class="mono" value="${esc(ep.path)}" oninput="upd('${ep.id}','path',this.value)" placeholder="/resource/{id}" />
+        </div>
+        <div class="field">
+          <label>Tag / Groupe</label>
+          <input type="text" value="${esc(ep.tag||'')}" oninput="upd('${ep.id}','tag',this.value)" placeholder="Ex: Users, Auth, Products" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Description courte</label>
+        <textarea oninput="upd('${ep.id}','description',this.value)" placeholder="Ce que fait cet endpoint...">${esc(ep.description||'')}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUTH -->
+  <div class="card">
+    <div class="card-header">
+      <i data-lucide="shield" style="width:14px;height:14px;"></i>
+      <h2>Authentification</h2>
+    </div>
+    <div class="card-body">
+      <div class="auth-chips">${authChips}</div>
+    </div>
+  </div>
+
+  <!-- HEADERS -->
+  <div class="card">
+    <div class="card-header">
+      <i data-lucide="hash" style="width:14px;height:14px;"></i>
+      <h2>Headers</h2>
+    </div>
+    <div class="card-body">
+      <div class="params-table" id="tbl-headers-${ep.id}">
+        <div class="param-row" style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;">
+          <span>Clé</span><span>Type</span><span>Description / Valeur</span><span></span>
+        </div>
+        ${headerRows}
+      </div>
+      <button class="add-param-btn" onclick="addParam('${ep.id}','headers')">
+        <i data-lucide="plus" style="width:12px;height:12px;"></i> Ajouter un header
+      </button>
+    </div>
+  </div>
+
+  <!-- PATH PARAMS -->
+  <div class="card">
+    <div class="card-header">
+      <i data-lucide="braces" style="width:14px;height:14px;"></i>
+      <h2>Path Parameters</h2>
+    </div>
+    <div class="card-body">
+      <div class="params-table" id="tbl-pathParams-${ep.id}">
+        <div class="param-row" style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;">
+          <span>Paramètre</span><span>Type</span><span>Description</span><span></span>
+        </div>
+        ${pathRows}
+      </div>
+      <button class="add-param-btn" onclick="addParam('${ep.id}','pathParams')">
+        <i data-lucide="plus" style="width:12px;height:12px;"></i> Ajouter un paramètre
+      </button>
+    </div>
+  </div>
+
+  <!-- QUERY PARAMS -->
+  <div class="card">
+    <div class="card-header">
+      <i data-lucide="sliders-horizontal" style="width:14px;height:14px;"></i>
+      <h2>Query Parameters</h2>
+    </div>
+    <div class="card-body">
+      <div class="params-table" id="tbl-queryParams-${ep.id}">
+        <div class="param-row" style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;">
+          <span>Paramètre</span><span>Type</span><span>Description</span><span></span>
+        </div>
+        ${queryRows}
+      </div>
+      <button class="add-param-btn" onclick="addParam('${ep.id}','queryParams')">
+        <i data-lucide="plus" style="width:12px;height:12px;"></i> Ajouter un query param
+      </button>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="card" id="body-card-${ep.id}" style="${ep.method==='GET'||ep.method==='DELETE'?'opacity:.5;':''}">
+    <div class="card-header">
+      <i data-lucide="code-2" style="width:14px;height:14px;"></i>
+      <h2>Request Body (JSON Schema)</h2>
+      ${ep.method==='GET'||ep.method==='DELETE' ? '<span style="font-size:11px;color:var(--muted);margin-left:auto;">Non applicable pour '+ep.method+'</span>' : ''}
+    </div>
+    <div class="card-body">
+      <textarea class="mono" rows="8" oninput="upd('${ep.id}','bodySchema',this.value)"
+        ${ep.method==='GET'||ep.method==='DELETE' ? 'disabled' : ''}
+        placeholder='{\n  "field": "type  — description"\n}'>${esc(ep.bodySchema||'')}</textarea>
+    </div>
+  </div>
+
+  <!-- RESPONSES -->
+  <div class="card">
+    <div class="card-header">
+      <i data-lucide="arrow-left-right" style="width:14px;height:14px;"></i>
+      <h2>Réponses</h2>
+    </div>
+    <div class="card-body" id="responses-${ep.id}">
+      ${responseBlocks}
+      <button class="add-param-btn" onclick="addResponse('${ep.id}')">
+        <i data-lucide="plus" style="width:12px;height:12px;"></i> Ajouter une réponse
+      </button>
+    </div>
+  </div>
+
+  <!-- NOTES -->
+  <div class="card">
+    <div class="card-header">
+      <i data-lucide="sticky-note" style="width:14px;height:14px;"></i>
+      <h2>Notes & Décisions d'équipe</h2>
+    </div>
+    <div class="card-body">
+      <textarea rows="5" oninput="upd('${ep.id}','notes',this.value)"
+        placeholder="Comportements particuliers, edge cases, décisions prises en réunion...">${esc(ep.notes||'')}</textarea>
+    </div>
+  </div>
+  `;
+}
+
+function paramRow(epId, field, i, p) {
+  const reqChecked = p.required ? 'checked' : '';
+  return `
+  <div class="param-row" id="prow-${epId}-${field}-${i}">
+    <input type="text" class="mono" value="${esc(p.key||'')}" placeholder="nom"
+      oninput="updParam('${epId}','${field}',${i},'key',this.value)" />
+    <select onchange="updParam('${epId}','${field}',${i},'type',this.value)">
+      ${['string','number','boolean','array','object'].map(t => `<option${p.type===t?' selected':''}>${t}</option>`).join('')}
+    </select>
+    <input type="text" value="${esc(p.desc||'')}" placeholder="description"
+      oninput="updParam('${epId}','${field}',${i},'desc',this.value)" />
+    <button class="btn btn-ghost btn-sm" style="padding:5px;" onclick="removeParam('${epId}','${field}',${i})">
+      <i data-lucide="x" style="width:12px;height:12px;color:var(--muted);"></i>
+    </button>
+  </div>`;
+}
+
+function responseBlock(epId, i, r) {
+  const cls = r.code.startsWith('2') ? 'status-2xx' : r.code.startsWith('4') ? 'status-4xx' : 'status-5xx';
+  return `
+  <div class="response-block" id="resp-${epId}-${i}">
+    <div class="response-header">
+      <span class="status-badge ${cls}" contenteditable="true"
+        onblur="updResp('${epId}',${i},'code',this.textContent.trim())">${esc(r.code)}</span>
+      <input type="text" value="${esc(r.desc||'')}" placeholder="Description"
+        style="flex:1;background:transparent;border:none;border-bottom:1px solid var(--border);border-radius:0;padding:2px 6px;"
+        oninput="updResp('${epId}',${i},'desc',this.value)" />
+      <button class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="removeResp('${epId}',${i})">
+        <i data-lucide="x" style="width:12px;height:12px;color:var(--muted);"></i>
+      </button>
+    </div>
+    <div class="response-body">
+      <textarea class="mono" rows="4" oninput="updResp('${epId}',${i},'body',this.value)"
+        placeholder="Corps de réponse JSON (optionnel)...">${esc(r.body||'')}</textarea>
+    </div>
+  </div>`;
+}
+
+/* ================================================================
+   UPDATE HELPERS
+================================================================ */
+function upd(id, key, val) {
+  const ep = getEP(id);
+  if (!ep) return;
+  ep[key] = val;
+  if (key === 'name' || key === 'path' || key === 'method' || key === 'tag') renderSidebar();
+  if (key === 'method') {
+    if (!ep.responses.length) ep.responses = [...(STATUS_DEFAULTS[val]||[])];
+    selectEndpoint(id);
+  }
+  save();
+}
+
+function setMethod(id, m) {
+  const ep = getEP(id); ep.method = m;
+  if (!ep.responses.length) ep.responses = [...(STATUS_DEFAULTS[m]||[])];
+  renderSidebar();
+  selectEndpoint(id); save();
+}
+
+function setAuth(id, a) { getEP(id).auth = a; selectEndpoint(id); save(); }
+
+function updParam(id, field, i, key, val) {
+  getEP(id)[field][i][key] = val; save();
+}
+function removeParam(id, field, i) {
+  getEP(id)[field].splice(i,1); selectEndpoint(id); save();
+}
+function addParam(id, field) {
+  getEP(id)[field].push({ key:'', type:'string', desc:'', required:false });
+  selectEndpoint(id); save();
+}
+function updResp(id, i, key, val) {
+  const r = getEP(id).responses[i];
+  if (r) { r[key] = val; if (key==='code') selectEndpoint(id); save(); }
+}
+function removeResp(id, i) {
+  getEP(id).responses.splice(i,1); selectEndpoint(id); save();
+}
+function addResponse(id) {
+  getEP(id).responses.push({ code:'200', desc:'', body:'' });
+  selectEndpoint(id); save();
+}
+function duplicateEP(id) {
+  const ep = JSON.parse(JSON.stringify(getEP(id)));
+  ep.id = uid(); ep.name += ' (copie)';
+  endpoints.push(ep); renderSidebar(); selectEndpoint(ep.id); save();
+}
+
+/* ================================================================
+   PROJECT MODAL
+================================================================ */
+function openProjectModal() {
+  document.getElementById('proj-name').value = project.name;
+  document.getElementById('proj-base').value = project.baseUrl;
+  document.getElementById('proj-version').value = project.version;
+  document.getElementById('proj-desc').value = project.description;
+  document.getElementById('project-modal').classList.add('open');
+}
+function closeProjectModal() { document.getElementById('project-modal').classList.remove('open'); }
+function saveProject() {
+  project.name = document.getElementById('proj-name').value;
+  project.baseUrl = document.getElementById('proj-base').value;
+  project.version = document.getElementById('proj-version').value;
+  project.description = document.getElementById('proj-desc').value;
+  closeProjectModal(); save();
+}
+
+/* ================================================================
+   NOTIFICATION
+================================================================ */
+let _nt;
+function showNotif(msg) {
+  const el = document.getElementById('notif');
+  document.getElementById('notif-text').textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_nt);
+  _nt = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+/* ================================================================
+   ESCAPE
+================================================================ */
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ================================================================
+   EXPORT MARKDOWN
+================================================================ */
+function exportMD() {
+  let md = `# ${project.name} — API Contract\n`;
+  md += `**Base URL:** \`${project.baseUrl}\`  |  **Version:** ${project.version}\n\n`;
+  if (project.description) md += `${project.description}\n\n`;
+  md += `---\n\n`;
+
+  const groups = {};
+  endpoints.forEach(ep => { const g = ep.tag||'Général'; if(!groups[g])groups[g]=[]; groups[g].push(ep); });
+
+  Object.keys(groups).forEach(tag => {
+    md += `## ${tag}\n\n`;
+    groups[tag].forEach(ep => {
+      md += `### \`${ep.method}\` ${ep.path}\n`;
+      md += `**${ep.name}**\n\n`;
+      if (ep.description) md += `${ep.description}\n\n`;
+      md += `**Auth:** ${ep.auth}\n\n`;
+
+      if (ep.headers?.length) {
+        md += `#### Headers\n| Clé | Type | Description |\n|-----|------|-------------|\n`;
+        ep.headers.forEach(h => { md += `| \`${h.key}\` | ${h.type} | ${h.desc} |\n`; });
+        md += '\n';
+      }
+      if (ep.pathParams?.length) {
+        md += `#### Path Parameters\n| Paramètre | Type | Description |\n|-----------|------|-------------|\n`;
+        ep.pathParams.forEach(h => { md += `| \`${h.key}\` | ${h.type} | ${h.desc} |\n`; });
+        md += '\n';
+      }
+      if (ep.queryParams?.length) {
+        md += `#### Query Parameters\n| Paramètre | Type | Description |\n|-----------|------|-------------|\n`;
+        ep.queryParams.forEach(h => { md += `| \`${h.key}\` | ${h.type} | ${h.desc} |\n`; });
+        md += '\n';
+      }
+      if (ep.bodySchema && ep.method !== 'GET' && ep.method !== 'DELETE') {
+        md += `#### Request Body\n\`\`\`json\n${ep.bodySchema}\n\`\`\`\n\n`;
+      }
+      if (ep.responses?.length) {
+        md += `#### Responses\n`;
+        ep.responses.forEach(r => {
+          md += `- **${r.code}** — ${r.desc}\n`;
+          if (r.body) md += `  \`\`\`json\n  ${r.body}\n  \`\`\`\n`;
+        });
+        md += '\n';
+      }
+      if (ep.notes) md += `#### Notes\n${ep.notes}\n\n`;
+      md += '---\n\n';
+    });
+  });
+
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${project.name.replace(/\s+/g,'-').toLowerCase()}-api-contract.md`;
+  a.click();
+  showNotif('Export Markdown téléchargé');
+}
+
+/* ================================================================
+   EXPORT PDF
+================================================================ */
+function exportPDF() {
+  window.print();
+}
+
+/* ================================================================
+   INIT
+================================================================ */
+document.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>
