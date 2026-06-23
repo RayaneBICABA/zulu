@@ -335,7 +335,7 @@ def clean_db(app):
 
 ### Emails (SMTP)
 - Utilise `smtplib` avec TLS sur le port 587
-- Si `MAIL_PASSWORD` est vide, les emails sont loggés dans la console (mode dev)
+- `MAIL_PASSWORD` obligatoire (pas de fallback) — lève une erreur si absent
 - Pour Gmail : créer un [App Password](https://support.google.com/accounts/answer/185833) (pas le mot de passe du compte)
 - Compatible avec tout fournisseur SMTP (Brevo 300/jour gratuit, SendGrid, Mailgun, etc.)
 
@@ -381,7 +381,7 @@ Copier .env.example en .env et renseigner toutes les valeurs avant de démarrer.
 | MAIL_SERVER | Serveur SMTP | smtp.gmail.com |
 | MAIL_PORT | Port SMTP | 587 |
 | MAIL_USERNAME | Utilisateur SMTP | rayanebicaba.dev@gmail.com |
-| MAIL_PASSWORD | Mot de passe ou App Password SMTP | (laisser vide = log only) |
+| MAIL_PASSWORD | Mot de passe ou App Password SMTP | (obligatoire en prod) |
 | MAIL_DEFAULT_SENDER | Adresse d'envoi par défaut | rayanebicaba.dev@gmail.com |
 | MAIL_USE_TLS | TLS actif ou non | true |
 | GOOGLE_CLIENT_ID | ID client Google OAuth | (optionnel) |
