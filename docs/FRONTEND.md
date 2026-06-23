@@ -32,7 +32,12 @@ frontend/
 │   │   ├── ui/                Composants purs et reutilisables
 │   │   └── layout/            Composants de structure de page
 │   ├── constants/             Valeurs fixes : couleurs, routes, endpoints
-│   ├── features/              Domaines metier specifiques (vide, voir ci-dessous)
+│   ├── features/              Domaines metier (auth, etc.)
+│   │   └── auth/              Systeme d'authentification
+│   │       ├── context/       AuthProvider (etat utilisateur)
+│   │       ├── hooks/         useAuth (consommateur du contexte)
+│   │       ├── components/    ProtectedRoute, SocialLoginButton
+│   │       └── pages/         Login, Register, ForgotPassword, ResetPassword, VerifyEmail
 │   ├── hooks/                 Hooks React personnalises
 │   ├── pages/                 Une page = une route
 │   ├── services/              Appels API et logique d'acces aux donnees
@@ -147,11 +152,89 @@ Toute valeur fixe utilisee a plusieurs endroits du code vit ici, jamais codee en
 
 **Regle :** toute couleur utilisee dans un composant doit exister dans `constants/colors.js` ou etre une classe Tailwind issue du `@theme` defini dans `index.css`. Aucun hex en dur.
 
-### features/
+### features/auth/
 
-Dossier reserve pour les domaines metier specifiques au sujet du hackathon. Encore vide puisque le sujet n'est pas connu.
+Contient toute la logique liee a l'authentification et au controle d'acces.
 
-**Convention :** le jour du hackathon, chaque domaine metier recoit son propre sous-dossier ici, avec sa structure components/hooks/services interne si necessaire. Le dossier ui/ et layout/ restent strictement transverses.
+#### Context & Hook
+
+**AuthProvider** (`context/AuthProvider.jsx`) : contexte React qui encapsule l'etat utilisateur et fournit les methodes suivantes :
+
+| Methode | Description |
+|---|---|
+| `user` | Objet utilisateur connecte (null si non connecte) |
+| `loading` | Boolen pendant le chargement du profil |
+| `login(credentials)` | Authentification, stocke les tokens |
+| `register(data)` | Inscription |
+| `logout()` | Deconnexion, efface les tokens |
+| `refreshUser()` | Recharger le profil depuis l'API |
+| `hasRole(role)` | Verifier si l'utilisateur a un role |
+| `hasPermission(perm)` | Verifier si l'utilisateur a une permission |
+| `isAuthenticated` | Boolen indiquant si un utilisateur est connecte |
+
+**useAuth** (`hooks/useAuth.js`) : hook React qui consomme le AuthContext. Doit etre utilise a l'interieur d'un AuthProvider.
+
+```jsx
+import useAuth from '../../features/auth/hooks/useAuth'
+
+const { user, login, logout, hasRole, hasPermission } = useAuth()
+```
+
+#### Composants
+
+**ProtectedRoute** (`components/ProtectedRoute.jsx`) : wrapper de route qui verifie l'authentification et optionnellement les roles/permissions.
+
+```jsx
+// Route protegee simple
+<ProtectedRoute>
+  <DashboardPage />
+</ProtectedRoute>
+
+// Route reservee aux admins
+<ProtectedRoute role="admin">
+  <AdminPage />
+</ProtectedRoute>
+
+// Route avec permission specifique
+<ProtectedRoute permission="users:delete">
+  <DeleteUserPage />
+</ProtectedRoute>
+```
+
+**SocialLoginButton** (`components/SocialLoginButton.jsx`) : bouton d'authentification sociale (Google OAuth). Redirige vers le backend qui gere le flux OAuth.
+
+#### Pages
+
+| Page | Route | Description |
+|---|---|---|
+| `LoginPage` | `/login` | Formulaire de connexion email/mot de passe + Google OAuth |
+| `RegisterPage` | `/register` | Formulaire d'inscription avec validation cote client |
+| `ForgotPasswordPage` | `/mot-de-passe-oublie` | Saisie email pour recevoir un lien de reinitialisation |
+| `ResetPasswordPage` | `/reinitialiser-mot-de-passe` | Saisie du nouveau mot de passe avec token dans l'URL |
+| `VerifyEmailPage` | `/verifier-email` | Verification automatique de l'email via le token dans l'URL |
+
+Chaque page suit le meme pattern : validation cote client avant appel API, gestion des etats loading/error/success, redirection apres action reussie.
+
+#### Diagramme de flux
+
+```
+App (AuthProvider)
+  |
+  +-- useAuth (hook consommateur)
+  |
+  +-- ProtectedRoute (guard)
+  |
+  +-- pages auth (Login, Register, etc.)
+  |     |-- validation locale
+  |     +-- authService.login() / register() / etc.
+  |           +-- apiClient.post()
+  |                 +-- auto-refresh JWT
+  |
+  +-- apiClient
+        |-- intercepte les 401
+        |-- tente un refresh token
+        +-- echec => event auth:logout => deconnexion forcee
+```
 
 ### hooks/
 
@@ -165,7 +248,7 @@ Hooks React reutilisables encapsulant une logique commune.
 
 Une page correspond a une route declaree dans App.jsx. Une page assemble des composants ui/ et layout/, utilise les hooks et les services, et contient la logique propre a cet ecran.
 
-**Fichiers actuels :** HomePage, NotFoundPage
+**Fichiers actuels :** HomePage, NotFoundPage, DashboardPage
 
 ### services/
 
@@ -173,8 +256,27 @@ Toute communication avec le backend passe exclusivement par ce dossier. Aucun co
 
 | Service | Role |
 |---|---|
-| `apiClient.js` | Client HTTP bas niveau (get, post, put, delete). Ajoute automatiquement le header Authorization si un token JWT existe en localStorage. Lance une erreur lisible si la reponse n'est pas ok. |
-| `authService.js` | Fonctions liees a l'authentification (login, register, logout, me, gestion du token). S'appuie sur apiClient et sur les endpoints definis dans constants/api.js. |
+| `apiClient.js` | Client HTTP bas niveau (get, post, put, delete). Ajoute automatiquement le header Authorization si un token JWT existe en localStorage. Intercepte les 401 et tente un refresh automatique. En cas d'echec, emet un evenement `auth:logout` pour forcer la deconnexion. |
+| `authService.js` | Fonctions liees a l'authentification (login, register, logout, me, refresh, verifyEmail, forgotPassword, resetPassword, resendVerification). Geres les tokens (access + refresh) en localStorage. |
+
+### Diagramme de classes UML
+
+Le backend expose un diagramme de classes UML automatique, genere par introspection SQLAlchemy et rendu avec Mermaid.js :
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/diagram` | Texte Mermaid brut |
+| `GET /api/diagram/view` | Page HTML interactive avec rendu, téléchargement PNG et copie du code |
+
+#### apiClient -- Auto-refresh JWT
+
+Le apiClient implemente un mecanisme d'auto-refresh :
+
+1. Chaque requete est intercepetee par `authFetch`
+2. Si la reponse est 401, le client tente de refresher le token via `/auth/refresh`
+3. Pendant le refresh, les requetes concurrentes sont mises en file d'attente
+4. Si le refresh reussit, toutes les requetes en file sont retentees
+5. Si le refresh echoue, les tokens sont effaces et un evenement `auth:logout` est emis
 
 ---
 
@@ -182,34 +284,14 @@ Toute communication avec le backend passe exclusivement par ce dossier. Aucun co
 
 ```
 Page (ex: LoginPage)
-  -> hook useApi(authService.login)
-    -> service authService.login()
+  -> useAuth().login(credentials)
+    -> authService.login(credentials)
       -> apiClient.post(endpoint, body)
-        -> fetch() + gestion erreur
+        -> fetch() + auto-refresh + gestion erreur
           -> Backend Flask
 ```
 
-Une page n'appelle jamais fetch ou apiClient directement. Elle passe par un service, idealement via le hook `useApi` pour beneficier des etats loading/error.
-
-**Exemple :**
-
-```jsx
-import useApi from '../hooks/useApi'
-import authService from '../services/authService'
-
-const LoginPage = () => {
-  const { execute, loading, error } = useApi(authService.login)
-
-  const handleSubmit = async (credentials) => {
-    const result = await execute(credentials)
-    authService.saveToken(result.token)
-  }
-
-  return (
-    // ...
-  )
-}
-```
+Une page n'appelle jamais fetch ou apiClient directement. Elle passe par le AuthContext ou un service, idealement via le hook `useApi` pour beneficier des etats loading/error.
 
 ---
 
@@ -240,6 +322,7 @@ const LoginPage = () => {
 | ui/ | Affichage pur | Logique metier, appels API, connaissance du routing |
 | layout/ | Structure de page | Logique metier |
 | pages/ | Composition et logique d'ecran | Appel fetch direct |
+| features/ | Domaine metier specifique | Dependances transverses |
 | hooks/ | Logique reutilisable transverse | JSX |
 | services/ | Acces aux donnees distantes | JSX, etat React, hooks |
 | constants/ | Valeurs fixes | Logique, fonctions complexes |
@@ -265,19 +348,20 @@ const LoginPage = () => {
 
 **Implemente :**
 - Structure de base complete (ui, layout, pages, services, hooks, constants)
-- Client API generique avec gestion du token JWT
-- Service d'authentification (login, register, logout, me)
+- Client API generique avec auto-refresh JWT et file d'attente
+- Service d'authentification complet (login, register, logout, me, refresh, verifyEmail, forgotPassword, resetPassword)
 - Hook useApi generique
-- Page d'accueil (HomePage) et page 404
+- AuthContext et useAuth avec gestion de session, roles et permissions
+- ProtectedRoute avec support role/permission optionnel
+- Pages : Login, Register, ForgotPassword, ResetPassword, VerifyEmail, Dashboard
+- SocialLoginButton (Google OAuth)
+- Page d'accueil (HomePage), tableau de bord (DashboardPage), page 404
 - Navbar responsive avec menu mobile
 - Sidebar generique pour dashboard
 - Capacitor 7 configure pour Android (projet natif dans `android/`)
-- Dossier features/ cree, vide en attendant le sujet
 
-**A implementer :**
-- Pages Login et Register (le service existe, les pages non)
-- Gestion des roles (RBAC) liee a la branche backend feature/auth-roles
-- Tout domaine metier specifique dans features/
+**Documentation :**
+- docs/AUTH.md -- guide complet du systeme d'authentification et RBAC
 
 ---
 
