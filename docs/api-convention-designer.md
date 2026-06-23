@@ -198,6 +198,12 @@ Pour chaque endpoint, remplir le tableau suivant :
 
 ---
 
+## Editeur interactif
+
+Une version interactive de ce contrat est disponible dans `tools/api-contract-designer.html`.
+
+Ouvrir le fichier dans le navigateur pour editer visuellement les endpoints, exporter en Markdown, et partager l'URL (les donnees sont stockees dans le localStorage du navigateur).
+
 ## Ressources
 
 - Backend en ligne : `http://localhost:5000`
