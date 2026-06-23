@@ -21,7 +21,7 @@ backend/app/
     auth_service.py   register, login, refresh, me, verify_email, forgot_password, reset_password
     oauth_service.py  google_login (auto-register ou connexion)
     role_service.py   create_role, assign_role, create_permission, assign_permission
-    email_service.py  Generation/confirmation de tokens (itsdangerous), mock email logger
+    email_service.py  Generation/confirmation de tokens (itsdangerous), envoi SMTP (smtplib)
   routes/
     auth.py           Blueprint /api/auth/* (register, login, refresh, me, verify-email, forgot-password, reset-password)
     oauth.py          Blueprint /api/auth/google/* (login, callback)
