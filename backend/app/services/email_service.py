@@ -39,9 +39,7 @@ def _send_smtp(to, subject, html_body):
     mail_password = config.get("MAIL_PASSWORD", "")
 
     if not mail_password:
-        logger.info(f"[EMAIL] To: {to} | Subject: {subject}")
-        logger.info(f"[EMAIL] Body: {html_body}")
-        return
+        raise RuntimeError("MAIL_PASSWORD non configure. L'envoi d'email est impossible.")
 
     msg = MIMEMultipart("alternative")
     msg["From"] = config["MAIL_DEFAULT_SENDER"]

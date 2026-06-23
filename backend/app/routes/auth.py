@@ -60,10 +60,7 @@ def register():
             first_name=data.get("first_name"),
             last_name=data.get("last_name"),
         )
-        payload = {"message": "Inscription reussie.", "user": user.to_dict()}
-        if current_app.debug and hasattr(user, "_verification_url"):
-            payload["verification_url"] = user._verification_url
-        return jsonify(payload), 201
+        return jsonify({"message": "Inscription reussie.", "user": user.to_dict()}), 201
     except ValueError as e:
         return jsonify({"error": str(e)}), 409
 

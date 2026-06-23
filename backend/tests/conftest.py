@@ -1,6 +1,10 @@
+import logging
 import pytest
+from unittest.mock import patch
 from app import create_app
 from app.extensions import db as _db
+
+logger = logging.getLogger(__name__)
 
 @pytest.fixture(scope="session")
 def app():
@@ -21,3 +25,8 @@ def clean_db(app):
         for table in reversed(_db.metadata.sorted_tables):
             _db.session.execute(table.delete())
         _db.session.commit()
+
+@pytest.fixture(autouse=True)
+def mock_smtp():
+    with patch("app.services.email_service._send_smtp") as mock:
+        yield mock
