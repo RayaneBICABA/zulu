@@ -6,5 +6,6 @@ export const ROUTES = {
   resetPassword: '/reinitialiser-mot-de-passe',
   verifyEmail:   '/verifier-email',
   dashboard:     '/dashboard',
+  completeProfile:'/completer-profil',
   notFound:      '*',
 }

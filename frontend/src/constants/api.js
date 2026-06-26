@@ -17,4 +17,15 @@ export const ENDPOINTS = {
     googleLogin:      '/auth/google/login',
     googleCallback:   '/auth/google/callback',
   },
+  // Endpoints annuaire — prêts pour quand le backend exposera les routes Business.
+  categories: {
+    list: '/categories',
+  },
+  business: {
+    list:    '/businesses',
+    create:  '/businesses',
+    mine:    '/businesses/mine',
+    detail:  (id) => `/businesses/${id}`,
+    publish: (id) => `/businesses/${id}/publish`,
+  },
 }
