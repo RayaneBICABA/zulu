@@ -1,12 +1,14 @@
 from marshmallow import Schema, fields, validate
 
 
+class CategorieCreateSchema(Schema):
+    nom = fields.Str(required=True, validate=validate.Length(min=1, max=150))
+
+
 class CategorieSchema(Schema):
     id = fields.Int(dump_only=True)
-    nom = fields.Str(required=True, validate=validate.Length(max=150))
-    description = fields.Str(validate=validate.Length(max=500))
-    icone = fields.Str(validate=validate.Length(max=255))
-    is_active = fields.Bool()
+    nom = fields.Str(dump_only=True)
+    is_active = fields.Bool(dump_only=True)
     created_at = fields.DateTime(dump_only=True)
     updated_at = fields.DateTime(dump_only=True)
 
@@ -14,4 +16,3 @@ class CategorieSchema(Schema):
 class CategorieSummarySchema(Schema):
     id = fields.Int(dump_only=True)
     nom = fields.Str(dump_only=True)
-    icone = fields.Str(dump_only=True)
