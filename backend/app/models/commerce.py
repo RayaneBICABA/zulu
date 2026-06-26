@@ -16,6 +16,7 @@ class JourSemaine(enum.Enum):
 class Commerce(BaseModel):
     __tablename__ = "commerces"
 
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     nom_commercial = db.Column(db.String(200), nullable=False)
     whatsapp_numero = db.Column(db.String(20), nullable=True)
     contact_telephonique = db.Column(db.String(20), nullable=True)
@@ -25,8 +26,9 @@ class Commerce(BaseModel):
     longitude = db.Column(db.Numeric(9, 6), nullable=True)
     adresse_complete = db.Column(db.String(500), nullable=True)
     is_verified = db.Column(db.Boolean, default=False, nullable=False)
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    is_active = db.Column(db.Boolean, default=False, nullable=False)
 
+    user = db.relationship("User", backref=db.backref("commerces", lazy="selectin"))
     categorie = db.relationship("Categorie", backref=db.backref("commerces", lazy="selectin"))
     photos = db.relationship("CommercePhoto", backref="commerce", lazy="selectin", cascade="all, delete-orphan")
     horaires = db.relationship("HoraireOuverture", backref="commerce", lazy="selectin", cascade="all, delete-orphan")
@@ -34,6 +36,7 @@ class Commerce(BaseModel):
     def to_dict(self):
         return {
             "id": self.id,
+            "user_id": self.user_id,
             "nom_commercial": self.nom_commercial,
             "whatsapp_numero": self.whatsapp_numero,
             "contact_telephonique": self.contact_telephonique,

@@ -3,6 +3,9 @@ from .categorie_schema import CategorieSchema, CategorieSummarySchema
 from .commerce_schema import (
     CommerceSchema,
     CommerceSummarySchema,
+    CommerceStep1Schema,
+    CommerceStep2Schema,
     CommercePhotoSchema,
     HoraireOuvertureSchema,
+    HoraireInputSchema,
 )
