@@ -30,23 +30,15 @@ assign_schema = AssignRoleSchema()
 
 
 @admin_bp.route("/admin/roles", methods=["GET"])
-@jwt_required()
-@role_required("admin")
 def list_roles():
     """
     Lister tous les roles.
     ---
     tags:
       - Administration
-    security:
-      - Bearer: []
     responses:
       200:
         description: Liste des roles
-      401:
-        description: Token manquant ou invalide
-      403:
-        description: Acces refuse (role admin requis)
     """
     roles = role_service.get_all_roles()
     return jsonify([r.to_dict() for r in roles]), 200

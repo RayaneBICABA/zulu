@@ -20,7 +20,28 @@ def create_app(env=None):
     cors.init_app(app, resources={r"/api/*": {"origins": "*"}})
     limiter.init_app(app)
 
+    import cloudinary
+    cloudinary.config(
+        cloud_name=app.config["CLOUDINARY_CLOUD_NAME"],
+        api_key=app.config["CLOUDINARY_API_KEY"],
+        api_secret=app.config["CLOUDINARY_API_SECRET"],
+    )
+
     if not app.config.get("TESTING"):
+        app.config["SWAGGER"] = {
+            "title": "Zulu API",
+            "description": "API pour la plateforme Zulu — annuaire d'artisans",
+            "version": "1.0.0",
+            "securityDefinitions": {
+                "Bearer": {
+                    "type": "apiKey",
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "JWT token. Format: Bearer <token>",
+                }
+            },
+            "security": [{"Bearer": []}],
+        }
         swagger.init_app(app)
 
     @jwt.expired_token_loader
@@ -41,6 +62,9 @@ def create_app(env=None):
 
     from .routes import register_routes
     register_routes(app)
+
+    from .commands import seed_roles
+    app.cli.add_command(seed_roles)
 
     from .services.oauth_service import init_oauth
     init_oauth(app)
