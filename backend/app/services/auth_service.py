@@ -1,5 +1,6 @@
 from ..extensions import db, jwt
 from ..models.user import User
+from ..models.role import Role
 from flask_jwt_extended import create_access_token, create_refresh_token
 from datetime import timedelta
 from .email_service import (
@@ -25,6 +26,11 @@ class AuthService:
         )
         user.set_password(password)
         user.save()
+
+        client_role = Role.query.filter_by(name="client").first()
+        if client_role:
+            user.roles.append(client_role)
+            user.save()
 
         token = generate_verification_token(email)
         send_verification_email(email, token)
