@@ -10,4 +10,4 @@ marshmallow==4.3.0
 flasgger==0.9.7.1
 gunicorn==21.2.0
 bcrypt==5.0.0
-redis==5.3.0
+redis==5.0.8
