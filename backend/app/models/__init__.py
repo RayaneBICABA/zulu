@@ -12,3 +12,4 @@ from .commerce import (
     VueProfile,
     ProduitImage,
 )
+from .commentaire import Commentaire

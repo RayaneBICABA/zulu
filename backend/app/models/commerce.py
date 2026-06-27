@@ -29,7 +29,7 @@ class Commerce(BaseModel):
     is_verified = db.Column(db.Boolean, default=False, nullable=False)
     is_active = db.Column(db.Boolean, default=False, nullable=False)
 
-    user = db.relationship("User", backref=db.backref("commerces", lazy="selectin"))
+    user = db.relationship("User", foreign_keys=[user_id], backref=db.backref("commerces", lazy="selectin"))
     categorie = db.relationship("Categorie", backref=db.backref("commerces", lazy="selectin"))
     photos = db.relationship("CommercePhoto", backref="commerce", lazy="selectin", cascade="all, delete-orphan")
     horaires = db.relationship("HoraireOuverture", backref="commerce", lazy="selectin", cascade="all, delete-orphan")
@@ -37,6 +37,7 @@ class Commerce(BaseModel):
     favoris_recus = db.relationship("Favori", back_populates="commerce", lazy="selectin", cascade="all, delete-orphan")
     vues_recues = db.relationship("VueProfile", back_populates="commerce", lazy="selectin", cascade="all, delete-orphan")
     produit_images = db.relationship("ProduitImage", backref="commerce", lazy="selectin", cascade="all, delete-orphan")
+    commentaires = db.relationship("Commentaire", back_populates="commerce", lazy="selectin", cascade="all, delete-orphan")
 
     def to_dict(self):
         return {
@@ -64,7 +65,10 @@ class CommerceStats(BaseModel):
     commerce_id = db.Column(db.Integer, db.ForeignKey("commerces.id"), unique=True, nullable=False)
     nb_vues_profile = db.Column(db.Integer, default=0, nullable=False)
     nb_favoris = db.Column(db.Integer, default=0, nullable=False)
+    nb_commentaires = db.Column(db.Integer, default=0, nullable=False)
     last_vue_at = db.Column(db.DateTime, nullable=True)
+    average_rating = db.Column(db.Numeric(3, 2), default=0.00, nullable=False)
+    rating_count = db.Column(db.Integer, default=0, nullable=False)
 
     def to_dict(self):
         return {
@@ -72,7 +76,10 @@ class CommerceStats(BaseModel):
             "commerce_id": self.commerce_id,
             "nb_vues_profile": self.nb_vues_profile,
             "nb_favoris": self.nb_favoris,
+            "nb_commentaires": self.nb_commentaires,
             "last_vue_at": self.last_vue_at.isoformat() if self.last_vue_at else None,
+            "average_rating": float(self.average_rating) if self.average_rating else 0.0,
+            "rating_count": self.rating_count,
         }
 
 

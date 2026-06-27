@@ -66,7 +66,11 @@ class AuthService:
 
         access_token = create_access_token(
             identity=str(user.id),
-            additional_claims={"email": user.email, "is_verified": user.is_verified},
+            additional_claims={
+                "email": user.email,
+                "is_verified": user.is_verified,
+                "roles": [r.name for r in user.roles],
+            },
             expires_delta=timedelta(minutes=15),
         )
         refresh_token = create_refresh_token(
@@ -86,7 +90,11 @@ class AuthService:
 
         access_token = create_access_token(
             identity=str(user.id),
-            additional_claims={"email": user.email, "is_verified": user.is_verified},
+            additional_claims={
+                "email": user.email,
+                "is_verified": user.is_verified,
+                "roles": [r.name for r in user.roles],
+            },
             expires_delta=timedelta(minutes=15),
         )
         return {"access_token": access_token}

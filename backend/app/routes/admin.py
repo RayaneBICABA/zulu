@@ -30,6 +30,8 @@ assign_schema = AssignRoleSchema()
 
 
 @admin_bp.route("/admin/roles", methods=["GET"])
+@jwt_required()
+@role_required("admin")
 def list_roles():
     """
     Lister tous les roles.

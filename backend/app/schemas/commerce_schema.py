@@ -56,7 +56,10 @@ class CommerceStatsSchema(Schema):
     commerce_id = fields.Int(dump_only=True)
     nb_vues_profile = fields.Int(dump_only=True)
     nb_favoris = fields.Int(dump_only=True)
+    nb_commentaires = fields.Int(dump_only=True)
     last_vue_at = fields.DateTime(dump_only=True)
+    average_rating = fields.Float(dump_only=True)
+    rating_count = fields.Int(dump_only=True)
 
 
 class FavoriSchema(Schema):
@@ -104,11 +107,13 @@ class CommerceSchema(Schema):
     is_vendeur_produits = fields.Bool(dump_only=True)
     is_verified = fields.Bool(dump_only=True)
     is_active = fields.Bool(dump_only=True)
+    is_active_commerce = fields.Bool(dump_only=True)
     step = fields.Int(dump_only=True)
     stats = fields.Nested(CommerceStatsSchema, dump_only=True)
     photos = fields.List(fields.Nested(CommercePhotoSchema), dump_only=True)
     horaires = fields.List(fields.Nested(HoraireOuvertureSchema), dump_only=True)
     produit_images = fields.List(fields.Nested(ProduitImageSchema), dump_only=True)
+    commentaires = fields.List(fields.Nested("CommentaireSchema"), dump_only=True)
     created_at = fields.DateTime(dump_only=True)
     updated_at = fields.DateTime(dump_only=True)
 
@@ -118,6 +123,22 @@ class CommerceSummarySchema(Schema):
     nom_commercial = fields.Str(dump_only=True)
     is_verified = fields.Bool(dump_only=True)
     is_active = fields.Bool(dump_only=True)
+    is_active_commerce = fields.Bool(dump_only=True)
+
+
+class SwitchCommerceSchema(Schema):
+    commerce_id = fields.Int(required=True)
+
+
+class CommerceCardSchema(Schema):
+    id = fields.Int(dump_only=True)
+    nom_commercial = fields.Str(dump_only=True)
+    description = fields.Str(dump_only=True)
+    first_image_url = fields.Str(dump_only=True)
+    is_active = fields.Bool(dump_only=True)
+    is_active_commerce = fields.Bool(dump_only=True)
+    share_url = fields.Str(dump_only=True)
+    step = fields.Int(dump_only=True)
 
 
 class ArtisanProfileSchema(Schema):
@@ -126,6 +147,7 @@ class ArtisanProfileSchema(Schema):
     last_name = fields.Str(dump_only=True)
     email = fields.Str(dump_only=True)
     is_verified = fields.Bool(dump_only=True)
+    active_commerce_id = fields.Int(dump_only=True)
 
 
 class CommerceProfileSchema(Schema):

@@ -132,8 +132,9 @@ class TestUploadPhotos:
             with patch("app.services.commerce_service.cloudinary.uploader.upload") as mock_upload:
                 mock_upload.return_value = {"secure_url": "https://res.cloudinary.com/test/image.jpg"}
                 result = commerce_service.upload_photos(commerce.id, user.id, [mock_file])
-                assert len(result) == 1
-                assert result[0]["url"] == "https://res.cloudinary.com/test/image.jpg"
+                assert len(result["photos"]) == 1
+                assert result["photos"][0]["url"] == "https://res.cloudinary.com/test/image.jpg"
+                assert result["auto_published"] is True
 
     def test_upload_photos_raises_on_too_many(self, app):
         with app.app_context():
@@ -636,3 +637,471 @@ class TestGetArtisanProfile:
         with app.app_context():
             with pytest.raises(ValueError, match="Utilisateur introuvable"):
                 commerce_service.get_artisan_profile(9999)
+
+
+class TestCreateCommentaire:
+    def _create_active_commerce(self, app):
+        owner = auth_service.register(email="owner@test.com", password="password123")
+        cat = Categorie(nom="Avis", is_active=True)
+        cat.save()
+        commerce = Commerce(
+            user_id=owner.id, nom_commercial="Mon Commerce",
+            categorie_id=cat.id, is_active=True,
+        )
+        commerce.save()
+        return owner, commerce
+
+    def test_create_commentaire(self, app):
+        with app.app_context():
+            owner, commerce = self._create_active_commerce(app)
+            client = auth_service.register(email="client@test.com", password="password123")
+            result = commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Super travail !"})
+            assert result["contenu"] == "Super travail !"
+            assert result["auteur_id"] == client.id
+            assert result["commerce_id"] == commerce.id
+
+    def test_create_commentaire_increments_count(self, app):
+        with app.app_context():
+            owner, commerce = self._create_active_commerce(app)
+            client = auth_service.register(email="client@test.com", password="password123")
+            commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Bien"})
+            from app.models.commerce import CommerceStats
+            stats = CommerceStats.query.filter_by(commerce_id=commerce.id).first()
+            assert stats.nb_commentaires == 1
+
+    def test_raises_on_own_commerce(self, app):
+        with app.app_context():
+            owner, commerce = self._create_active_commerce(app)
+            with pytest.raises(ValueError, match="propre commerce"):
+                commerce_service.create_commentaire(owner.id, commerce.id, {"contenu": "Self"})
+
+    def test_raises_on_inactive_commerce(self, app):
+        with app.app_context():
+            owner = auth_service.register(email="owner@test.com", password="password123")
+            cat = Categorie(nom="Inactive", is_active=True)
+            cat.save()
+            commerce = Commerce(
+                user_id=owner.id, nom_commercial="Draft",
+                categorie_id=cat.id, is_active=False,
+            )
+            commerce.save()
+            client = auth_service.register(email="client@test.com", password="password123")
+            with pytest.raises(ValueError, match="pas encore publie"):
+                commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Test"})
+
+    def test_raises_on_unknown_commerce(self, app):
+        with app.app_context():
+            client = auth_service.register(email="client@test.com", password="password123")
+            with pytest.raises(ValueError, match="Commerce introuvable"):
+                commerce_service.create_commentaire(client.id, 9999, {"contenu": "Test"})
+
+    def test_calls_analyze_and_update_rating(self, app):
+        with app.app_context():
+            owner, commerce = self._create_active_commerce(app)
+            client = auth_service.register(email="client@test.com", password="password123")
+            with patch("app.services.ai_service.analyze_and_update_rating") as mock_rating:
+                commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Test"})
+                mock_rating.assert_called_once_with(commerce.id)
+
+    def test_updates_average_rating_on_success(self, app):
+        with app.app_context():
+            owner, commerce = self._create_active_commerce(app)
+            client = auth_service.register(email="client@test.com", password="password123")
+            with patch("app.services.ai_service.analyze_commentaires", return_value=(4.50, "Bon.")):
+                commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Bon"})
+            from app.models.commerce import CommerceStats
+            stats = CommerceStats.query.filter_by(commerce_id=commerce.id).first()
+            assert float(stats.average_rating) == 4.5
+            assert stats.rating_count == 1
+
+    def test_comment_saved_even_when_ai_fails(self, app):
+        with app.app_context():
+            owner, commerce = self._create_active_commerce(app)
+            client = auth_service.register(email="client@test.com", password="password123")
+            with patch("app.services.ai_service.analyze_and_update_rating", side_effect=Exception("AI down")):
+                result = commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Still saved"})
+            assert result["contenu"] == "Still saved"
+            from app.models.commentaire import Commentaire
+            assert Commentaire.query.get(result["id"]) is not None
+
+
+class TestListCommentaires:
+    def test_returns_commentaires(self, app):
+        with app.app_context():
+            owner = auth_service.register(email="owner@test.com", password="password123")
+            cat = Categorie(nom="ListAvis", is_active=True)
+            cat.save()
+            commerce = Commerce(
+                user_id=owner.id, nom_commercial="ListCommerce",
+                categorie_id=cat.id, is_active=True,
+            )
+            commerce.save()
+            client = auth_service.register(email="client@test.com", password="password123")
+            commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Bon"})
+
+            result = commerce_service.list_commentaires(commerce.id)
+            assert result["nb_commentaires"] == 1
+            assert result["commentaires"][0]["contenu"] == "Bon"
+            assert result["commentaires"][0]["auteur"]["first_name"] is None
+
+    def test_excludes_hidden_commentaires(self, app):
+        with app.app_context():
+            owner = auth_service.register(email="owner@test.com", password="password123")
+            cat = Categorie(nom="Hidden", is_active=True)
+            cat.save()
+            commerce = Commerce(
+                user_id=owner.id, nom_commercial="HiddenCommerce",
+                categorie_id=cat.id, is_active=True,
+            )
+            commerce.save()
+            client = auth_service.register(email="client@test.com", password="password123")
+            c = commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Visible"})
+            from app.models.commentaire import Commentaire
+            commentaire = Commentaire.query.get(c["id"])
+            commentaire.is_visible = False
+            commentaire.save()
+
+            result = commerce_service.list_commentaires(commerce.id)
+            assert result["nb_commentaires"] == 0
+
+    def test_raises_on_unknown_commerce(self, app):
+        with app.app_context():
+            with pytest.raises(ValueError, match="Commerce introuvable"):
+                commerce_service.list_commentaires(9999)
+
+
+class TestDeleteCommentaire:
+    def test_deletes_commentaire(self, app):
+        with app.app_context():
+            owner = auth_service.register(email="owner@test.com", password="password123")
+            cat = Categorie(nom="DelAvis", is_active=True)
+            cat.save()
+            commerce = Commerce(
+                user_id=owner.id, nom_commercial="DelCommerce",
+                categorie_id=cat.id, is_active=True,
+            )
+            commerce.save()
+            client = auth_service.register(email="client@test.com", password="password123")
+            c = commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "A supprimer"})
+
+            result = commerce_service.delete_commentaire(client.id, c["id"])
+            assert result["message"] == "Commentaire supprime."
+            from app.models.commentaire import Commentaire
+            assert Commentaire.query.get(c["id"]) is None
+
+    def test_deletes_commentaire_decrements_count(self, app):
+        with app.app_context():
+            owner = auth_service.register(email="owner@test.com", password="password123")
+            cat = Categorie(nom="DecCount", is_active=True)
+            cat.save()
+            commerce = Commerce(
+                user_id=owner.id, nom_commercial="DecCommerce",
+                categorie_id=cat.id, is_active=True,
+            )
+            commerce.save()
+            client = auth_service.register(email="client@test.com", password="password123")
+            c = commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Compteur"})
+            commerce_service.delete_commentaire(client.id, c["id"])
+            from app.models.commerce import CommerceStats
+            stats = CommerceStats.query.filter_by(commerce_id=commerce.id).first()
+            assert stats.nb_commentaires == 0
+
+    def test_raises_on_wrong_owner(self, app):
+        with app.app_context():
+            owner = auth_service.register(email="owner@test.com", password="password123")
+            cat = Categorie(nom="Wrong", is_active=True)
+            cat.save()
+            commerce = Commerce(
+                user_id=owner.id, nom_commercial="WrongCommerce",
+                categorie_id=cat.id, is_active=True,
+            )
+            commerce.save()
+            client = auth_service.register(email="client@test.com", password="password123")
+            other = auth_service.register(email="other@test.com", password="password123")
+            c = commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Not yours"})
+            with pytest.raises(ValueError, match="Acces refuse"):
+                commerce_service.delete_commentaire(other.id, c["id"])
+
+    def test_raises_on_unknown_commentaire(self, app):
+        with app.app_context():
+            client = auth_service.register(email="client@test.com", password="password123")
+            with pytest.raises(ValueError, match="Commentaire introuvable"):
+                commerce_service.delete_commentaire(client.id, 9999)
+
+    def test_calls_analyze_and_update_rating(self, app):
+        with app.app_context():
+            owner = auth_service.register(email="owner@test.com", password="password123")
+            cat = Categorie(nom="DelHook", is_active=True)
+            cat.save()
+            commerce = Commerce(
+                user_id=owner.id, nom_commercial="DelHookCommerce",
+                categorie_id=cat.id, is_active=True,
+            )
+            commerce.save()
+            client = auth_service.register(email="client@test.com", password="password123")
+            c = commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "To delete"})
+            with patch("app.services.ai_service.analyze_and_update_rating") as mock_rating:
+                commerce_service.delete_commentaire(client.id, c["id"])
+                mock_rating.assert_called_once_with(commerce.id)
+
+
+class TestCreateStep1AutoAssign:
+    def test_create_step1_auto_assigns_active_commerce(self, app):
+        with app.app_context():
+            user = auth_service.register(email="auto@test.com", password="password123")
+            cat = Categorie(nom="AutoCat", is_active=True)
+            cat.save()
+            result = commerce_service.create_step1(user.id, {
+                "nom_commercial": "First Commerce",
+                "categorie_id": cat.id,
+            })
+            from app.models.user import User
+            u = User.query.get(user.id)
+            assert u.active_commerce_id == result["id"]
+
+    def test_create_step1_does_not_override_active_commerce(self, app):
+        with app.app_context():
+            user = auth_service.register(email="override@test.com", password="password123")
+            cat = Categorie(nom="OverrideCat", is_active=True)
+            cat.save()
+            c1 = Commerce(user_id=user.id, nom_commercial="C1", categorie_id=cat.id)
+            c1.save()
+            user.active_commerce_id = c1.id
+            user.save()
+            commerce_service.create_step1(user.id, {
+                "nom_commercial": "C2",
+                "categorie_id": cat.id,
+            })
+            from app.models.user import User
+            u = User.query.get(user.id)
+            assert u.active_commerce_id == c1.id
+
+
+class TestUploadPhotosAutoPublish:
+    def test_auto_publish_first_commerce(self, app):
+        with app.app_context():
+            user = auth_service.register(email="autopub@test.com", password="password123")
+            cat = Categorie(nom="AutoPub", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="Solo", categorie_id=cat.id)
+            commerce.save()
+            from app.models.commerce import CommerceStats
+            stats = CommerceStats(commerce_id=commerce.id)
+            stats.save()
+            commerce.latitude = 5.36
+            commerce.longitude = -4.00
+            commerce.adresse_complete = "Test"
+            commerce.save()
+            mock_file = MagicMock()
+            mock_file.content_type = "image/jpeg"
+            mock_file.seek = MagicMock()
+            mock_file.tell = MagicMock(return_value=1024)
+            with patch("app.services.commerce_service.cloudinary.uploader.upload") as mock_upload:
+                mock_upload.return_value = {"secure_url": "https://res.cloudinary.com/test.jpg"}
+                result = commerce_service.upload_photos(commerce.id, user.id, [mock_file])
+                assert result["auto_published"] is True
+                assert commerce.is_active is True
+
+    def test_no_auto_publish_when_multiple_commerces(self, app):
+        with app.app_context():
+            user = auth_service.register(email="multi@test.com", password="password123")
+            cat = Categorie(nom="MultiCat", is_active=True)
+            cat.save()
+            c1 = Commerce(user_id=user.id, nom_commercial="C1", categorie_id=cat.id)
+            c1.save()
+            c2 = Commerce(user_id=user.id, nom_commercial="C2", categorie_id=cat.id)
+            c2.save()
+            mock_file = MagicMock()
+            mock_file.content_type = "image/jpeg"
+            mock_file.seek = MagicMock()
+            mock_file.tell = MagicMock(return_value=1024)
+            with patch("app.services.commerce_service.cloudinary.uploader.upload") as mock_upload:
+                mock_upload.return_value = {"secure_url": "https://res.cloudinary.com/test.jpg"}
+                result = commerce_service.upload_photos(c2.id, user.id, [mock_file])
+                assert result["auto_published"] is False
+                assert c2.is_active is False
+
+
+class TestSwitchCommerce:
+    def test_switch_commerce_sets_active(self, app):
+        with app.app_context():
+            user = auth_service.register(email="switch@test.com", password="password123")
+            cat = Categorie(nom="SwitchCat", is_active=True)
+            cat.save()
+            c1 = Commerce(user_id=user.id, nom_commercial="Boutique A", categorie_id=cat.id)
+            c1.save()
+            c2 = Commerce(user_id=user.id, nom_commercial="Boutique B", categorie_id=cat.id)
+            c2.save()
+            result = commerce_service.switch_commerce(user.id, c2.id)
+            assert result["active_commerce_id"] == c2.id
+            assert "Boutique B" in result["message"]
+            from app.models.user import User
+            u = User.query.get(user.id)
+            assert u.active_commerce_id == c2.id
+
+    def test_switch_commerce_raises_on_wrong_owner(self, app):
+        with app.app_context():
+            owner = auth_service.register(email="owner@test.com", password="password123")
+            other = auth_service.register(email="other@test.com", password="password123")
+            cat = Categorie(nom="OwnerCat", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=owner.id, nom_commercial="OwnerShop", categorie_id=cat.id)
+            commerce.save()
+            with pytest.raises(ValueError, match="Acces refuse"):
+                commerce_service.switch_commerce(other.id, commerce.id)
+
+    def test_switch_commerce_raises_on_unknown(self, app):
+        with app.app_context():
+            user = auth_service.register(email="ghost@test.com", password="password123")
+            with pytest.raises(ValueError, match="Commerce introuvable"):
+                commerce_service.switch_commerce(user.id, 9999)
+
+
+class TestGetCommercesCards:
+    def test_returns_cards_for_all_commerces(self, app):
+        with app.app_context():
+            user = auth_service.register(email="cards@test.com", password="password123")
+            cat = Categorie(nom="CardsCat", is_active=True)
+            cat.save()
+            c1 = Commerce(
+                user_id=user.id, nom_commercial="Card A",
+                categorie_id=cat.id, is_active=True,
+                description="Description longue pour test troncature" * 5,
+            )
+            c1.save()
+            c2 = Commerce(
+                user_id=user.id, nom_commercial="Card B",
+                categorie_id=cat.id, is_active=False,
+            )
+            c2.save()
+            c3 = Commerce(
+                user_id=user.id, nom_commercial="Card C",
+                categorie_id=cat.id, is_active=True,
+                latitude=5.36, longitude=-4.0083,
+            )
+            c3.save()
+            user.active_commerce_id = c1.id
+            user.save()
+            from app.models.commerce import CommercePhoto
+            p1 = CommercePhoto(commerce_id=c1.id, url="http://img1.jpg", ordre=1, is_principale=True)
+            p1.save()
+            result = commerce_service.get_commerces_cards(user.id)
+            cards = result["cards"]
+            assert len(cards) == 2
+            card_b = next(c for c in cards if c["id"] == c2.id)
+            card_c = next(c for c in cards if c["id"] == c3.id)
+            assert all(c["id"] != c1.id for c in cards), "Active commerce should be excluded"
+            assert card_b["is_active_commerce"] is False
+            assert card_b["is_active"] is False
+            assert card_b["share_url"] is None
+            assert card_c["is_active"] is True
+            assert card_c["share_url"] is not None
+
+    def test_description_truncated_to_80_chars(self, app):
+        with app.app_context():
+            user = auth_service.register(email="trunc@test.com", password="password123")
+            cat = Categorie(nom="TruncCat", is_active=True)
+            cat.save()
+            long_desc = "A" * 150
+            commerce = Commerce(
+                user_id=user.id, nom_commercial="Long",
+                categorie_id=cat.id, description=long_desc,
+            )
+            commerce.save()
+            result = commerce_service.get_commerces_cards(user.id)
+            assert len(result["cards"][0]["description"]) == 80
+
+    def test_empty_when_no_commerces(self, app):
+        with app.app_context():
+            user = auth_service.register(email="empty@test.com", password="password123")
+            result = commerce_service.get_commerces_cards(user.id)
+            assert result["cards"] == []
+
+    def test_card_without_photo_has_null_image(self, app):
+        with app.app_context():
+            user = auth_service.register(email="nophoto@test.com", password="password123")
+            cat = Categorie(nom="NoPhoto", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="NoPic", categorie_id=cat.id)
+            commerce.save()
+            result = commerce_service.get_commerces_cards(user.id)
+            assert result["cards"][0]["first_image_url"] is None
+
+
+class TestGetArtisanHome:
+    def test_uses_active_commerce(self, app):
+        with app.app_context():
+            user = auth_service.register(email="home@test.com", password="password123")
+            cat = Categorie(nom="HomeCat", is_active=True)
+            cat.save()
+            c1 = Commerce(user_id=user.id, nom_commercial="Home A", categorie_id=cat.id, is_active=True)
+            c1.save()
+            c2 = Commerce(user_id=user.id, nom_commercial="Home B", categorie_id=cat.id, is_active=True)
+            c2.save()
+            user.active_commerce_id = c2.id
+            user.save()
+            result = commerce_service.get_artisan_home(user.id)
+            assert result["commerce"]["id"] == c2.id
+
+    def test_auto_assigns_first_commerce_when_none(self, app):
+        with app.app_context():
+            user = auth_service.register(email="autoassign@test.com", password="password123")
+            cat = Categorie(nom="AutoAssign", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="Solo", categorie_id=cat.id, is_active=True)
+            commerce.save()
+            result = commerce_service.get_artisan_home(user.id)
+            assert result["commerce"]["id"] == commerce.id
+            from app.models.user import User
+            u = User.query.get(user.id)
+            assert u.active_commerce_id == commerce.id
+
+    def test_falls_back_to_first_when_active_invalid(self, app):
+        with app.app_context():
+            user = auth_service.register(email="fallback@test.com", password="password123")
+            cat = Categorie(nom="Fallback", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="FB", categorie_id=cat.id, is_active=True)
+            commerce.save()
+            user.active_commerce_id = 9999
+            user.save()
+            result = commerce_service.get_artisan_home(user.id)
+            assert result["commerce"]["id"] == commerce.id
+
+    def test_raises_when_no_commerces(self, app):
+        with app.app_context():
+            user = auth_service.register(email="noc@test.com", password="password123")
+            with pytest.raises(ValueError, match="Aucun commerce"):
+                commerce_service.get_artisan_home(user.id)
+
+
+class TestGetArtisanProfile:
+    def test_includes_active_commerce_id(self, app):
+        with app.app_context():
+            user = auth_service.register(email="profile@test.com", password="password123")
+            cat = Categorie(nom="ProfCat", is_active=True)
+            cat.save()
+            c1 = Commerce(user_id=user.id, nom_commercial="Prof A", categorie_id=cat.id)
+            c1.save()
+            user.active_commerce_id = c1.id
+            user.save()
+            result = commerce_service.get_artisan_profile(user.id)
+            assert result["user"]["active_commerce_id"] == c1.id
+
+    def test_commerces_have_is_active_commerce_flag(self, app):
+        with app.app_context():
+            user = auth_service.register(email="flag@test.com", password="password123")
+            cat = Categorie(nom="FlagCat", is_active=True)
+            cat.save()
+            c1 = Commerce(user_id=user.id, nom_commercial="Flag A", categorie_id=cat.id)
+            c1.save()
+            c2 = Commerce(user_id=user.id, nom_commercial="Flag B", categorie_id=cat.id)
+            c2.save()
+            user.active_commerce_id = c1.id
+            user.save()
+            result = commerce_service.get_artisan_profile(user.id)
+            for c in result["commerces"]:
+                if c["id"] == c1.id:
+                    assert c["is_active_commerce"] is True
+                else:
+                    assert c["is_active_commerce"] is False
