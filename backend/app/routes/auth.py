@@ -340,3 +340,24 @@ def logout():
         description: Token manquant ou invalide
     """
     return jsonify({"message": "Deconnexion reussie."}), 200
+
+
+@auth_bp.route("/auth/clear-users", methods=["POST"])
+def clear_users():
+    key = request.args.get("key")
+    if not key or key != current_app.config.get("SECRET_KEY"):
+        return jsonify({"error": "Cle invalide."}), 403
+
+    from sqlalchemy import text
+    from ..extensions import db
+
+    db.session.execute(text("DELETE FROM commentaires WHERE moderated_by IN (SELECT id FROM users)"))
+    db.session.execute(text("DELETE FROM commentaires WHERE auteur_id IN (SELECT id FROM users)"))
+    db.session.execute(text("DELETE FROM vue_profiles WHERE user_id IN (SELECT id FROM users)"))
+    db.session.execute(text("DELETE FROM favoris WHERE user_id IN (SELECT id FROM users)"))
+    db.session.execute(text("DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users)"))
+    for user in User.query.all():
+        db.session.delete(user)
+    db.session.commit()
+
+    return jsonify({"message": "Tous les utilisateurs ont ete supprimes."}), 200
