@@ -298,7 +298,9 @@ class TestUploadPhotos:
                 headers={"Authorization": f"Bearer {user_token}"},
             )
             assert response.status_code == 201
-            assert len(response.get_json()) == 1
+            body = response.get_json()
+            assert len(body["photos"]) == 1
+            assert "auto_published" in body
 
     def test_upload_photos_returns_400_without_files(self, client, user_token, categorie_id):
         commerce_id = self._create_commerce_with_location(client, user_token, categorie_id)
@@ -1024,3 +1026,129 @@ class TestCommerceRating:
             }, headers={"Authorization": f"Bearer {client_token}"})
         assert response.status_code == 201
         assert response.get_json()["contenu"] == "Still saved"
+
+
+class TestSwitchCommerce:
+    def test_switch_commerce_returns_200(self, client, artisan_user_token, categorie_id):
+        r1 = client.post("/api/commerces", json={
+            "nom_commercial": "Shop A", "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {artisan_user_token}"})
+        c1_id = r1.get_json()["id"]
+        r2 = client.post("/api/commerces", json={
+            "nom_commercial": "Shop B", "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {artisan_user_token}"})
+        c2_id = r2.get_json()["id"]
+
+        response = client.patch("/api/artisan/active-commerce", json={
+            "commerce_id": c2_id,
+        }, headers={"Authorization": f"Bearer {artisan_user_token}"})
+        assert response.status_code == 200
+        assert response.get_json()["active_commerce_id"] == c2_id
+
+        home = client.get("/api/artisan/home", headers={
+            "Authorization": f"Bearer {artisan_user_token}",
+        })
+        assert home.get_json()["commerce"]["id"] == c2_id
+
+    def test_switch_commerce_returns_403_for_wrong_owner(self, client, artisan_user_token, other_user_token, categorie_id):
+        r1 = client.post("/api/commerces", json={
+            "nom_commercial": "Not Mine", "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {artisan_user_token}"})
+        c_id = r1.get_json()["id"]
+
+        client.post("/api/auth/register", json={
+            "email": "switch_other@test.com", "password": "password123",
+        })
+        login = client.post("/api/auth/login", json={
+            "email": "switch_other@test.com", "password": "password123",
+        })
+        other_token = login.get_json()["access_token"]
+        from app.services import role_service
+        from app.models.user import User
+        with client.application.app_context():
+            u = User.query.filter_by(email="switch_other@test.com").first()
+            role_service.assign_role(u.id, "artisan")
+
+        response = client.patch("/api/artisan/active-commerce", json={
+            "commerce_id": c_id,
+        }, headers={"Authorization": f"Bearer {other_token}"})
+        assert response.status_code == 403
+
+    def test_switch_commerce_returns_400_on_missing_commerce_id(self, client, artisan_user_token):
+        response = client.patch("/api/artisan/active-commerce", json={}, headers={
+            "Authorization": f"Bearer {artisan_user_token}",
+        })
+        assert response.status_code == 400
+
+    def test_switch_commerce_returns_401_without_token(self, client):
+        response = client.patch("/api/artisan/active-commerce", json={"commerce_id": 1})
+        assert response.status_code == 401
+
+    def test_switch_commerce_returns_403_for_client(self, client, user_token):
+        response = client.patch("/api/artisan/active-commerce", json={"commerce_id": 1}, headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        assert response.status_code == 403
+
+    def test_switch_commerce_returns_404_on_unknown_commerce(self, client, artisan_user_token):
+        response = client.patch("/api/artisan/active-commerce", json={"commerce_id": 9999}, headers={
+            "Authorization": f"Bearer {artisan_user_token}",
+        })
+        assert response.status_code == 404
+
+
+class TestGetCommercesCards:
+    def test_cards_returns_200(self, client, artisan_user_token, categorie_id):
+        client.post("/api/commerces", json={
+            "nom_commercial": "Card A", "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {artisan_user_token}"})
+        client.post("/api/commerces", json={
+            "nom_commercial": "Card B", "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {artisan_user_token}"})
+
+        response = client.get("/api/artisan/commerces/cards", headers={
+            "Authorization": f"Bearer {artisan_user_token}",
+        })
+        assert response.status_code == 200
+        cards = response.get_json()["cards"]
+        assert len(cards) == 1
+
+    def test_cards_excludes_active_commerce(self, client, artisan_user_token, categorie_id):
+        r1 = client.post("/api/commerces", json={
+            "nom_commercial": "Active One", "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {artisan_user_token}"})
+        active_id = r1.get_json()["id"]
+        client.post("/api/commerces", json={
+            "nom_commercial": "Other One", "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {artisan_user_token}"})
+
+        client.patch("/api/artisan/active-commerce", json={
+            "commerce_id": active_id,
+        }, headers={"Authorization": f"Bearer {artisan_user_token}"})
+
+        response = client.get("/api/artisan/commerces/cards", headers={
+            "Authorization": f"Bearer {artisan_user_token}",
+        })
+        cards = response.get_json()["cards"]
+        assert all(c["id"] != active_id for c in cards)
+
+    def test_cards_returns_empty_when_one_commerce(self, client, artisan_user_token, categorie_id):
+        client.post("/api/commerces", json={
+            "nom_commercial": "Solo", "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {artisan_user_token}"})
+
+        response = client.get("/api/artisan/commerces/cards", headers={
+            "Authorization": f"Bearer {artisan_user_token}",
+        })
+        assert response.status_code == 200
+        assert response.get_json()["cards"] == []
+
+    def test_cards_returns_401_without_token(self, client):
+        response = client.get("/api/artisan/commerces/cards")
+        assert response.status_code == 401
+
+    def test_cards_returns_403_for_client(self, client, user_token):
+        response = client.get("/api/artisan/commerces/cards", headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        assert response.status_code == 403
