@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { ROUTES } from '../../constants/routes'
@@ -6,6 +6,7 @@ import Button from '../ui/Button'
 
 const Navbar = () => {
   const [open, setOpen] = useState(false)
+  const navigate = useNavigate()
 
   return (
     <nav className="bg-secondary-500 text-white shadow-md">
@@ -19,7 +20,7 @@ const Navbar = () => {
             className="text-sm text-white/80 hover:text-white transition-colors">
             Accueil
           </Link>
-          <Button variant="primary" size="sm">
+          <Button variant="primary" size="sm" onClick={() => navigate(ROUTES.login)}>
             Connexion
           </Button>
         </div>
@@ -34,7 +35,7 @@ const Navbar = () => {
           <Link to={ROUTES.home} className="text-sm text-white/80 hover:text-white">
             Accueil
           </Link>
-          <Button variant="primary" size="sm" fullWidth>
+          <Button variant="primary" size="sm" fullWidth onClick={() => navigate(ROUTES.login)}>
             Connexion
           </Button>
         </div>

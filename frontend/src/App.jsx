@@ -4,6 +4,7 @@ import { ROUTES } from './constants/routes'
 import { AuthProvider } from './features/auth/context/AuthProvider'
 import ProtectedRoute from './features/auth/components/ProtectedRoute'
 import HomePage from './pages/HomePage'
+import SplashScreen from './pages/SplashScreen'
 import NotFoundPage from './pages/NotFoundPage'
 import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
@@ -18,6 +19,7 @@ const App = () => (
     <AuthProvider>
       <AnimatePresence mode="wait">
         <Routes>
+          <Route path={ROUTES.splash}        element={<SplashScreen />} />
           <Route path={ROUTES.home}          element={<HomePage />} />
           <Route path={ROUTES.login}         element={<LoginPage />} />
           <Route path={ROUTES.register}      element={<RegisterPage />} />
