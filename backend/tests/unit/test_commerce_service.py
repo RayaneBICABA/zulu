@@ -566,3 +566,73 @@ class TestBuildGeolocalisationUrl:
             commerce.save()
             url = commerce_service.build_geolocalisation_url(commerce.id)
             assert url is None
+
+
+class TestGetArtisanProfile:
+    def test_returns_profile_with_commerce(self, app):
+        with app.app_context():
+            user = auth_service.register(email="profile@test.com", password="password123")
+            user.first_name = "Ali"
+            user.last_name = "Kone"
+            user.save()
+            cat = Categorie(nom="Tapis", is_active=True)
+            cat.save()
+            commerce = Commerce(
+                user_id=user.id, nom_commercial="Tapisserie Ali",
+                categorie_id=cat.id,
+                whatsapp_numero="+22607070707",
+                contact_telephonique="+22601010101",
+                is_active=True,
+            )
+            commerce.save()
+            result = commerce_service.get_artisan_profile(user.id)
+            assert result["user"]["id"] == user.id
+            assert result["user"]["first_name"] == "Ali"
+            assert result["user"]["last_name"] == "Kone"
+            assert result["user"]["email"] == "profile@test.com"
+            assert result["nb_commerces_actifs"] == 1
+            assert len(result["commerces"]) == 1
+            assert result["commerces"][0]["nom_commercial"] == "Tapisserie Ali"
+            assert result["commerces"][0]["whatsapp_numero"] == "+22607070707"
+            assert result["commerces"][0]["is_active"] is True
+
+    def test_returns_empty_commerces_list(self, app):
+        with app.app_context():
+            user = auth_service.register(email="nocommerce@test.com", password="password123")
+            result = commerce_service.get_artisan_profile(user.id)
+            assert result["nb_commerces_actifs"] == 0
+            assert result["commerces"] == []
+            assert result["user"]["email"] == "nocommerce@test.com"
+
+    def test_returns_multiple_commerces(self, app):
+        with app.app_context():
+            user = auth_service.register(email="multi@test.com", password="password123")
+            cat = Categorie(nom="Multi", is_active=True)
+            cat.save()
+            c1 = Commerce(user_id=user.id, nom_commercial="Commerce 1", categorie_id=cat.id)
+            c1.save()
+            c2 = Commerce(user_id=user.id, nom_commercial="Commerce 2", categorie_id=cat.id)
+            c2.save()
+            result = commerce_service.get_artisan_profile(user.id)
+            assert result["nb_commerces_actifs"] == 0
+            assert len(result["commerces"]) == 2
+            names = {c["nom_commercial"] for c in result["commerces"]}
+            assert names == {"Commerce 1", "Commerce 2"}
+
+    def test_counts_only_active_commerces(self, app):
+        with app.app_context():
+            user = auth_service.register(email="mix@test.com", password="password123")
+            cat = Categorie(nom="Mix", is_active=True)
+            cat.save()
+            c1 = Commerce(user_id=user.id, nom_commercial="Actif", categorie_id=cat.id, is_active=True)
+            c1.save()
+            c2 = Commerce(user_id=user.id, nom_commercial="Inactif", categorie_id=cat.id, is_active=False)
+            c2.save()
+            result = commerce_service.get_artisan_profile(user.id)
+            assert result["nb_commerces_actifs"] == 1
+            assert len(result["commerces"]) == 2
+
+    def test_raises_on_unknown_user(self, app):
+        with app.app_context():
+            with pytest.raises(ValueError, match="Utilisateur introuvable"):
+                commerce_service.get_artisan_profile(9999)
