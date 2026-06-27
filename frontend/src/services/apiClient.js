@@ -32,7 +32,7 @@ const getAuthHeader = () => {
 const handleResponse = async (res) => {
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    const message = data?.message || `Erreur ${res.status}`
+    const message = data?.message || data?.error || `Erreur ${res.status}`
     const error = new Error(message)
     error.status = res.status
     throw error
