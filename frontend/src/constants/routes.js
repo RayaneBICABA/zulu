@@ -8,6 +8,8 @@ export const ROUTES = {
   verifyEmail:   '/verifier-email',
   dashboard:     '/dashboard',
   artisanHome:   '/artisan-home',
+  artisanComments:'/artisan-comments',
+  artisanProfile: '/artisan-profile',
   addBusiness:   '/dashboard/ajouter-commerce',
   completeProfile:'/completer-profil',
   notFound:      '*',

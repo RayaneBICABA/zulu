@@ -13,6 +13,8 @@ import ResetPasswordPage from './features/auth/pages/ResetPasswordPage'
 import VerifyEmailPage from './features/auth/pages/VerifyEmailPage'
 import DashboardPage from './pages/DashboardPage'
 import ArtisanHomePage from './pages/ArtisanHomePage'
+import ArtisanCommentsPage from './pages/ArtisanCommentsPage'
+import ArtisanProfilePage from './pages/ArtisanProfilePage'
 import AddBusinessPage from './pages/AddBusinessPage'
 import CompleteProfilePage from './features/artisan/pages/CompleteProfilePage'
 
@@ -36,6 +38,16 @@ const App = () => (
           <Route path={ROUTES.artisanHome}   element={
             <ProtectedRoute>
               <ArtisanHomePage />
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.artisanComments} element={
+            <ProtectedRoute>
+              <ArtisanCommentsPage />
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.artisanProfile} element={
+            <ProtectedRoute>
+              <ArtisanProfilePage />
             </ProtectedRoute>
           } />
           <Route path={ROUTES.addBusiness}   element={
