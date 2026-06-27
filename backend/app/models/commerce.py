@@ -29,7 +29,7 @@ class Commerce(BaseModel):
     is_verified = db.Column(db.Boolean, default=False, nullable=False)
     is_active = db.Column(db.Boolean, default=False, nullable=False)
 
-    user = db.relationship("User", backref=db.backref("commerces", lazy="selectin"))
+    user = db.relationship("User", foreign_keys=[user_id], backref=db.backref("commerces", lazy="selectin"))
     categorie = db.relationship("Categorie", backref=db.backref("commerces", lazy="selectin"))
     photos = db.relationship("CommercePhoto", backref="commerce", lazy="selectin", cascade="all, delete-orphan")
     horaires = db.relationship("HoraireOuverture", backref="commerce", lazy="selectin", cascade="all, delete-orphan")
