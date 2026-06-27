@@ -283,3 +283,22 @@ def resend_verification():
     token = generate_verification_token(user.email)
     send_verification_email(user.email, token)
     return jsonify({"message": "Email de verification renvoye."}), 200
+
+
+@auth_bp.route("/auth/logout", methods=["POST"])
+@jwt_required()
+def logout():
+    """
+    Deconnexion — le front supprime le token du storage.
+    ---
+    tags:
+      - Authentification
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Deconnexion reussie
+      401:
+        description: Token manquant ou invalide
+    """
+    return jsonify({"message": "Deconnexion reussie."}), 200
