@@ -11,6 +11,7 @@ import ForgotPasswordPage from './features/auth/pages/ForgotPasswordPage'
 import ResetPasswordPage from './features/auth/pages/ResetPasswordPage'
 import VerifyEmailPage from './features/auth/pages/VerifyEmailPage'
 import DashboardPage from './pages/DashboardPage'
+import CompleteProfilePage from './features/artisan/pages/CompleteProfilePage'
 
 const App = () => (
   <BrowserRouter>
@@ -28,6 +29,8 @@ const App = () => (
               <DashboardPage />
             </ProtectedRoute>
           } />
+          {/* TODO: envelopper dans <ProtectedRoute> une fois le flux login branché */}
+          <Route path={ROUTES.completeProfile} element={<CompleteProfilePage />} />
           <Route path={ROUTES.notFound}      element={<NotFoundPage />} />
         </Routes>
       </AnimatePresence>

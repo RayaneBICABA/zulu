@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import PageWrapper from '../components/layout/PageWrapper'
 import Navbar from '../components/layout/Navbar'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
+import { ROUTES } from '../constants/routes'
 import { Zap, Shield, Smartphone } from 'lucide-react'
 
 const features = [
@@ -11,7 +13,9 @@ const features = [
   { icon: Smartphone, title: 'Mobile',  desc: 'Capacitor pour wrapper en app mobile.' },
 ]
 
-const HomePage = () => (
+const HomePage = () => {
+  const navigate = useNavigate()
+  return (
   <PageWrapper>
     <Navbar />
     <main className="max-w-5xl mx-auto px-4 py-16">
@@ -27,7 +31,9 @@ const HomePage = () => (
         <p className="text-gray-500 text-lg mb-8">
           Base solide pour hackathon &mdash; Flask &middot; React &middot; PostgreSQL &middot; Docker
         </p>
-        <Button size="lg">Commencer</Button>
+        <Button size="lg" variant="secondary" onClick={() => navigate(ROUTES.completeProfile)}>
+          Commencer
+        </Button>
       </motion.div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -50,6 +56,7 @@ const HomePage = () => (
       </div>
     </main>
   </PageWrapper>
-)
+  )
+}
 
 export default HomePage

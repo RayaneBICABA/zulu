@@ -17,4 +17,15 @@ export const ENDPOINTS = {
     googleLogin:      '/auth/google/login',
     googleCallback:   '/auth/google/callback',
   },
+  // Endpoints annuaire (contrat backend : docs/api/API_REFERENCE.md).
+  categories: {
+    list: '/categories',
+  },
+  commerce: {
+    create:       '/commerces',
+    localisation: (id) => `/commerces/${id}/localisation`,
+    photos:       (id) => `/commerces/${id}/photos`,
+    publish:      (id) => `/commerces/${id}/publish`,
+    detail:       (id) => `/commerces/${id}`,
+  },
 }
