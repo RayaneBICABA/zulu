@@ -1,3 +1,5 @@
+import ProfilePage from './features/client/pages/ProfilePage'
+import FavoritesPage from './features/client/pages/FavoritesPage'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { ROUTES } from './constants/routes'
@@ -45,6 +47,23 @@ const App = () => (
           } />
           {/* Stepper connecté au backend — doublon à arbitrer avec AddBusinessPage */}
           <Route path={ROUTES.completeProfile} element={<CompleteProfilePage />} />
+          <Route
+  path={ROUTES.profile}
+  element={
+    <ProtectedRoute>
+      <ProfilePage />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path={ROUTES.favorites}
+  element={
+    <ProtectedRoute>
+      <FavoritesPage />
+    </ProtectedRoute>
+  }
+/>
           <Route path={ROUTES.notFound}      element={<NotFoundPage />} />
         </Routes>
       </AnimatePresence>

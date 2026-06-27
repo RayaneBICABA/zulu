@@ -33,8 +33,9 @@ const MobileNav = () => {
     { to: ROUTES.home, icon: Home, label: 'Accueil' },
     { to: '/search', icon: Search, label: 'Découvrir' },
     { to: '/map', icon: Map, label: 'Carte' },
-    { to: '/favorites', icon: Heart, label: 'Favoris' },
-    { to: ROUTES.dashboard, icon: User, label: 'Profil' },
+    { to: ROUTES.favorites, icon: Heart, label: 'Favoris' },
+    { to: ROUTES.profile, icon: User, label: 'Profil' },
+    
   ]
 
   return (

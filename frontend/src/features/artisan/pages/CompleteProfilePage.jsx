@@ -33,7 +33,6 @@ const CompleteProfilePage = () => {
   const [categories, setCategories] = useState([])
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
-  const [done, setDone] = useState(false)
 
   // Charge les catégories du backend (GET /api/categories) au montage.
   useEffect(() => {
@@ -117,7 +116,7 @@ const CompleteProfilePage = () => {
     setSubmitting(true)
     try {
       await submitCommerce(buildPayload())
-      setDone(true)
+      navigate(ROUTES.artisanHome)
     } catch (err) {
       setErrors({ submit: err.message })
     } finally {
@@ -125,28 +124,6 @@ const CompleteProfilePage = () => {
     }
   }
 
-  if (done) {
-    return (
-      <PageWrapper className="flex items-center justify-center min-h-screen px-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
-          <Card padding="lg">
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-successLight flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h1 className="text-xl font-bold text-secondary-500 mb-2">Commerce enregistré</h1>
-              <p className="text-sm text-gray-400 mb-6">
-                Votre fiche a été créée. Elle sera visible dans l'annuaire une fois publiée.
-              </p>
-              <Button variant="secondary" onClick={() => navigate(ROUTES.home)}>Retour à l'accueil</Button>
-            </div>
-          </Card>
-        </motion.div>
-      </PageWrapper>
-    )
-  }
 
   return (
     <PageWrapper className="min-h-screen px-4 py-8 flex justify-center">
