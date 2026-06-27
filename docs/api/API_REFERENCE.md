@@ -246,6 +246,32 @@ Authorization: Bearer <access_token>
 
 ---
 
+### POST `/api/auth/logout`
+
+Deconnexion — le front supprime le token du storage. JWT stateless, pas de blacklist.
+
+**Header :**
+```
+Authorization: Bearer <access_token>
+```
+
+**Reponse 200 :**
+```json
+{
+  "message": "Deconnexion reussie."
+}
+```
+
+**Notes :**
+- Le token expire naturellement (15min access / 7j refresh)
+- Le front doit supprimer le token du storage (localStorage/cookies)
+- Pas de blacklist côté serveur
+
+**Erreurs :**
+- `401` — Token manquant ou invalide
+
+---
+
 ## OAuth (Google)
 
 ### GET `/api/auth/google/login`
@@ -878,6 +904,50 @@ Authorization: Bearer <access_token>
 **Erreurs :**
 - `401` — Token manquant ou invalide
 - `404` — Aucun commerce trouve pour cet artisan
+
+---
+
+### GET `/api/artisan/profile`
+
+Profil complet de l'artisan connecte — infos utilisateur + tous ses commerces.
+
+**Header :**
+```
+Authorization: Bearer <access_token>
+```
+
+**Reponse 200 :**
+```json
+{
+  "user": {
+    "id": 4,
+    "email": "artisan_pro@zulu.com",
+    "first_name": "Kofi",
+    "last_name": "Artisan",
+    "is_verified": true
+  },
+  "commerces": [
+    {
+      "id": 2,
+      "nom_commercial": "Atelier Kofi",
+      "contact_telephonique": null,
+      "whatsapp_numero": null,
+      "is_active": false
+    }
+  ],
+  "nb_commerces_actifs": 1
+}
+```
+
+**Notes :**
+- Concu pour le multi-commerce futur (retourne un tableau `commerces[]`)
+- `nb_commerces_actifs` : nombre de commerces actifs uniquement (`is_active: true`)
+- `is_verified` : email verifie ou non
+- `is_active` : commerce active (publie) ou en draft
+
+**Erreurs :**
+- `401` — Token manquant ou invalide
+- `404` — Utilisateur introuvable
 
 ---
 
