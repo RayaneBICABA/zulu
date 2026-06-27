@@ -14,6 +14,8 @@ class User(BaseModel):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
 
     roles = db.relationship("Role", secondary="user_roles", back_populates="users", lazy="selectin")
+    favoris = db.relationship("Favori", back_populates="user", lazy="selectin", cascade="all, delete-orphan")
+    vues_emises = db.relationship("VueProfile", back_populates="user", lazy="selectin")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

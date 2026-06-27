@@ -25,6 +25,7 @@ class Commerce(BaseModel):
     latitude = db.Column(db.Numeric(9, 6), nullable=True)
     longitude = db.Column(db.Numeric(9, 6), nullable=True)
     adresse_complete = db.Column(db.String(500), nullable=True)
+    is_vendeur_produits = db.Column(db.Boolean, default=False, nullable=False)
     is_verified = db.Column(db.Boolean, default=False, nullable=False)
     is_active = db.Column(db.Boolean, default=False, nullable=False)
 
@@ -32,6 +33,10 @@ class Commerce(BaseModel):
     categorie = db.relationship("Categorie", backref=db.backref("commerces", lazy="selectin"))
     photos = db.relationship("CommercePhoto", backref="commerce", lazy="selectin", cascade="all, delete-orphan")
     horaires = db.relationship("HoraireOuverture", backref="commerce", lazy="selectin", cascade="all, delete-orphan")
+    stats = db.relationship("CommerceStats", backref="commerce", uselist=False, lazy="selectin", cascade="all, delete-orphan")
+    favoris_recus = db.relationship("Favori", back_populates="commerce", lazy="selectin", cascade="all, delete-orphan")
+    vues_recues = db.relationship("VueProfile", back_populates="commerce", lazy="selectin", cascade="all, delete-orphan")
+    produit_images = db.relationship("ProduitImage", backref="commerce", lazy="selectin", cascade="all, delete-orphan")
 
     def to_dict(self):
         return {
@@ -45,10 +50,29 @@ class Commerce(BaseModel):
             "latitude": float(self.latitude) if self.latitude else None,
             "longitude": float(self.longitude) if self.longitude else None,
             "adresse_complete": self.adresse_complete,
+            "is_vendeur_produits": self.is_vendeur_produits,
             "is_verified": self.is_verified,
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class CommerceStats(BaseModel):
+    __tablename__ = "commerce_stats"
+
+    commerce_id = db.Column(db.Integer, db.ForeignKey("commerces.id"), unique=True, nullable=False)
+    nb_vues_profile = db.Column(db.Integer, default=0, nullable=False)
+    nb_favoris = db.Column(db.Integer, default=0, nullable=False)
+    last_vue_at = db.Column(db.DateTime, nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "commerce_id": self.commerce_id,
+            "nb_vues_profile": self.nb_vues_profile,
+            "nb_favoris": self.nb_favoris,
+            "last_vue_at": self.last_vue_at.isoformat() if self.last_vue_at else None,
         }
 
 
@@ -91,4 +115,64 @@ class HoraireOuverture(BaseModel):
             "heure_fermeture": self.heure_fermeture.isoformat() if self.heure_fermeture else None,
             "est_ferme": self.est_ferme,
             "est_24h": self.est_24h,
+        }
+
+
+class Favori(BaseModel):
+    __tablename__ = "favoris"
+
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    commerce_id = db.Column(db.Integer, db.ForeignKey("commerces.id"), nullable=False)
+
+    user = db.relationship("User", back_populates="favoris")
+    commerce = db.relationship("Commerce", back_populates="favoris_recus")
+
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "commerce_id", name="uq_favori_user_commerce"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "commerce_id": self.commerce_id,
+        }
+
+
+class VueProfile(BaseModel):
+    __tablename__ = "vues_profile"
+
+    commerce_id = db.Column(db.Integer, db.ForeignKey("commerces.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.String(500), nullable=True)
+    viewed_at = db.Column(db.DateTime, nullable=False)
+
+    commerce = db.relationship("Commerce", back_populates="vues_recues")
+    user = db.relationship("User", back_populates="vues_emises")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "commerce_id": self.commerce_id,
+            "user_id": self.user_id,
+            "ip_address": self.ip_address,
+            "user_agent": self.user_agent,
+            "viewed_at": self.viewed_at.isoformat() if self.viewed_at else None,
+        }
+
+
+class ProduitImage(BaseModel):
+    __tablename__ = "produit_images"
+
+    commerce_id = db.Column(db.Integer, db.ForeignKey("commerces.id"), nullable=False)
+    url = db.Column(db.String(500), nullable=False)
+    ordre = db.Column(db.Integer, default=0, nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "commerce_id": self.commerce_id,
+            "url": self.url,
+            "ordre": self.ordre,
         }
