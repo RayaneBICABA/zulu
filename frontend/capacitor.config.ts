@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     androidScheme: 'https',
-    url: 'http://192.168.1.100:5173',
+    url: 'https://zawani-api.onrender.com',
     cleartext: true,
   },
 }

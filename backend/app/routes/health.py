@@ -15,5 +15,5 @@ def health_check():
     """
     return jsonify({
         "status": "ok",
-        "message": "Zulu Starter API is running"
+        "message": "Zawani API is running"
     }), 200
