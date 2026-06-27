@@ -8,6 +8,7 @@ from ..models.commerce import (
     JourSemaine, Favori, VueProfile, ProduitImage,
 )
 from ..models.categorie import Categorie
+from ..models.user import User
 
 
 ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -171,6 +172,34 @@ class CommerceService:
         cat = Categorie(nom=data["nom"])
         cat.save()
         return cat.to_dict()
+
+    def get_artisan_profile(self, user_id):
+        user = User.query.get(user_id)
+        if not user:
+            raise ValueError("Utilisateur introuvable.")
+
+        commerces = Commerce.query.filter_by(user_id=user_id).all()
+
+        return {
+            "user": {
+                "id": user.id,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "email": user.email,
+                "is_verified": user.is_verified,
+            },
+            "commerces": [
+                {
+                    "id": c.id,
+                    "nom_commercial": c.nom_commercial,
+                    "whatsapp_numero": c.whatsapp_numero,
+                    "contact_telephonique": c.contact_telephonique,
+                    "is_active": c.is_active,
+                }
+                for c in commerces
+            ],
+            "nb_commerces_actifs": sum(1 for c in commerces if c.is_active),
+        }
 
     def get_artisan_home(self, user_id):
         commerce = Commerce.query.filter_by(user_id=user_id).first()

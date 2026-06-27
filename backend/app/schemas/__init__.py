@@ -14,4 +14,6 @@ from .commerce_schema import (
     VueProfileSchema,
     ProduitImageSchema,
     ProduitImageCreateSchema,
+    ArtisanProfileSchema,
+    CommerceProfileSchema,
 )

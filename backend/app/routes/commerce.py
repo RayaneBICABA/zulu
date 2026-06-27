@@ -356,6 +356,30 @@ def artisan_home():
         return jsonify({"error": str(e)}), 404
 
 
+@commerce_bp.route("/artisan/profile", methods=["GET"])
+@jwt_required()
+def artisan_profile():
+    """
+    Profil artisan — infos user + liste commerces + nb_commerces.
+    ---
+    tags:
+      - Artisan
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Profil artisan
+      401:
+        description: Token manquant ou invalide
+    """
+    try:
+        user_id = int(get_jwt_identity())
+        result = commerce_service.get_artisan_profile(user_id)
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+
+
 @commerce_bp.route("/commerces/<int:commerce_id>/vues", methods=["POST"])
 def record_vue(commerce_id):
     """
