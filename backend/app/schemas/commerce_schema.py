@@ -56,7 +56,10 @@ class CommerceStatsSchema(Schema):
     commerce_id = fields.Int(dump_only=True)
     nb_vues_profile = fields.Int(dump_only=True)
     nb_favoris = fields.Int(dump_only=True)
+    nb_commentaires = fields.Int(dump_only=True)
     last_vue_at = fields.DateTime(dump_only=True)
+    average_rating = fields.Float(dump_only=True)
+    rating_count = fields.Int(dump_only=True)
 
 
 class FavoriSchema(Schema):
@@ -109,6 +112,7 @@ class CommerceSchema(Schema):
     photos = fields.List(fields.Nested(CommercePhotoSchema), dump_only=True)
     horaires = fields.List(fields.Nested(HoraireOuvertureSchema), dump_only=True)
     produit_images = fields.List(fields.Nested(ProduitImageSchema), dump_only=True)
+    commentaires = fields.List(fields.Nested("CommentaireSchema"), dump_only=True)
     created_at = fields.DateTime(dump_only=True)
     updated_at = fields.DateTime(dump_only=True)
 

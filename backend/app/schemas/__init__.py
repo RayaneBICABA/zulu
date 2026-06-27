@@ -17,3 +17,4 @@ from .commerce_schema import (
     ArtisanProfileSchema,
     CommerceProfileSchema,
 )
+from .commentaire_schema import CommentaireSchema, CommentaireCreateSchema, CommentaireModerateSchema, CommentaireResponseSchema

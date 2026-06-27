@@ -16,6 +16,8 @@ class User(BaseModel):
     roles = db.relationship("Role", secondary="user_roles", back_populates="users", lazy="selectin")
     favoris = db.relationship("Favori", back_populates="user", lazy="selectin", cascade="all, delete-orphan")
     vues_emises = db.relationship("VueProfile", back_populates="user", lazy="selectin")
+    commentaires_ecrits = db.relationship("Commentaire", back_populates="auteur", lazy="selectin", foreign_keys="[Commentaire.auteur_id]")
+    commentaires_moderes = db.relationship("Commentaire", back_populates="moderateur", lazy="selectin", foreign_keys="[Commentaire.moderated_by]")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

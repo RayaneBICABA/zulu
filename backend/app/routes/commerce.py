@@ -6,7 +6,9 @@ from ..schemas.commerce_schema import (
     FavoriCreateSchema, ProduitImageCreateSchema,
 )
 from ..schemas.categorie_schema import CategorieCreateSchema
+from ..schemas.commentaire_schema import CommentaireCreateSchema
 from ..services import commerce_service
+from ..services.role_service import role_required
 
 commerce_bp = Blueprint("commerce", __name__)
 step1_schema = CommerceStep1Schema()
@@ -15,6 +17,7 @@ commerce_schema = CommerceSchema()
 categorie_create_schema = CategorieCreateSchema()
 favori_create_schema = FavoriCreateSchema()
 produit_image_create_schema = ProduitImageCreateSchema()
+commentaire_create_schema = CommentaireCreateSchema()
 
 
 @commerce_bp.route("/commerces", methods=["POST"])
@@ -290,6 +293,7 @@ def list_categories():
 
 @commerce_bp.route("/categories", methods=["POST"])
 @jwt_required()
+@role_required("admin")
 def create_category():
     """
     Creer une nouvelle categorie.
@@ -332,6 +336,7 @@ def create_category():
 
 @commerce_bp.route("/artisan/home", methods=["GET"])
 @jwt_required()
+@role_required("artisan")
 def artisan_home():
     """
     Dashboard artisan — Bienvenue + stats + commerce complet.
@@ -358,6 +363,7 @@ def artisan_home():
 
 @commerce_bp.route("/artisan/profile", methods=["GET"])
 @jwt_required()
+@role_required("artisan")
 def artisan_profile():
     """
     Profil artisan — infos user + liste commerces + nb_commerces.
@@ -612,3 +618,200 @@ def share_geolocalisation(commerce_id):
         return jsonify({"geolocalisation_url": result}), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+
+
+@commerce_bp.route("/commerces/<int:commerce_id>/rating", methods=["GET"])
+def get_commerce_rating(commerce_id):
+    """
+    Recuperer la note IA et les etoiles d'un commerce.
+    ---
+    tags:
+      - Commerce
+    parameters:
+      - in: path
+        name: commerce_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Note et etoiles du commerce
+        schema:
+          type: object
+          properties:
+            commerce_id:
+              type: integer
+            average_rating:
+              type: number
+            rating_count:
+              type: integer
+            etoiles:
+              type: object
+              properties:
+                pleines:
+                  type: integer
+                demies:
+                  type: integer
+                vides:
+                  type: integer
+      404:
+        description: Commerce introuvable
+    """
+    from app.models.commerce import Commerce, CommerceStats
+    from app.services.ai_service import compute_etoiles
+
+    commerce = Commerce.query.get(commerce_id)
+    if not commerce:
+        return jsonify({"error": "Commerce introuvable."}), 404
+
+    stats = CommerceStats.query.filter_by(commerce_id=commerce_id).first()
+    average_rating = float(stats.average_rating) if stats and stats.average_rating else 0.0
+    rating_count = stats.rating_count if stats else 0
+
+    return jsonify({
+        "commerce_id": commerce_id,
+        "average_rating": average_rating,
+        "rating_count": rating_count,
+        "etoiles": compute_etoiles(average_rating),
+    }), 200
+
+
+@commerce_bp.route("/commerces/<int:commerce_id>/commentaires", methods=["POST"])
+@jwt_required()
+def create_commentaire(commerce_id):
+    """
+    Laisser un commentaire sur un commerce.
+    ---
+    tags:
+      - Commentaires
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: commerce_id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - contenu
+          properties:
+            contenu:
+              type: string
+              maxLength: 2000
+    responses:
+      201:
+        description: Commentaire cree
+      400:
+        description: Erreur de validation
+      401:
+        description: Token manquant ou invalide
+      403:
+        description: Acces refuse (proprietaire du commerce)
+    """
+    try:
+        data = commentaire_create_schema.load(request.get_json())
+    except ValidationError as err:
+        return jsonify({"error": err.messages}), 400
+
+    try:
+        user_id = int(get_jwt_identity())
+        result = commerce_service.create_commentaire(user_id, commerce_id, data)
+        return jsonify(result), 201
+    except ValueError as e:
+        error_msg = str(e)
+        if "propre commerce" in error_msg:
+            return jsonify({"error": error_msg}), 403
+        return jsonify({"error": error_msg}), 400
+
+
+@commerce_bp.route("/commerces/<int:commerce_id>/commentaires", methods=["GET"])
+def list_commentaires(commerce_id):
+    """
+    Lister les commentaires d'un commerce.
+    ---
+    tags:
+      - Commentaires
+    parameters:
+      - in: path
+        name: commerce_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Liste des commentaires
+        schema:
+          type: object
+          properties:
+            nb_commentaires:
+              type: integer
+            commentaires:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  contenu:
+                    type: string
+                  created_at:
+                    type: string
+                    format: date-time
+                  auteur:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      first_name:
+                        type: string
+                      last_name:
+                        type: string
+      404:
+        description: Commerce introuvable
+    """
+    try:
+        result = commerce_service.list_commentaires(commerce_id)
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+
+
+@commerce_bp.route("/commerces/<int:commerce_id>/commentaires/<int:commentaire_id>", methods=["DELETE"])
+@jwt_required()
+def delete_commentaire(commerce_id, commentaire_id):
+    """
+    Supprimer un commentaire (auteur uniquement).
+    ---
+    tags:
+      - Commentaires
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: commerce_id
+        type: integer
+        required: true
+      - in: path
+        name: commentaire_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Commentaire supprime
+      401:
+        description: Token manquant ou invalide
+      403:
+        description: Acces refuse (pas l'auteur)
+      404:
+        description: Commentaire introuvable
+    """
+    try:
+        user_id = int(get_jwt_identity())
+        result = commerce_service.delete_commentaire(user_id, commentaire_id)
+        return jsonify(result), 200
+    except ValueError as e:
+        error_msg = str(e)
+        if "Acces refuse" in error_msg:
+            return jsonify({"error": error_msg}), 403
+        return jsonify({"error": error_msg}), 404
