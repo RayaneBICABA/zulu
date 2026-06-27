@@ -10,5 +10,7 @@ export const ROUTES = {
   favoris:            '/favoris',
   profile:            '/profil',
   dashboard:          '/dashboard',
+  commerceDetail:     '/commerce/:id',
+  commerceCreate:     '/commerce/nouveau',
   notFound:           '*',
 }

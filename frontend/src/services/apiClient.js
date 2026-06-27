@@ -86,11 +86,25 @@ const apiClient = {
       body: JSON.stringify(body),
     }),
 
+  postMultipart: (endpoint, formData) =>
+    authFetch(endpoint, {
+      method: 'POST',
+      headers: { ...getAuthHeader() },
+      body: formData,
+    }),
+
   put: (endpoint, body) =>
     authFetch(endpoint, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
       body: JSON.stringify(body),
+    }),
+
+  patch: (endpoint, body) =>
+    authFetch(endpoint, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: body ? JSON.stringify(body) : undefined,
     }),
 
   delete: (endpoint) =>

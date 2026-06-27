@@ -16,6 +16,8 @@ import DashboardPage from './pages/DashboardPage'
 import ClientHomePage from './pages/ClientHomePage'
 import FavorisPage from './pages/FavorisPage'
 import ClientProfilePage from './pages/ClientProfilePage'
+import CommerceDetailPage from './pages/CommerceDetailPage'
+import CommerceCreatePage from './pages/CommerceCreatePage'
 import ClientLayout from './components/layout/ClientLayout'
 
 const App = () => (
@@ -33,10 +35,17 @@ const App = () => (
             <Route path={ROUTES.googleCallback} element={<GoogleCallbackPage />} />
 
             <Route element={<ProtectedRoute><ClientLayout /></ProtectedRoute>}>
-              <Route path={ROUTES.home}    element={<ClientHomePage />} />
-              <Route path={ROUTES.favoris}  element={<FavorisPage />} />
-              <Route path={ROUTES.profile}  element={<ClientProfilePage />} />
+              <Route path={ROUTES.home}           element={<ClientHomePage />} />
+              <Route path={ROUTES.favoris}         element={<FavorisPage />} />
+              <Route path={ROUTES.profile}         element={<ClientProfilePage />} />
+              <Route path={ROUTES.commerceCreate}  element={<CommerceCreatePage />} />
             </Route>
+
+            <Route path={ROUTES.commerceDetail} element={
+              <ProtectedRoute>
+                <CommerceDetailPage />
+              </ProtectedRoute>
+            } />
 
             <Route path={ROUTES.dashboard}     element={
               <ProtectedRoute>

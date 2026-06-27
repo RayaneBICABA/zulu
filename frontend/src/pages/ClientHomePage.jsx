@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { Search, MapPin, Star, Heart } from 'lucide-react'
+import { Search, MapPin } from 'lucide-react'
 import useAuth from '../features/auth/hooks/useAuth'
 import commerceService from '../services/commerceService'
+import CommerceCard from '../components/ui/CommerceCard'
 import PageWrapper from '../components/layout/PageWrapper'
 
 const ClientHomePage = () => {
@@ -34,8 +35,9 @@ const ClientHomePage = () => {
   }, [search, selectedCategory])
 
   useEffect(() => {
-    fetchCommerces()
-  }, [fetchCommerces])
+    const timer = setTimeout(fetchCommerces, search ? 400 : 0)
+    return () => clearTimeout(timer)
+  }, [fetchCommerces, search])
 
   useEffect(() => {
     commerceService.listFavoris().then((favs) => {
@@ -76,7 +78,7 @@ const ClientHomePage = () => {
           />
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-3 -mx-5 px-5 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-3 -mx-5 px-5" style={{ scrollbarWidth: 'none' }}>
           <button
             onClick={() => setSelectedCategory(null)}
             className={`flex-none px-4 py-2 rounded-full text-xs font-medium border transition-colors ${
@@ -104,74 +106,32 @@ const ClientHomePage = () => {
       </div>
 
       <div className="px-5">
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">
-          {commerces.length} commerce{commerces.length !== 1 ? 's' : ''}
-        </h2>
-
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : commerces.length === 0 ? (
           <div className="text-center py-12">
+            <MapPin size={40} className="mx-auto text-gray-300 mb-3" />
             <p className="text-gray-400 text-sm">Aucun commerce trouve</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {commerces.map((c, i) => (
-              <motion.div
-                key={c.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm"
-              >
-                <div className="relative h-44 bg-gray-100">
-                  {c.photo_principale ? (
-                    <img src={c.photo_principale} alt={c.nom_commercial} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-300">
-                      <MapPin size={40} />
-                    </div>
-                  )}
-                  <button
-                    onClick={() => handleToggleFavori(c.id)}
-                    className="absolute top-3 right-3 w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm"
-                  >
-                    <Heart
-                      size={18}
-                      className={favorites.has(c.id) ? 'fill-error text-error' : 'text-gray-400'}
-                    />
-                  </button>
-                  {c.is_verified && (
-                    <div className="absolute top-3 left-3 px-2 py-0.5 bg-white/90 backdrop-blur-sm rounded-full text-[10px] font-medium text-primary-500">
-                      Verifie
-                    </div>
-                  )}
-                </div>
-                <div className="p-3">
-                  <div className="flex items-start justify-between mb-1">
-                    <h3 className="font-semibold text-gray-900 text-sm">{c.nom_commercial}</h3>
-                    <div className="flex items-center gap-1 flex-none">
-                      <Star size={12} className="fill-amber-400 text-amber-400" />
-                      <span className="text-xs text-gray-600">
-                        {c.average_rating > 0 ? c.average_rating.toFixed(1) : '—'}
-                      </span>
-                    </div>
-                  </div>
-                  {c.categorie && (
-                    <p className="text-xs text-primary-500 mb-1">{c.categorie.nom}</p>
-                  )}
-                  {c.adresse_complete && (
-                    <p className="text-xs text-gray-400 flex items-center gap-1">
-                      <MapPin size={10} />
-                      {c.adresse_complete}
-                    </p>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <>
+            <p className="text-xs text-gray-400 mb-3">
+              {commerces.length} commerce{commerces.length !== 1 ? 's' : ''} a proximite
+            </p>
+            <div className="space-y-4">
+              {commerces.map((c, i) => (
+                <CommerceCard
+                  key={c.id}
+                  commerce={c}
+                  index={i}
+                  isFavorited={favorites.has(c.id)}
+                  onToggleFavori={handleToggleFavori}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </PageWrapper>

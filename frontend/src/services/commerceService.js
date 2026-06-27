@@ -12,6 +12,27 @@ const commerceService = {
     return apiClient.get(`${ENDPOINTS.commerces}${qs ? `?${qs}` : ''}`)
   },
 
+  getOne: (id) =>
+    apiClient.get(`${ENDPOINTS.commerces}/${id}`),
+
+  create: (data) =>
+    apiClient.post(ENDPOINTS.commerces, data),
+
+  updateLocalisation: (commerceId, data) =>
+    apiClient.put(`${ENDPOINTS.commerces}/${commerceId}/localisation`, data),
+
+  uploadPhotos: (commerceId, files) => {
+    const formData = new FormData()
+    files.forEach((f) => formData.append('photos', f))
+    return apiClient.postMultipart(`${ENDPOINTS.commerces}/${commerceId}/photos`, formData)
+  },
+
+  publish: (commerceId) =>
+    apiClient.patch(`${ENDPOINTS.commerces}/${commerceId}/publish`),
+
+  getRating: (commerceId) =>
+    apiClient.get(`${ENDPOINTS.commerces}/${commerceId}/rating`),
+
   listCategories: () =>
     apiClient.get(ENDPOINTS.categories),
 
@@ -22,6 +43,33 @@ const commerceService = {
 
   listFavoris: () =>
     apiClient.get(ENDPOINTS.favoris),
+
+  addComment: (commerceId, contenu) =>
+    apiClient.post(`${ENDPOINTS.commerces}/${commerceId}/commentaires`, { contenu }),
+
+  listComments: (commerceId) =>
+    apiClient.get(`${ENDPOINTS.commerces}/${commerceId}/commentaires`),
+
+  deleteComment: (commerceId, commentId) =>
+    apiClient.delete(`${ENDPOINTS.commerces}/${commerceId}/commentaires/${commentId}`),
+
+  shareWhatsApp: (commerceId) =>
+    apiClient.get(`${ENDPOINTS.commerces}/${commerceId}/geolocalisation`),
+
+  recordView: (commerceId) =>
+    apiClient.post(`${ENDPOINTS.commerces}/${commerceId}/vues`, {}),
+
+  artisanHome: () =>
+    apiClient.get('/artisan/home'),
+
+  artisanProfile: () =>
+    apiClient.get('/artisan/profile'),
+
+  switchCommerce: (commerceId) =>
+    apiClient.patch('/artisan/active-commerce', { commerce_id: commerceId }),
+
+  artisanCards: () =>
+    apiClient.get('/artisan/commerces/cards'),
 }
 
 export default commerceService
