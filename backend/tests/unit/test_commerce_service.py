@@ -636,3 +636,209 @@ class TestGetArtisanProfile:
         with app.app_context():
             with pytest.raises(ValueError, match="Utilisateur introuvable"):
                 commerce_service.get_artisan_profile(9999)
+
+
+class TestCreateCommentaire:
+    def _create_active_commerce(self, app):
+        owner = auth_service.register(email="owner@test.com", password="password123")
+        cat = Categorie(nom="Avis", is_active=True)
+        cat.save()
+        commerce = Commerce(
+            user_id=owner.id, nom_commercial="Mon Commerce",
+            categorie_id=cat.id, is_active=True,
+        )
+        commerce.save()
+        return owner, commerce
+
+    def test_create_commentaire(self, app):
+        with app.app_context():
+            owner, commerce = self._create_active_commerce(app)
+            client = auth_service.register(email="client@test.com", password="password123")
+            result = commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Super travail !"})
+            assert result["contenu"] == "Super travail !"
+            assert result["auteur_id"] == client.id
+            assert result["commerce_id"] == commerce.id
+
+    def test_create_commentaire_increments_count(self, app):
+        with app.app_context():
+            owner, commerce = self._create_active_commerce(app)
+            client = auth_service.register(email="client@test.com", password="password123")
+            commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Bien"})
+            from app.models.commerce import CommerceStats
+            stats = CommerceStats.query.filter_by(commerce_id=commerce.id).first()
+            assert stats.nb_commentaires == 1
+
+    def test_raises_on_own_commerce(self, app):
+        with app.app_context():
+            owner, commerce = self._create_active_commerce(app)
+            with pytest.raises(ValueError, match="propre commerce"):
+                commerce_service.create_commentaire(owner.id, commerce.id, {"contenu": "Self"})
+
+    def test_raises_on_inactive_commerce(self, app):
+        with app.app_context():
+            owner = auth_service.register(email="owner@test.com", password="password123")
+            cat = Categorie(nom="Inactive", is_active=True)
+            cat.save()
+            commerce = Commerce(
+                user_id=owner.id, nom_commercial="Draft",
+                categorie_id=cat.id, is_active=False,
+            )
+            commerce.save()
+            client = auth_service.register(email="client@test.com", password="password123")
+            with pytest.raises(ValueError, match="pas encore publie"):
+                commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Test"})
+
+    def test_raises_on_unknown_commerce(self, app):
+        with app.app_context():
+            client = auth_service.register(email="client@test.com", password="password123")
+            with pytest.raises(ValueError, match="Commerce introuvable"):
+                commerce_service.create_commentaire(client.id, 9999, {"contenu": "Test"})
+
+    def test_calls_analyze_and_update_rating(self, app):
+        with app.app_context():
+            owner, commerce = self._create_active_commerce(app)
+            client = auth_service.register(email="client@test.com", password="password123")
+            with patch("app.services.ai_service.analyze_and_update_rating") as mock_rating:
+                commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Test"})
+                mock_rating.assert_called_once_with(commerce.id)
+
+    def test_updates_average_rating_on_success(self, app):
+        with app.app_context():
+            owner, commerce = self._create_active_commerce(app)
+            client = auth_service.register(email="client@test.com", password="password123")
+            with patch("app.services.ai_service.analyze_commentaires", return_value=(4.50, "Bon.")):
+                commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Bon"})
+            from app.models.commerce import CommerceStats
+            stats = CommerceStats.query.filter_by(commerce_id=commerce.id).first()
+            assert float(stats.average_rating) == 4.5
+            assert stats.rating_count == 1
+
+    def test_comment_saved_even_when_ai_fails(self, app):
+        with app.app_context():
+            owner, commerce = self._create_active_commerce(app)
+            client = auth_service.register(email="client@test.com", password="password123")
+            with patch("app.services.ai_service.analyze_and_update_rating", side_effect=Exception("AI down")):
+                result = commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Still saved"})
+            assert result["contenu"] == "Still saved"
+            from app.models.commentaire import Commentaire
+            assert Commentaire.query.get(result["id"]) is not None
+
+
+class TestListCommentaires:
+    def test_returns_commentaires(self, app):
+        with app.app_context():
+            owner = auth_service.register(email="owner@test.com", password="password123")
+            cat = Categorie(nom="ListAvis", is_active=True)
+            cat.save()
+            commerce = Commerce(
+                user_id=owner.id, nom_commercial="ListCommerce",
+                categorie_id=cat.id, is_active=True,
+            )
+            commerce.save()
+            client = auth_service.register(email="client@test.com", password="password123")
+            commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Bon"})
+
+            result = commerce_service.list_commentaires(commerce.id)
+            assert result["nb_commentaires"] == 1
+            assert result["commentaires"][0]["contenu"] == "Bon"
+            assert result["commentaires"][0]["auteur"]["first_name"] is None
+
+    def test_excludes_hidden_commentaires(self, app):
+        with app.app_context():
+            owner = auth_service.register(email="owner@test.com", password="password123")
+            cat = Categorie(nom="Hidden", is_active=True)
+            cat.save()
+            commerce = Commerce(
+                user_id=owner.id, nom_commercial="HiddenCommerce",
+                categorie_id=cat.id, is_active=True,
+            )
+            commerce.save()
+            client = auth_service.register(email="client@test.com", password="password123")
+            c = commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Visible"})
+            from app.models.commentaire import Commentaire
+            commentaire = Commentaire.query.get(c["id"])
+            commentaire.is_visible = False
+            commentaire.save()
+
+            result = commerce_service.list_commentaires(commerce.id)
+            assert result["nb_commentaires"] == 0
+
+    def test_raises_on_unknown_commerce(self, app):
+        with app.app_context():
+            with pytest.raises(ValueError, match="Commerce introuvable"):
+                commerce_service.list_commentaires(9999)
+
+
+class TestDeleteCommentaire:
+    def test_deletes_commentaire(self, app):
+        with app.app_context():
+            owner = auth_service.register(email="owner@test.com", password="password123")
+            cat = Categorie(nom="DelAvis", is_active=True)
+            cat.save()
+            commerce = Commerce(
+                user_id=owner.id, nom_commercial="DelCommerce",
+                categorie_id=cat.id, is_active=True,
+            )
+            commerce.save()
+            client = auth_service.register(email="client@test.com", password="password123")
+            c = commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "A supprimer"})
+
+            result = commerce_service.delete_commentaire(client.id, c["id"])
+            assert result["message"] == "Commentaire supprime."
+            from app.models.commentaire import Commentaire
+            assert Commentaire.query.get(c["id"]) is None
+
+    def test_deletes_commentaire_decrements_count(self, app):
+        with app.app_context():
+            owner = auth_service.register(email="owner@test.com", password="password123")
+            cat = Categorie(nom="DecCount", is_active=True)
+            cat.save()
+            commerce = Commerce(
+                user_id=owner.id, nom_commercial="DecCommerce",
+                categorie_id=cat.id, is_active=True,
+            )
+            commerce.save()
+            client = auth_service.register(email="client@test.com", password="password123")
+            c = commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Compteur"})
+            commerce_service.delete_commentaire(client.id, c["id"])
+            from app.models.commerce import CommerceStats
+            stats = CommerceStats.query.filter_by(commerce_id=commerce.id).first()
+            assert stats.nb_commentaires == 0
+
+    def test_raises_on_wrong_owner(self, app):
+        with app.app_context():
+            owner = auth_service.register(email="owner@test.com", password="password123")
+            cat = Categorie(nom="Wrong", is_active=True)
+            cat.save()
+            commerce = Commerce(
+                user_id=owner.id, nom_commercial="WrongCommerce",
+                categorie_id=cat.id, is_active=True,
+            )
+            commerce.save()
+            client = auth_service.register(email="client@test.com", password="password123")
+            other = auth_service.register(email="other@test.com", password="password123")
+            c = commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "Not yours"})
+            with pytest.raises(ValueError, match="Acces refuse"):
+                commerce_service.delete_commentaire(other.id, c["id"])
+
+    def test_raises_on_unknown_commentaire(self, app):
+        with app.app_context():
+            client = auth_service.register(email="client@test.com", password="password123")
+            with pytest.raises(ValueError, match="Commentaire introuvable"):
+                commerce_service.delete_commentaire(client.id, 9999)
+
+    def test_calls_analyze_and_update_rating(self, app):
+        with app.app_context():
+            owner = auth_service.register(email="owner@test.com", password="password123")
+            cat = Categorie(nom="DelHook", is_active=True)
+            cat.save()
+            commerce = Commerce(
+                user_id=owner.id, nom_commercial="DelHookCommerce",
+                categorie_id=cat.id, is_active=True,
+            )
+            commerce.save()
+            client = auth_service.register(email="client@test.com", password="password123")
+            c = commerce_service.create_commentaire(client.id, commerce.id, {"contenu": "To delete"})
+            with patch("app.services.ai_service.analyze_and_update_rating") as mock_rating:
+                commerce_service.delete_commentaire(client.id, c["id"])
+                mock_rating.assert_called_once_with(commerce.id)

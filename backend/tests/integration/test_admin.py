@@ -43,15 +43,15 @@ class TestRoles:
         assert response.status_code == 200
         assert isinstance(response.get_json(), list)
 
-    def test_list_roles_returns_200_for_non_admin(self, client, user_token):
+    def test_list_roles_returns_403_for_non_admin(self, client, user_token):
         response = client.get("/api/admin/roles", headers={
             "Authorization": f"Bearer {user_token}",
         })
-        assert response.status_code == 200
+        assert response.status_code == 403
 
-    def test_list_roles_returns_200_without_token(self, client):
+    def test_list_roles_returns_401_without_token(self, client):
         response = client.get("/api/admin/roles")
-        assert response.status_code == 200
+        assert response.status_code == 401
 
     def test_create_role_returns_201(self, client, admin_token):
         response = client.post("/api/admin/roles", json={
