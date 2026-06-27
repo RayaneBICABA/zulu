@@ -115,8 +115,12 @@ class AuthService:
         if not user:
             return
 
-        token = generate_reset_token(email)
-        send_reset_password_email(email, token)
+        try:
+            token = generate_reset_token(email)
+            send_reset_password_email(email, token)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Reset password email failed for {email}: {e}")
 
     def reset_password(self, token, new_password):
         email = confirm_reset_token(token)
