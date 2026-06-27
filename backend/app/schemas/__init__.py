@@ -16,5 +16,7 @@ from .commerce_schema import (
     ProduitImageCreateSchema,
     ArtisanProfileSchema,
     CommerceProfileSchema,
+    SwitchCommerceSchema,
+    CommerceCardSchema,
 )
 from .commentaire_schema import CommentaireSchema, CommentaireCreateSchema, CommentaireModerateSchema, CommentaireResponseSchema
