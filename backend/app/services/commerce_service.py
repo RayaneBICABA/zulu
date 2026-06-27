@@ -47,6 +47,12 @@ class CommerceService:
             is_vendeur_produits=data.get("is_vendeur_produits", False),
         )
         commerce.save()
+
+        user = User.query.get(user_id)
+        if user and not user.active_commerce_id:
+            user.active_commerce_id = commerce.id
+            user.save()
+
         result = commerce.to_dict()
         result["step"] = 1
         return result
@@ -119,7 +125,15 @@ class CommerceService:
             photo.save()
             uploaded.append(photo.to_dict())
 
-        return uploaded
+        auto_published = False
+        if not commerce.is_active:
+            nb_commerces = Commerce.query.filter_by(user_id=user_id).count()
+            if nb_commerces == 1:
+                commerce.is_active = True
+                commerce.save()
+                auto_published = True
+
+        return {"photos": uploaded, "auto_published": auto_published}
 
     def delete_photo(self, commerce_id, photo_id, user_id):
         commerce = Commerce.query.get(commerce_id)
@@ -188,6 +202,7 @@ class CommerceService:
                 "last_name": user.last_name,
                 "email": user.email,
                 "is_verified": user.is_verified,
+                "active_commerce_id": user.active_commerce_id,
             },
             "commerces": [
                 {
@@ -196,6 +211,7 @@ class CommerceService:
                     "whatsapp_numero": c.whatsapp_numero,
                     "contact_telephonique": c.contact_telephonique,
                     "is_active": c.is_active,
+                    "is_active_commerce": c.id == user.active_commerce_id,
                 }
                 for c in commerces
             ],
@@ -203,7 +219,22 @@ class CommerceService:
         }
 
     def get_artisan_home(self, user_id):
-        commerce = Commerce.query.filter_by(user_id=user_id).first()
+        user = User.query.get(user_id)
+        if not user:
+            raise ValueError("Utilisateur introuvable.")
+
+        commerce = None
+        if user.active_commerce_id:
+            commerce = Commerce.query.get(user.active_commerce_id)
+            if not commerce or commerce.user_id != user_id:
+                commerce = None
+
+        if not commerce:
+            commerce = Commerce.query.filter_by(user_id=user_id).first()
+            if commerce:
+                user.active_commerce_id = commerce.id
+                user.save()
+
         if not commerce:
             raise ValueError("Aucun commerce trouve pour cet artisan.")
 
@@ -223,7 +254,7 @@ class CommerceService:
             key=lambda x: x["ordre"],
         )
 
-        first_name = commerce.user.first_name or commerce.user.email.split("@")[0]
+        first_name = user.first_name or user.email.split("@")[0]
         geolocalisation_url = _build_whatsapp_geo_url(
             commerce.nom_commercial,
             commerce.latitude,
@@ -465,6 +496,69 @@ class CommerceService:
             logging.getLogger(__name__).warning(f"[AI] Rating update failed: {e}")
 
         return {"message": "Commentaire supprime."}
+
+    def switch_commerce(self, user_id, commerce_id):
+        user = User.query.get(user_id)
+        if not user:
+            raise ValueError("Utilisateur introuvable.")
+
+        commerce = Commerce.query.get(commerce_id)
+        if not commerce:
+            raise ValueError("Commerce introuvable.")
+        if commerce.user_id != user_id:
+            raise ValueError("Acces refuse.")
+
+        user.active_commerce_id = commerce.id
+        user.save()
+
+        return {
+            "message": f"Commerce '{commerce.nom_commercial}' active.",
+            "active_commerce_id": commerce.id,
+        }
+
+    def get_commerces_cards(self, user_id):
+        user = User.query.get(user_id)
+        if not user:
+            raise ValueError("Utilisateur introuvable.")
+
+        commerces = Commerce.query.filter_by(user_id=user_id).all()
+        if not commerces:
+            return {"cards": []}
+
+        active_id = user.active_commerce_id
+        cards = []
+        for c in commerces:
+            if c.id == active_id:
+                continue
+
+            photo = CommercePhoto.query.filter_by(
+                commerce_id=c.id, is_principale=True
+            ).first()
+            if not photo:
+                photo = CommercePhoto.query.filter_by(
+                    commerce_id=c.id
+                ).order_by(CommercePhoto.ordre.asc()).first()
+
+            share_url = None
+            if c.is_active:
+                share_url = _build_whatsapp_geo_url(
+                    c.nom_commercial,
+                    c.latitude,
+                    c.longitude,
+                )
+
+            cards.append({
+                "id": c.id,
+                "nom_commercial": c.nom_commercial,
+                "description": (c.description or "")[:80],
+                "first_image_url": photo.url if photo else None,
+                "is_active": c.is_active,
+                "is_active_commerce": c.id == user.active_commerce_id,
+                "share_url": share_url,
+                "step": _get_step(c),
+            })
+
+        return {"cards": cards}
 
 
 def _build_whatsapp_geo_url(commerce_name, latitude, longitude):
