@@ -19,9 +19,9 @@ const ProfilePage = () => {
 
   // Données réelles de l'utilisateur connecté (GET /api/auth/me).
   const profile = {
-    name: [user?.prenom, user?.nom].filter(Boolean).join(" ") || user?.email,
+    name: [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.email,
     email: user?.email,
-    role: user?.role === "artisan" ? "Artisan" : "Client",
+    role: (user?.roles || []).includes("artisan") ? "Artisan" : "Client",
     avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user?.email || "zulu")}`,
   };
 

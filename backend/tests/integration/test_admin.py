@@ -14,11 +14,8 @@ def admin_token(client):
     token = login.get_json()["access_token"]
 
     from app.services import role_service
-    from app import create_app
-    from app.extensions import db as _db
+    from app.models.user import User
     with client.application.app_context():
-        role_service.create_role("admin")
-        from app.models.user import User
         user = User.query.filter_by(email="admin@test.com").first()
         role_service.assign_role(user.id, "admin")
 

@@ -38,15 +38,9 @@ def list_roles():
     ---
     tags:
       - Administration
-    security:
-      - Bearer: []
     responses:
       200:
         description: Liste des roles
-      401:
-        description: Token manquant ou invalide
-      403:
-        description: Acces refuse (role admin requis)
     """
     roles = role_service.get_all_roles()
     return jsonify([r.to_dict() for r in roles]), 200

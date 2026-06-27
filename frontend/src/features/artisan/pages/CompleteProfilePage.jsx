@@ -117,6 +117,7 @@ const CompleteProfilePage = () => {
     try {
       await submitCommerce(buildPayload())
       navigate(ROUTES.artisanHome)
+      navigate(ROUTES.artisanHome)
     } catch (err) {
       setErrors({ submit: err.message })
     } finally {
