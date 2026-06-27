@@ -1,4 +1,4 @@
-package com.zulustarter.app;
+package com.zawani.app;
 
 import com.getcapacitor.BridgeActivity;
 
