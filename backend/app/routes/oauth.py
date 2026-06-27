@@ -49,6 +49,13 @@ def google_callback():
         token = oauth.google.authorize_access_token()
         userinfo = oauth.google.parse_id_token(token)
         result = oauth_service.google_login(userinfo)
-        return jsonify(result), 200
+        frontend_url = current_app.config.get("FRONTEND_URL", "http://localhost:5173")
+        redirect_url = (
+            f"{frontend_url}/auth/google/callback"
+            f"?access_token={result['access_token']}"
+            f"&refresh_token={result['refresh_token']}"
+        )
+        return redirect(redirect_url)
     except Exception as e:
-        return jsonify({"error": "Authentification Google echouee."}), 401
+        frontend_url = current_app.config.get("FRONTEND_URL", "http://localhost:5173")
+        return redirect(f"{frontend_url}/login?error=google_auth_failed")

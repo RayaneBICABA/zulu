@@ -64,6 +64,9 @@ class AuthService:
         if not user.is_active:
             raise ValueError("Ce compte est desactive.")
 
+        if not user.is_verified:
+            raise ValueError("Email non verifie. Verifiez votre boite de reception.")
+
         access_token = create_access_token(
             identity=str(user.id),
             additional_claims={
