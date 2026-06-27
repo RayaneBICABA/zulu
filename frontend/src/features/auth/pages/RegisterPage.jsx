@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { Eye, EyeOff, CheckCircle2, UserPlus, Mail, Lock, User } from 'lucide-react'
 import { ROUTES } from '../../../constants/routes'
 import useAuth from '../hooks/useAuth'
-import Button from '../../../components/ui/Button'
+import AuthLayout from '../../../components/layout/AuthLayout'
 import Input from '../../../components/ui/Input'
-import Card from '../../../components/ui/Card'
-import PageWrapper from '../../../components/layout/PageWrapper'
+import Button from '../../../components/ui/Button'
+import { AuthAlert, AuthSuccess } from '../components/AuthUI'
 
 const RegisterPage = () => {
   const { register } = useAuth()
@@ -27,17 +27,17 @@ const RegisterPage = () => {
   const [showConfirm, setShowConfirm] = useState(false)
 
   const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
-    setFieldErrors((prev) => ({ ...prev, [e.target.name]: null }))
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+    setFieldErrors(prev => ({ ...prev, [e.target.name]: null }))
   }
 
   const validate = () => {
     const errors = {}
     if (!form.email) errors.email = 'Email requis'
     if (!form.password) errors.password = 'Mot de passe requis'
-    if (form.password && form.password.length < 8) errors.password = 'Minimum 8 caracteres'
+    if (form.password && form.password.length < 8) errors.password = 'Minimum 8 caractères'
     if (form.password !== form.confirm_password) errors.confirm_password = 'Les mots de passe ne correspondent pas'
-    if (!form.first_name) errors.first_name = 'Prenom requis'
+    if (!form.first_name) errors.first_name = 'Prénom requis'
     if (!form.last_name) errors.last_name = 'Nom requis'
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
@@ -65,165 +65,130 @@ const RegisterPage = () => {
 
   if (success) {
     return (
-      <PageWrapper className="flex items-center justify-center min-h-screen px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md"
-        >
-          <Card padding="lg">
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-successLight flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h1 className="text-xl font-bold text-secondary-500 mb-2">
-                Inscription reussie
-              </h1>
-              <p className="text-sm text-gray-400 mb-6">
-                Un email de verification vous a ete envoye. Veuillez cliquer sur le lien pour activer votre compte.
-              </p>
-              <Button onClick={() => navigate(ROUTES.login)}>
-                Se connecter
-              </Button>
-            </div>
-          </Card>
-        </motion.div>
-      </PageWrapper>
+      <AuthLayout title="Compte créé !" subtitle="Bienvenue dans la communauté Zulu">
+        <AuthSuccess icon={<CheckCircle2 size={26} className="text-success" />}>
+          <p className="text-muted text-xs sm:text-sm mb-5 leading-relaxed">
+            Votre compte est prêt. Connectez-vous pour découvrir les artisans près de chez vous.
+          </p>
+          <Button fullWidth onClick={() => navigate(ROUTES.login)}>
+            Se connecter
+          </Button>
+        </AuthSuccess>
+      </AuthLayout>
     )
   }
 
   return (
-    <PageWrapper className="flex items-center justify-center min-h-screen px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="w-full max-w-md"
-      >
-        <Card padding="lg">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-secondary-500 mb-1">
-              Creation de compte
-            </h1>
-            <p className="text-sm text-gray-400">
-              Remplissez le formulaire pour vous inscrire
-            </p>
-          </div>
+    <AuthLayout
+      title="Créer un compte"
+      subtitle="Rejoignez Zulu en quelques secondes"
+      icon={<UserPlus size={18} strokeWidth={2.5} />}
+      footer={
+        <>
+          Déjà inscrit ?{' '}
+          <Link to={ROUTES.login} className="text-primary-600 font-semibold hover:text-primary-700 transition-colors">
+            Se connecter
+          </Link>
+        </>
+      }
+    >
+      {error && (
+        <div className="mb-5">
+          <AuthAlert>{error}</AuthAlert>
+        </div>
+      )}
 
-          {error && (
-            <div className="mb-4 p-3 rounded-lg bg-errorLight text-error text-sm">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <Input
-                label="Prenom"
-                name="first_name"
-                placeholder="John"
-                value={form.first_name}
-                onChange={handleChange}
-                error={fieldErrors.first_name}
-                required
-              />
-              <Input
-                label="Nom"
-                name="last_name"
-                placeholder="Doe"
-                value={form.last_name}
-                onChange={handleChange}
-                error={fieldErrors.last_name}
-                required
-              />
-            </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <p className="auth-form-group-label">Identité</p>
+          <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3">
             <Input
-              label="Email"
+              auth
+              label="Prénom"
+              name="first_name"
+              placeholder="Jean"
+              value={form.first_name}
+              onChange={handleChange}
+              error={fieldErrors.first_name}
+              leftElement={<User size={15} />}
+            />
+            <Input
+              auth
+              label="Nom"
+              name="last_name"
+              placeholder="Traoré"
+              value={form.last_name}
+              onChange={handleChange}
+              error={fieldErrors.last_name}
+              leftElement={<User size={15} />}
+            />
+          </div>
+        </div>
+
+        <div>
+          <p className="auth-form-group-label">Connexion</p>
+          <div className="space-y-3.5">
+            <Input
+              auth
+              label="Adresse email"
               name="email"
               type="email"
               placeholder="vous@exemple.com"
               value={form.email}
               onChange={handleChange}
               error={fieldErrors.email}
-              required
+              leftElement={<Mail size={16} />}
             />
+
             <Input
+              auth
               label="Mot de passe"
               name="password"
               type={showPassword ? 'text' : 'password'}
-              placeholder="Minimum 8 caracteres"
+              placeholder="8 caractères minimum"
               value={form.password}
               onChange={handleChange}
               error={fieldErrors.password}
-              required
+              leftElement={<Lock size={16} />}
               rightElement={
                 <button
                   type="button"
-                  onClick={() => setShowPassword((p) => !p)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                  tabIndex={-1}
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-secondary-200 hover:text-primary-600 transition-colors p-1"
                 >
-                  {showPassword ? (
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  )}
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               }
             />
+
             <Input
+              auth
               label="Confirmer le mot de passe"
               name="confirm_password"
               type={showConfirm ? 'text' : 'password'}
-              placeholder="Repetez le mot de passe"
+              placeholder="Répétez le mot de passe"
               value={form.confirm_password}
               onChange={handleChange}
               error={fieldErrors.confirm_password}
-              required
+              leftElement={<Lock size={16} />}
               rightElement={
                 <button
                   type="button"
-                  onClick={() => setShowConfirm((p) => !p)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                  tabIndex={-1}
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="text-secondary-200 hover:text-primary-600 transition-colors p-1"
                 >
-                  {showConfirm ? (
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  )}
+                  {showConfirm ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               }
             />
-            <Button type="submit" fullWidth loading={loading}>
-              S'inscrire
-            </Button>
-          </form>
+          </div>
+        </div>
 
-          <p className="text-center text-sm text-gray-400 mt-6">
-            Deja un compte ?{' '}
-            <Link
-              to={ROUTES.login}
-              className="text-primary-500 hover:text-primary-600 font-medium transition-colors"
-            >
-              Se connecter
-            </Link>
-          </p>
-        </Card>
-      </motion.div>
-    </PageWrapper>
+        <Button type="submit" fullWidth loading={loading}>
+          Créer mon compte
+        </Button>
+      </form>
+    </AuthLayout>
   )
 }
 
