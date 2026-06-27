@@ -6,6 +6,7 @@ def register_routes(app):
     from .commerce import commerce_bp
     from .profile_client import profile_user_bp
     from .interface_map import interface_map_bp
+    from .commerce_detail import commerce_detail_bp
     app.register_blueprint(health_bp, url_prefix="/api")
     app.register_blueprint(auth_bp, url_prefix="/api")
     app.register_blueprint(oauth_bp, url_prefix="/api")
@@ -13,3 +14,4 @@ def register_routes(app):
     app.register_blueprint(commerce_bp, url_prefix="/api")
     app.register_blueprint(profile_user_bp, url_prefix="/api")
     app.register_blueprint(interface_map_bp, url_prefix="/api")
+    app.register_blueprint(commerce_detail_bp, url_prefix="/api")
