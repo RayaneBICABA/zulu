@@ -1,7 +1,10 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
-from ..schemas.commerce_schema import CommerceStep1Schema, CommerceStep2Schema, CommerceSchema
+from ..schemas.commerce_schema import (
+    CommerceStep1Schema, CommerceStep2Schema, CommerceSchema,
+    FavoriCreateSchema, ProduitImageCreateSchema,
+)
 from ..schemas.categorie_schema import CategorieCreateSchema
 from ..services import commerce_service
 
@@ -10,6 +13,8 @@ step1_schema = CommerceStep1Schema()
 step2_schema = CommerceStep2Schema()
 commerce_schema = CommerceSchema()
 categorie_create_schema = CategorieCreateSchema()
+favori_create_schema = FavoriCreateSchema()
+produit_image_create_schema = ProduitImageCreateSchema()
 
 
 @commerce_bp.route("/commerces", methods=["POST"])
@@ -323,3 +328,263 @@ def create_category():
         return jsonify(result), 201
     except ValueError as e:
         return jsonify({"error": str(e)}), 409
+
+
+@commerce_bp.route("/artisan/home", methods=["GET"])
+@jwt_required()
+def artisan_home():
+    """
+    Dashboard artisan — Bienvenue + stats + commerce complet.
+    ---
+    tags:
+      - Artisan
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Dashboard artisan
+      401:
+        description: Token manquant ou invalide
+      404:
+        description: Aucun commerce trouve
+    """
+    try:
+        user_id = int(get_jwt_identity())
+        result = commerce_service.get_artisan_home(user_id)
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+
+
+@commerce_bp.route("/commerces/<int:commerce_id>/vues", methods=["POST"])
+def record_vue(commerce_id):
+    """
+    Enregistrer une vue sur le profile d'un commerce.
+    ---
+    tags:
+      - Commerce
+    parameters:
+      - in: path
+        name: commerce_id
+        type: integer
+        required: true
+    responses:
+      201:
+        description: Vue enregistree
+      400:
+        description: Commerce introuvable
+    """
+    try:
+        ip = request.remote_addr
+        ua = request.headers.get("User-Agent", "")
+
+        user_id = None
+        try:
+            user_id = int(get_jwt_identity())
+        except Exception:
+            pass
+
+        result = commerce_service.record_vue(
+            commerce_id=commerce_id,
+            ip_address=ip,
+            user_agent=ua,
+            user_id=user_id,
+        )
+        return jsonify(result), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@commerce_bp.route("/commerces/<int:commerce_id>/favoris", methods=["POST"])
+@jwt_required()
+def add_favori(commerce_id):
+    """
+    Ajouter un commerce aux favoris.
+    ---
+    tags:
+      - Favoris
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: commerce_id
+        type: integer
+        required: true
+    responses:
+      201:
+        description: Ajoute aux favoris
+      400:
+        description: Deja en favori ou commerce introuvable
+      401:
+        description: Token manquant ou invalide
+    """
+    try:
+        user_id = int(get_jwt_identity())
+        result = commerce_service.add_favori(user_id, commerce_id)
+        return jsonify(result), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@commerce_bp.route("/commerces/<int:commerce_id>/favoris", methods=["DELETE"])
+@jwt_required()
+def remove_favori(commerce_id):
+    """
+    Retirer un commerce des favoris.
+    ---
+    tags:
+      - Favoris
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: commerce_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Retire des favoris
+      400:
+        description: Favori introuvable
+      401:
+        description: Token manquant ou invalide
+    """
+    try:
+        user_id = int(get_jwt_identity())
+        result = commerce_service.remove_favori(user_id, commerce_id)
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@commerce_bp.route("/favoris", methods=["GET"])
+@jwt_required()
+def list_favoris():
+    """
+    Lister les favoris de l'utilisateur connecte.
+    ---
+    tags:
+      - Favoris
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Liste des favoris avec details commerce
+      401:
+        description: Token manquant ou invalide
+    """
+    try:
+        user_id = int(get_jwt_identity())
+        result = commerce_service.list_favoris(user_id)
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@commerce_bp.route("/commerces/<int:commerce_id>/produit-images", methods=["POST"])
+@jwt_required()
+def upload_produit_image(commerce_id):
+    """
+    Uploader une image de produit (max 5, uniquement si is_vendeur_produits).
+    ---
+    tags:
+      - Commerce
+    security:
+      - Bearer: []
+    consumes:
+      - multipart/form-data
+    parameters:
+      - in: path
+        name: commerce_id
+        type: integer
+        required: true
+      - in: formData
+        name: image
+        type: file
+        required: true
+        description: Image JPG, PNG ou WebP (max 5MB)
+    responses:
+      201:
+        description: Image uploadée
+      400:
+        description: Erreur de validation
+      403:
+        description: Acces refuse ou non vendeur
+    """
+    file = request.files.get("image")
+    if not file or file.filename == "":
+        return jsonify({"error": "Une image requise."}), 400
+
+    try:
+        user_id = int(get_jwt_identity())
+        result = commerce_service.upload_produit_image(commerce_id, user_id, file)
+        return jsonify(result), 201
+    except ValueError as e:
+        error_msg = str(e)
+        if "vendeur" in error_msg.lower():
+            return jsonify({"error": error_msg}), 403
+        return jsonify({"error": error_msg}), 400
+
+
+@commerce_bp.route("/commerces/<int:commerce_id>/produit-images/<int:image_id>", methods=["DELETE"])
+@jwt_required()
+def delete_produit_image(commerce_id, image_id):
+    """
+    Supprimer une image de produit.
+    ---
+    tags:
+      - Commerce
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: commerce_id
+        type: integer
+        required: true
+      - in: path
+        name: image_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Image supprimee
+      400:
+        description: Image introuvable
+      403:
+        description: Acces refuse
+    """
+    try:
+        user_id = int(get_jwt_identity())
+        result = commerce_service.delete_produit_image(commerce_id, image_id, user_id)
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@commerce_bp.route("/commerces/<int:commerce_id>/geolocalisation", methods=["GET"])
+@jwt_required()
+def share_geolocalisation(commerce_id):
+    """
+    Generer un lien WhatsApp pour partager la geolocalisation du commerce.
+    ---
+    tags:
+      - Commerce
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: commerce_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Lien WhatsApp genere
+      400:
+        description: Commerce introuvable ou localisation manquante
+    """
+    try:
+        user_id = int(get_jwt_identity())
+        result = commerce_service.build_geolocalisation_url(commerce_id, user_id)
+        return jsonify({"geolocalisation_url": result}), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
