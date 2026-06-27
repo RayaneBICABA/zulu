@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react'
 import { ROUTES } from '../../../constants/routes'
 import authService from '../../../services/authService'
-import Button from '../../../components/ui/Button'
+import AuthLayout from '../../../components/layout/AuthLayout'
 import Input from '../../../components/ui/Input'
-import Card from '../../../components/ui/Card'
-import PageWrapper from '../../../components/layout/PageWrapper'
+import Button from '../../../components/ui/Button'
 
 const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams()
@@ -18,11 +17,12 @@ const ResetPasswordPage = () => {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
+  const [showPassword, setShowPassword] = useState(false)
 
   const validate = () => {
     const errors = {}
     if (!password) errors.password = 'Mot de passe requis'
-    if (password && password.length < 8) errors.password = 'Minimum 8 caracteres'
+    if (password && password.length < 8) errors.password = 'Minimum 8 caractères'
     if (password !== confirmPassword) errors.confirmPassword = 'Les mots de passe ne correspondent pas'
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
@@ -31,7 +31,7 @@ const ResetPasswordPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!token) {
-      setError('Lien de reinitialisation invalide ou expire')
+      setError('Lien de réinitialisation invalide ou expiré')
       return
     }
     if (!validate()) return
@@ -49,95 +49,83 @@ const ResetPasswordPage = () => {
 
   if (!token) {
     return (
-      <PageWrapper className="flex items-center justify-center min-h-screen px-4">
-        <Card padding="lg" className="max-w-md w-full text-center">
-          <h1 className="text-xl font-bold text-secondary-500 mb-2">Lien invalide</h1>
-          <p className="text-sm text-gray-400 mb-6">
-            Ce lien de reinitialisation est invalide ou a expire.
+      <AuthLayout title="Lien invalide" subtitle="Ce lien a expiré ou est incorrect">
+        <div className="text-center py-2">
+          <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
+            <AlertCircle size={28} className="text-error" />
+          </div>
+          <p className="text-muted text-sm mb-6 leading-relaxed">
+            Veuillez refaire une demande de réinitialisation de mot de passe.
           </p>
           <Link to={ROUTES.forgotPassword}>
-            <Button>Renouveler la demande</Button>
+            <Button fullWidth>Refaire une demande</Button>
           </Link>
-        </Card>
-      </PageWrapper>
+        </div>
+      </AuthLayout>
     )
   }
 
   if (success) {
     return (
-      <PageWrapper className="flex items-center justify-center min-h-screen px-4">
-        <Card padding="lg" className="max-w-md w-full text-center">
-          <div className="w-12 h-12 rounded-full bg-successLight flex items-center justify-center mx-auto mb-4">
-            <svg className="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
+      <AuthLayout title="Mot de passe modifié" subtitle="Vous pouvez maintenant vous connecter">
+        <div className="text-center py-2">
+          <div className="w-14 h-14 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-5">
+            <CheckCircle2 size={28} className="text-success" />
           </div>
-          <h1 className="text-xl font-bold text-secondary-500 mb-2">
-            Mot de passe reinitialise
-          </h1>
-          <p className="text-sm text-gray-400 mb-6">
-            Vous pouvez desormais vous connecter avec votre nouveau mot de passe.
+          <p className="text-muted text-sm mb-6 leading-relaxed">
+            Votre mot de passe a été réinitialisé avec succès.
           </p>
           <Link to={ROUTES.login}>
-            <Button>Se connecter</Button>
+            <Button fullWidth>Se connecter</Button>
           </Link>
-        </Card>
-      </PageWrapper>
+        </div>
+      </AuthLayout>
     )
   }
 
   return (
-    <PageWrapper className="flex items-center justify-center min-h-screen px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="w-full max-w-md"
-      >
-        <Card padding="lg">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-secondary-500 mb-1">
-              Nouveau mot de passe
-            </h1>
-            <p className="text-sm text-gray-400">
-              Choisissez un nouveau mot de passe
-            </p>
-          </div>
+    <AuthLayout title="Nouveau mot de passe" subtitle="Choisissez un mot de passe sécurisé">
+      {error && (
+        <div className="mb-5 p-3 rounded-xl bg-red-50 text-error text-sm border border-red-100">
+          {error}
+        </div>
+      )}
 
-          {error && (
-            <div className="mb-4 p-3 rounded-lg bg-errorLight text-error text-sm">
-              {error}
-            </div>
-          )}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          label="Nouveau mot de passe"
+          name="password"
+          type={showPassword ? 'text' : 'password'}
+          placeholder="8 caractères minimum"
+          value={password}
+          onChange={(e) => { setPassword(e.target.value); setFieldErrors(p => ({ ...p, password: null })) }}
+          error={fieldErrors.password}
+          rightElement={
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="text-secondary-200 hover:text-primary-600 transition-colors p-1"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          }
+        />
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Nouveau mot de passe"
-              name="password"
-              type="password"
-              placeholder="Minimum 8 caracteres"
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); setFieldErrors((p) => ({ ...p, password: null })) }}
-              error={fieldErrors.password}
-              required
-            />
-            <Input
-              label="Confirmer le mot de passe"
-              name="confirm_password"
-              type="password"
-              placeholder="Repetez le mot de passe"
-              value={confirmPassword}
-              onChange={(e) => { setConfirmPassword(e.target.value); setFieldErrors((p) => ({ ...p, confirmPassword: null })) }}
-              error={fieldErrors.confirmPassword}
-              required
-            />
-            <Button type="submit" fullWidth loading={loading}>
-              Reinitialiser
-            </Button>
-          </form>
-        </Card>
-      </motion.div>
-    </PageWrapper>
+        <Input
+          label="Confirmer le mot de passe"
+          name="confirmPassword"
+          type="password"
+          placeholder="Répétez le mot de passe"
+          value={confirmPassword}
+          onChange={(e) => { setConfirmPassword(e.target.value); setFieldErrors(p => ({ ...p, confirmPassword: null })) }}
+          error={fieldErrors.confirmPassword}
+        />
+
+        <Button type="submit" fullWidth loading={loading} className="mt-2">
+          Changer le mot de passe
+        </Button>
+      </form>
+    </AuthLayout>
   )
 }
 

@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { CheckCircle2, KeyRound, Mail } from 'lucide-react'
 import { ROUTES } from '../../../constants/routes'
 import authService from '../../../services/authService'
-import Button from '../../../components/ui/Button'
+import AuthLayout from '../../../components/layout/AuthLayout'
 import Input from '../../../components/ui/Input'
-import Card from '../../../components/ui/Card'
-import PageWrapper from '../../../components/layout/PageWrapper'
+import Button from '../../../components/ui/Button'
+import { AuthAlert, AuthSuccess } from '../components/AuthUI'
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('')
@@ -32,77 +32,69 @@ const ForgotPasswordPage = () => {
     }
   }
 
+  if (sent) {
+    return (
+      <AuthLayout title="Email envoyé !" subtitle="Consultez votre boîte de réception">
+        <AuthSuccess icon={<CheckCircle2 size={26} className="text-success" />}>
+          <p className="text-muted text-xs sm:text-sm mb-2 leading-relaxed">
+            Si un compte existe pour
+          </p>
+          <p className="text-secondary-600 font-semibold text-xs sm:text-sm mb-4 break-all">
+            {email}
+          </p>
+          <p className="text-muted text-[11px] sm:text-xs mb-5 leading-relaxed">
+            Vous recevrez un lien dans les prochaines minutes. Pensez à vérifier vos spams.
+          </p>
+          <Link to={ROUTES.login}>
+            <Button fullWidth variant="secondary">
+              Retour à la connexion
+            </Button>
+          </Link>
+        </AuthSuccess>
+      </AuthLayout>
+    )
+  }
+
   return (
-    <PageWrapper className="flex items-center justify-center min-h-screen px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="w-full max-w-md"
-      >
-        <Card padding="lg">
-          {sent ? (
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-successLight flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h1 className="text-xl font-bold text-secondary-500 mb-2">
-                Email envoye
-              </h1>
-              <p className="text-sm text-gray-400 mb-6">
-                Si un compte existe avec cette adresse, vous recevrez un lien de reinitialisation.
-              </p>
-              <Link to={ROUTES.login}>
-                <Button>Retour a la connexion</Button>
-              </Link>
-            </div>
-          ) : (
-            <>
-              <div className="text-center mb-6">
-                <h1 className="text-2xl font-bold text-secondary-500 mb-1">
-                  Mot de passe oublie
-                </h1>
-                <p className="text-sm text-gray-400">
-                  Saisissez votre email et recevez un lien de reinitialisation
-                </p>
-              </div>
+    <AuthLayout
+      title="Mot de passe oublié"
+      subtitle="Pas de panique, on s'en occupe"
+      icon={<KeyRound size={18} strokeWidth={2.5} />}
+      footer={
+        <Link to={ROUTES.login} className="text-primary-600 font-semibold hover:text-primary-700 transition-colors">
+          ← Retour à la connexion
+        </Link>
+      }
+    >
+      <div className="mb-5">
+        <AuthAlert variant="info">
+          Entrez l'email associé à votre compte. Nous vous enverrons un lien sécurisé pour choisir un nouveau mot de passe.
+        </AuthAlert>
+      </div>
 
-              {error && (
-                <div className="mb-4 p-3 rounded-lg bg-errorLight text-error text-sm">
-                  {error}
-                </div>
-              )}
+      {error && (
+        <div className="mb-5">
+          <AuthAlert>{error}</AuthAlert>
+        </div>
+      )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <Input
-                  label="Email"
-                  name="email"
-                  type="email"
-                  placeholder="vous@exemple.com"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); setError(null) }}
-                  required
-                />
-                <Button type="submit" fullWidth loading={loading}>
-                  Envoyer le lien
-                </Button>
-              </form>
+      <form onSubmit={handleSubmit} className="auth-form-section">
+        <Input
+          auth
+          label="Adresse email"
+          name="email"
+          type="email"
+          placeholder="vous@exemple.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          leftElement={<Mail size={16} />}
+        />
 
-              <p className="text-center text-sm text-gray-400 mt-6">
-                <Link
-                  to={ROUTES.login}
-                  className="text-primary-500 hover:text-primary-600 font-medium transition-colors"
-                >
-                  Retour a la connexion
-                </Link>
-              </p>
-            </>
-          )}
-        </Card>
-      </motion.div>
-    </PageWrapper>
+        <Button type="submit" fullWidth loading={loading}>
+          Envoyer le lien
+        </Button>
+      </form>
+    </AuthLayout>
   )
 }
 

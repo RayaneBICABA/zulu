@@ -2,22 +2,17 @@ import { motion } from 'framer-motion'
 import Spinner from './Spinner'
 
 const sizes = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-sm',
-  lg: 'px-6 py-3 text-base',
+  sm: 'h-9 px-3 text-xs',
+  md: 'h-12 px-5 text-sm',
+  lg: 'h-14 px-6 text-base',
 }
 
 const variantClasses = {
-  primary:
-    'bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-500',
-  secondary:
-    'bg-secondary-500 text-white hover:bg-secondary-600 focus:ring-secondary-500',
-  outline:
-    'border-2 border-primary-500 text-primary-500 hover:bg-primary-500 hover:text-white focus:ring-primary-500',
-  ghost:
-    'bg-transparent text-gray-600 hover:bg-gray-100 focus:ring-gray-400',
-  danger:
-    'bg-error text-white hover:bg-red-700 focus:ring-error',
+  primary: 'text-white font-semibold bg-gradient-to-r from-primary-400 to-primary-600 hover:from-primary-300 hover:to-primary-500 shadow-[var(--shadow-btn)] hover:shadow-[var(--shadow-glow)] hover:-translate-y-0.5',
+  secondary: 'bg-surface text-primary-700 font-semibold border border-primary-200 hover:bg-primary-50 hover:border-primary-300 shadow-[var(--shadow-card)]',
+  outline: 'border-2 border-primary-400 text-primary-600 font-semibold hover:bg-primary-50',
+  ghost: 'bg-transparent text-secondary-600 hover:bg-primary-50',
+  danger: 'bg-error text-white font-semibold hover:opacity-90 shadow-sm',
 }
 
 const Button = ({
@@ -35,11 +30,10 @@ const Button = ({
     type={type}
     onClick={onClick}
     disabled={disabled || loading}
-    whileTap={{ scale: 0.97 }}
+    whileTap={{ scale: disabled || loading ? 1 : 0.98 }}
     className={`
       inline-flex items-center justify-center gap-2
-      rounded-lg font-medium transition-colors duration-200
-      focus:outline-none focus:ring-2 focus:ring-offset-2
+      rounded-xl transition-all duration-200
       disabled:opacity-50 disabled:cursor-not-allowed
       ${variantClasses[variant]}
       ${sizes[size]}

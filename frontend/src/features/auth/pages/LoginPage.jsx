@@ -43,7 +43,7 @@ const LoginPage = () => {
     setLoading(true)
     try {
       await login(form)
-      navigate(ROUTES.home)
+      navigate(ROUTES.artisanHome)
     } catch (err) {
       setError(err.message || 'Identifiants invalides')
     } finally {

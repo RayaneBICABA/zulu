@@ -7,6 +7,8 @@ export const ROUTES = {
   resetPassword: '/reinitialiser-mot-de-passe',
   verifyEmail:   '/verifier-email',
   dashboard:     '/dashboard',
+  artisanHome:   '/artisan-home',
+  addBusiness:   '/dashboard/ajouter-commerce',
   completeProfile:'/completer-profil',
   notFound:      '*',
 }

@@ -12,6 +12,8 @@ import ForgotPasswordPage from './features/auth/pages/ForgotPasswordPage'
 import ResetPasswordPage from './features/auth/pages/ResetPasswordPage'
 import VerifyEmailPage from './features/auth/pages/VerifyEmailPage'
 import DashboardPage from './pages/DashboardPage'
+import ArtisanHomePage from './pages/ArtisanHomePage'
+import AddBusinessPage from './pages/AddBusinessPage'
 import CompleteProfilePage from './features/artisan/pages/CompleteProfilePage'
 
 const App = () => (
@@ -31,7 +33,17 @@ const App = () => (
               <DashboardPage />
             </ProtectedRoute>
           } />
-          {/* TODO: envelopper dans <ProtectedRoute> une fois le flux login branché */}
+          <Route path={ROUTES.artisanHome}   element={
+            <ProtectedRoute>
+              <ArtisanHomePage />
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.addBusiness}   element={
+            <ProtectedRoute>
+              <AddBusinessPage />
+            </ProtectedRoute>
+          } />
+          {/* Stepper connecté au backend — doublon à arbitrer avec AddBusinessPage */}
           <Route path={ROUTES.completeProfile} element={<CompleteProfilePage />} />
           <Route path={ROUTES.notFound}      element={<NotFoundPage />} />
         </Routes>
