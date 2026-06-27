@@ -16,8 +16,10 @@
 7. [Vues (Profile)](#vues-profile)
 8. [Favoris](#favoris)
 9. [Images de Produits](#images-de-produits)
-10. [Geolocalisation](#geolocalisation)
-11. [Health](#health)
+10. [Commentaires](#commentaires)
+11. [Note IA (Etoiles)](#note-ia-etoiles)
+12. [Geolocalisation](#geolocalisation)
+13. [Health](#health)
 
 ---
 
@@ -1101,6 +1103,172 @@ Authorization: Bearer <access_token>
 **Erreurs :**
 - `400` — Image introuvable
 - `403` — Acces refuse
+
+---
+
+## Commentaires
+
+### POST `/api/commerces/<commerce_id>/commentaires`
+
+Laisser un commentaire sur un commerce.
+
+**Header :**
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Body :**
+```json
+{
+  "contenu": "Excellent travail, je recommande vivement !"
+}
+```
+
+| Champ | Type | Obligatoire | Description |
+|-------|------|-------------|-------------|
+| contenu | string | Oui | Texte du commentaire (1-2000 caracteres) |
+
+**Reponse 201 :**
+```json
+{
+  "id": 1,
+  "commerce_id": 1,
+  "auteur_id": 2,
+  "contenu": "Excellent travail, je recommande vivement !",
+  "is_visible": true,
+  "is_moderated": false,
+  "moderated_at": null,
+  "moderated_by": null,
+  "created_at": "2026-06-27T10:00:00",
+  "updated_at": "2026-06-27T10:00:00"
+}
+```
+
+**Erreurs :**
+- `400` — Commerce introuvable, non publie, ou erreur de validation
+- `401` — Non authentifie
+- `403` — proprietaire du commerce
+
+---
+
+### GET `/api/commerces/<commerce_id>/commentaires`
+
+Lister les commentaires d'un commerce.
+
+**Parametre path :**
+| Parametre | Type | Description |
+|-----------|------|-------------|
+| commerce_id | integer | ID du commerce |
+
+**Reponse 200 :**
+```json
+{
+  "nb_commentaires": 2,
+  "commentaires": [
+    {
+      "id": 1,
+      "contenu": "Excellent travail !",
+      "created_at": "2026-06-27T10:00:00",
+      "auteur": {
+        "id": 2,
+        "first_name": "Kofi",
+        "last_name": "Mensah"
+      }
+    }
+  ]
+}
+```
+
+**Regle :**
+- Uniquement les commentaires visibles (`is_visible=True`)
+- Tri par date decroissante (plus recent en premier)
+
+**Erreurs :**
+- `404` — Commerce introuvable
+
+---
+
+### DELETE `/api/commerces/<commerce_id>/commentaires/<commentaire_id>`
+
+Supprimer un commentaire (auteur uniquement).
+
+**Header :**
+```
+Authorization: Bearer <access_token>
+```
+
+**Parametres path :**
+| Parametre | Type | Description |
+|-----------|------|-------------|
+| commerce_id | integer | ID du commerce |
+| commentaire_id | integer | ID du commentaire |
+
+**Reponse 200 :**
+```json
+{
+  "message": "Commentaire supprime."
+}
+```
+
+**Erreurs :**
+- `401` — Non authentifie
+- `403` — Ce n'est pas votre commentaire
+- `404` — Commentaire introuvable
+
+---
+
+## Note IA (Etoiles)
+
+### GET `/api/commerces/<commerce_id>/rating`
+
+Recuperer la note IA et les etoiles d'un commerce.
+La note est calculee automatiquement par analyse de sentiment des commentaires (via Gemini).
+
+**Parametre path :**
+| Parametre | Type | Description |
+|-----------|------|-------------|
+| commerce_id | integer | ID du commerce |
+
+**Reponse 200 :**
+```json
+{
+  "commerce_id": 1,
+  "average_rating": 4.25,
+  "rating_count": 12,
+  "etoiles": {
+    "pleines": 4,
+    "demies": 1,
+    "vides": 0
+  }
+}
+```
+
+**Champs reponse :**
+| Champ | Type | Description |
+|-------|------|-------------|
+| average_rating | float | Note moyenne IA (1.00 - 5.00) |
+| rating_count | integer | Nombre de commentaires analyses |
+| etoiles.pleines | integer | Nombre d'etoiles pleines (0-5) |
+| etoiles.demies | integer | Nombre d'etoiles demi (0-1) |
+| etoiles.vides | integer | Nombre d'etoiles vides (0-5) |
+
+**Barème IA :**
+| Note | Signification |
+|------|---------------|
+| 1.00 - 1.50 | Tres mauvais |
+| 1.50 - 2.50 | Mauvais |
+| 2.50 - 3.50 | Moyen |
+| 3.50 - 4.25 | Bon |
+| 4.25 - 5.00 | Excellent |
+
+**Fonctionnement :**
+- La note est recalculee a chaque nouveau commentaire ou suppression
+- Provider : Gemini (gemini-1.5-flash)
+- Si Gemini echoue, la note precedente est conservee
+
+**Erreurs :**
+- `404` — Commerce introuvable
 
 ---
 
