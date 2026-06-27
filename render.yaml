@@ -55,10 +55,12 @@ services:
   - type: keyvalue
     name: zawani-redis
     plan: free
+    region: frankfurt
     ipAllowList: []
 
 databases:
   - name: zawani-db
     plan: free
+    region: frankfurt
     databaseName: zawani
     postgresMajorVersion: "16"
