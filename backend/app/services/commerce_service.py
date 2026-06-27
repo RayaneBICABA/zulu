@@ -30,6 +30,55 @@ def _get_step(commerce):
 
 class CommerceService:
 
+    def list_public_commerces(self, search=None, categorie_id=None, page=1, per_page=20):
+        query = Commerce.query.filter_by(is_active=True)
+
+        if search:
+            term = f"%{search}%"
+            query = query.outerjoin(Categorie).filter(
+                db.or_(
+                    Commerce.nom_commercial.ilike(term),
+                    Commerce.description.ilike(term),
+                    Categorie.nom.ilike(term),
+                )
+            )
+
+        if categorie_id:
+            query = query.filter_by(categorie_id=categorie_id)
+
+        query = query.order_by(Commerce.created_at.desc())
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+
+        results = []
+        for c in pagination.items:
+            photo = next((p.url for p in c.photos if p.is_principale), None)
+            if not photo and c.photos:
+                photo = c.photos[0].url
+            stats = c.stats
+            results.append({
+                "id": c.id,
+                "nom_commercial": c.nom_commercial,
+                "description": c.description,
+                "categorie": c.categorie.to_dict() if c.categorie else None,
+                "adresse_complete": c.adresse_complete,
+                "latitude": float(c.latitude) if c.latitude else None,
+                "longitude": float(c.longitude) if c.longitude else None,
+                "photo_principale": photo,
+                "is_verified": c.is_verified,
+                "average_rating": float(stats.average_rating) if stats and stats.average_rating else 0.0,
+                "rating_count": stats.rating_count if stats else 0,
+                "nb_favoris": stats.nb_favoris if stats else 0,
+                "nb_commentaires": stats.nb_commentaires if stats else 0,
+            })
+
+        return {
+            "commerces": results,
+            "total": pagination.total,
+            "page": pagination.page,
+            "per_page": pagination.per_page,
+            "pages": pagination.pages,
+        }
+
     def create_step1(self, user_id, data):
         categorie = Categorie.query.get(data["categorie_id"])
         if not categorie:
