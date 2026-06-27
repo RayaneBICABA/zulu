@@ -29,7 +29,10 @@ services:
       retries: 5
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      args:
+        INSTALL_DEV: "true"
     container_name: zulu_backend
     depends_on:
       db:

@@ -17,3 +17,5 @@ from .commerce_schema import (
     ArtisanProfileSchema,
     CommerceProfileSchema,
 )
+from .profile_client_schema import ProfileClientSchema
+from .interface_map_schema import ClientPositionSchema
