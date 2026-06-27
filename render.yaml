@@ -55,6 +55,7 @@ services:
   - type: keyvalue
     name: zawani-redis
     plan: free
+    ipAllowList: []
 
 databases:
   - name: zawani-db
