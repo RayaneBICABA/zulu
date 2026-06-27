@@ -6,14 +6,14 @@ const REFRESH_KEY = 'refresh_token'
 
 const authService = {
   login: (credentials) =>
-    apiClient.post(ENDPOINTS.auth.login, credentials)
+    apiClient.post(ENDPOINTS.auth.login, credentials, { skipAuthRefresh: true })
       .then((data) => {
         if (data.access_token) authService.saveTokens(data.access_token, data.refresh_token)
         return data
       }),
 
   register: (data) =>
-    apiClient.post(ENDPOINTS.auth.register, data),
+    apiClient.post(ENDPOINTS.auth.register, data, { skipAuthRefresh: true }),
 
   logout: () => {
     localStorage.removeItem(TOKEN_KEY)

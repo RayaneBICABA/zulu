@@ -57,10 +57,14 @@ const refreshToken = async () => {
   return data.access_token
 }
 
-const authFetch = async (endpoint, options = {}) => {
+const authFetch = async (endpoint, options = {}, clientOptions = {}) => {
   const url = `${API_URL}${endpoint}`
   const res = await fetchWithTimeout(url, options)
   if (res.status !== 401) return handleResponse(res)
+
+  if (clientOptions.skipAuthRefresh) {
+    return handleResponse(res)
+  }
 
   const originalRequest = () =>
     fetchWithTimeout(url, { ...options, headers: { ...options.headers, ...getAuthHeader() } })
@@ -98,12 +102,12 @@ const apiClient = {
       headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
     }),
 
-  post: (endpoint, body) =>
+  post: (endpoint, body, clientOptions = {}) =>
     authFetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
       body: JSON.stringify(body),
-    }),
+    }, clientOptions),
 
   postMultipart: (endpoint, formData) =>
     authFetch(endpoint, {
