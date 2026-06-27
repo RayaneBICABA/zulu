@@ -12,7 +12,12 @@
 3. [Administration](#administration)
 4. [Commerce (Stepper)](#commerce-stepper)
 5. [Categories](#categories)
-6. [Health](#health)
+6. [Artisan Dashboard](#artisan-dashboard)
+7. [Vues (Profile)](#vues-profile)
+8. [Favoris](#favoris)
+9. [Images de Produits](#images-de-produits)
+10. [Geolocalisation](#geolocalisation)
+11. [Health](#health)
 
 ---
 
@@ -831,6 +836,225 @@ Authorization: Bearer <access_token>
 - `400` — Champs manquants ou invalides
 - `401` — Token manquant ou invalide
 - `409` — La categorie existe deja
+
+---
+
+## Artisan Dashboard
+
+### GET `/api/artisan/home`
+
+Dashboard de l'artisan — "Bienvenue, Prenom" + stats + commerce complet.
+
+**Header :**
+```
+Authorization: Bearer <access_token>
+```
+
+**Reponse 200 :**
+```json
+{
+  "message": "Bienvenue, Admin",
+  "commerce": {
+    "id": 1,
+    "user_id": 1,
+    "nom_commercial": "BICABA SHOP",
+    "description": "Pro en confection de table",
+    "categorie": {"id": 1, "nom": "Menusier", "is_active": true},
+    "is_vendeur_produits": false,
+    "is_active": true,
+    "stats": {
+      "nb_vues_profile": 142,
+      "nb_favoris": 23,
+      "last_vue_at": "2026-06-27T10:30:00"
+    },
+    "photos": [...],
+    "horaires": [...],
+    "produit_images": [...]
+  },
+  "geolocalisation_url": "https://wa.me/?text=..."
+}
+```
+
+**Erreurs :**
+- `401` — Token manquant ou invalide
+- `404` — Aucun commerce trouve pour cet artisan
+
+---
+
+## Vues (Profile)
+
+### POST `/api/commerces/<commerce_id>/vues`
+
+Enregistrer une vue sur le profile d'un commerce. **Pas d'auth requise.**
+Anti-spam : une meme IP ne comptabilise qu'une vue toutes les 24h.
+
+**Body :** (vide ou JSON)
+
+**Reponse 201 :**
+```json
+{
+  "message": "Vue enregistree.",
+  "counted": true
+}
+```
+
+Si doublon dans les 24h :
+```json
+{
+  "message": "Vue deja enregistree.",
+  "counted": false
+}
+```
+
+---
+
+## Favoris
+
+### POST `/api/commerces/<commerce_id>/favoris`
+
+Ajouter un commerce aux favoris.
+
+**Header :**
+```
+Authorization: Bearer <access_token>
+```
+
+**Reponse 201 :**
+```json
+{
+  "message": "Ajoute aux favoris.",
+  "favori": {"id": 1, "user_id": 1, "commerce_id": 1}
+}
+```
+
+**Erreurs :**
+- `400` — Deja en favori
+- `401` — Token manquant ou invalide
+
+---
+
+### DELETE `/api/commerces/<commerce_id>/favoris`
+
+Retirer un commerce des favoris.
+
+**Header :**
+```
+Authorization: Bearer <access_token>
+```
+
+**Reponse 200 :**
+```json
+{
+  "message": "Retire des favoris."
+}
+```
+
+**Erreurs :**
+- `400` — Favori introuvable
+- `401` — Token manquant ou invalide
+
+---
+
+### GET `/api/favoris`
+
+Lister les favoris de l'utilisateur connecte.
+
+**Header :**
+```
+Authorization: Bearer <access_token>
+```
+
+**Reponse 200 :**
+```json
+[
+  {
+    "id": 1,
+    "user_id": 1,
+    "commerce_id": 1,
+    "commerce": { ... }
+  }
+]
+```
+
+---
+
+## Images de Produits
+
+### POST `/api/commerces/<commerce_id>/produit-images`
+
+Uploader une image de produit (max 5, uniquement si `is_vendeur_produits: true`).
+
+**Header :**
+```
+Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+```
+
+**Body (FormData) :**
+
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| image | file | Oui | Image JPG, PNG ou WebP (max 5MB) |
+
+**Reponse 201 :**
+```json
+{
+  "id": 1,
+  "commerce_id": 1,
+  "url": "https://res.cloudinary.com/.../image.jpg",
+  "ordre": 1
+}
+```
+
+**Erreurs :**
+- `400` — Max 5 images, type non autorise, fichier trop volumineux
+- `403` — Ce commerce ne vend pas de produits
+
+---
+
+### DELETE `/api/commerces/<commerce_id>/produit-images/<image_id>`
+
+Supprimer une image de produit.
+
+**Header :**
+```
+Authorization: Bearer <access_token>
+```
+
+**Reponse 200 :**
+```json
+{
+  "message": "Image produit supprimee."
+}
+```
+
+**Erreurs :**
+- `400` — Image introuvable
+- `403` — Acces refuse
+
+---
+
+## Geolocalisation
+
+### GET `/api/commerces/<commerce_id>/geolocalisation`
+
+Generer un lien WhatsApp pour partager la localisation du commerce.
+
+**Header :**
+```
+Authorization: Bearer <access_token>
+```
+
+**Reponse 200 :**
+```json
+{
+  "geolocalisation_url": "https://wa.me/?text=Voici+la+localisation+de+BICABA+SHOP+sur+Google+Maps:+https://maps.google.com/?q=12.37,-1.51"
+}
+```
+
+**Notes :**
+- Le lien ouvre WhatsApp avec le message pre-rempli
+- L'utilisateur choisit ensuite les contacts a qui envoyer
 
 ---
 
