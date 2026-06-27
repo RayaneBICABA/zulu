@@ -36,6 +36,14 @@ def clear_users(yes):
     if not yes:
         click.confirm(f"Supprimer {count} utilisateur(s) ?", abort=True)
 
-    User.query.delete()
+    from sqlalchemy import text
+    db.session.execute(text("DELETE FROM commentaires WHERE moderated_by IN (SELECT id FROM users)"))
+    db.session.execute(text("DELETE FROM commentaires WHERE auteur_id IN (SELECT id FROM users)"))
+    db.session.execute(text("DELETE FROM vue_profiles WHERE user_id IN (SELECT id FROM users)"))
+    db.session.execute(text("DELETE FROM favoris WHERE user_id IN (SELECT id FROM users)"))
+    db.session.execute(text("DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users)"))
+
+    for user in User.query.all():
+        db.session.delete(user)
     db.session.commit()
     click.echo(f"{count} utilisateur(s) supprime(s).")
