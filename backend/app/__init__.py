@@ -1,5 +1,6 @@
 import os
 from flask import Flask, jsonify
+from flask_cors import CORS
 from .config import config
 from .extensions import db, migrate, jwt, cors, swagger, limiter
 from flask_jwt_extended.exceptions import NoAuthorizationError
@@ -17,7 +18,21 @@ def create_app(env=None):
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
-    cors.init_app(app, resources={r"/api/*": {"origins": "*"}})
+    cors_origins = [
+        app.config.get("FRONTEND_URL", "http://localhost:5173"),
+        "http://localhost:5173",
+        "http://localhost:4173",
+        "http://localhost:8100",
+        "capacitor://localhost",
+        "https://localhost",
+        "https://localhost:8100",
+        "ionic://localhost",
+        "https://zawani.app",
+        "https://www.zawani.app",
+        r"https://.*\.vercel\.app",
+        r"https://.*\.onrender\.com",
+    ]
+    cors.init_app(app, resources={r"/api/*": {"origins": cors_origins, "supports_credentials": True}})
     limiter.init_app(app)
 
     import cloudinary

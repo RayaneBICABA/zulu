@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ROUTES } from '../../../constants/routes'
+import { API_URL } from '../../../constants/api'
 import useAuth from '../hooks/useAuth'
 import Spinner from '../../../components/ui/Spinner'
 
@@ -39,6 +40,7 @@ const GoogleCallbackPage = () => {
         setError('Session invalide.')
       })
   }, [searchParams, navigate, refreshUser])
+
 
   if (error) {
     return (

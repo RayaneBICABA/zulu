@@ -2,8 +2,27 @@ import { API_URL } from '../constants/api'
 
 const TOKEN_KEY = 'access_token'
 const REFRESH_KEY = 'refresh_token'
+const REQUEST_TIMEOUT_MS = 90000
 let isRefreshing = false
 let refreshQueue = []
+
+const fetchWithTimeout = async (url, options = {}) => {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  try {
+    return await fetch(url, { ...options, signal: controller.signal })
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('Le serveur met trop de temps a repondre. Reessayez dans quelques secondes.')
+    }
+    if (err.message === 'Failed to fetch' || err instanceof TypeError) {
+      throw new Error('Impossible de contacter le serveur. Verifiez votre connexion internet.')
+    }
+    throw err
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
 
 const getAuthHeader = () => {
   const token = localStorage.getItem(TOKEN_KEY)
@@ -24,7 +43,7 @@ const handleResponse = async (res) => {
 const refreshToken = async () => {
   const refresh = localStorage.getItem(REFRESH_KEY)
   if (!refresh) throw new Error('No refresh token')
-  const res = await fetch(`${API_URL}/auth/refresh`, {
+  const res = await fetchWithTimeout(`${API_URL}/auth/refresh`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -40,11 +59,11 @@ const refreshToken = async () => {
 
 const authFetch = async (endpoint, options = {}) => {
   const url = `${API_URL}${endpoint}`
-  const res = await fetch(url, options)
+  const res = await fetchWithTimeout(url, options)
   if (res.status !== 401) return handleResponse(res)
 
   const originalRequest = () =>
-    fetch(url, { ...options, headers: { ...options.headers, ...getAuthHeader() } })
+    fetchWithTimeout(url, { ...options, headers: { ...options.headers, ...getAuthHeader() } })
       .then(handleResponse)
 
   if (isRefreshing) {

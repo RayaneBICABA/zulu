@@ -4,7 +4,14 @@ const config: CapacitorConfig = {
   appId: 'com.zawani.app',
   appName: 'ZAWANI',
   webDir: 'dist',
-  androidScheme: 'https',
+  server: {
+    androidScheme: 'https',
+  },
+  plugins: {
+    CapacitorHttp: {
+      enabled: true,
+    },
+  },
 }
 
 export default config

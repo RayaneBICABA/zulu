@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff } from 'lucide-react'
+import { Browser } from '@capacitor/browser'
 import { ROUTES } from '../../../constants/routes'
 import { API_URL } from '../../../constants/api'
 import useAuth from '../hooks/useAuth'
@@ -46,6 +47,18 @@ const LoginPage = () => {
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleGoogleLogin = async (e) => {
+    e.preventDefault()
+    try {
+      await Browser.open({
+        url: `${API_URL}/auth/google/login?mobile=1`,
+        windowName: '_self'
+      })
+    } catch (err) {
+      setError("Impossible d'ouvrir le navigateur pour l'authentification Google.")
     }
   }
 
@@ -135,9 +148,9 @@ const LoginPage = () => {
           </div>
         </div>
 
-        <a
-          href={`${API_URL}/auth/google/login`}
-          className="flex items-center justify-center w-full h-12 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+        <button
+          onClick={handleGoogleLogin}
+          className="flex items-center justify-center w-full h-12 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
         >
           <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
             <path
@@ -158,7 +171,7 @@ const LoginPage = () => {
             />
           </svg>
           Continuer avec Google
-        </a>
+        </button>
       </motion.div>
     </PageWrapper>
   )

@@ -4,6 +4,7 @@ import { ROUTES } from './constants/routes'
 import { AuthProvider } from './features/auth/context/AuthProvider'
 import ProtectedRoute from './features/auth/components/ProtectedRoute'
 import MobileOnly from './components/layout/MobileOnly'
+import DeepLinkHandler from './components/layout/DeepLinkHandler'
 import SplashScreen from './pages/SplashScreen'
 import NotFoundPage from './pages/NotFoundPage'
 import LoginPage from './features/auth/pages/LoginPage'
@@ -22,6 +23,7 @@ import ClientLayout from './components/layout/ClientLayout'
 
 const App = () => (
   <BrowserRouter>
+    <DeepLinkHandler />
     <AuthProvider>
       <MobileOnly>
         <AnimatePresence mode="wait">

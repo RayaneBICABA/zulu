@@ -2,12 +2,14 @@ import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
+import { API_URL } from '../constants/api'
 
 const SplashScreen = () => {
   const navigate = useNavigate()
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
+    fetch(`${API_URL}/health`).catch(() => {})
     const timer = setTimeout(() => setReady(true), 2800)
     return () => clearTimeout(timer)
   }, [])
