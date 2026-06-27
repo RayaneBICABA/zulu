@@ -118,3 +118,19 @@ class CommerceSummarySchema(Schema):
     nom_commercial = fields.Str(dump_only=True)
     is_verified = fields.Bool(dump_only=True)
     is_active = fields.Bool(dump_only=True)
+
+
+class ArtisanProfileSchema(Schema):
+    id = fields.Int(dump_only=True)
+    first_name = fields.Str(dump_only=True)
+    last_name = fields.Str(dump_only=True)
+    email = fields.Str(dump_only=True)
+    is_verified = fields.Bool(dump_only=True)
+
+
+class CommerceProfileSchema(Schema):
+    id = fields.Int(dump_only=True)
+    nom_commercial = fields.Str(dump_only=True)
+    whatsapp_numero = fields.Str(dump_only=True)
+    contact_telephonique = fields.Str(dump_only=True)
+    is_active = fields.Bool(dump_only=True)
