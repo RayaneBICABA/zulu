@@ -1,19 +1,17 @@
 import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { ROUTES } from '../../../constants/routes'
 import authService from '../../../services/authService'
+import AuthLayout from '../../../components/layout/AuthLayout'
 import Button from '../../../components/ui/Button'
-import Card from '../../../components/ui/Card'
-import Spinner from '../../../components/ui/Spinner'
-import PageWrapper from '../../../components/layout/PageWrapper'
 
 const VerifyEmailPage = () => {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
 
   const [status, setStatus] = useState(token ? 'verifying' : 'error')
-  const [error, setError] = useState(token ? null : 'Lien de verification invalide ou expire')
+  const [error, setError] = useState(token ? null : 'Lien de vérification invalide ou expiré')
 
   useEffect(() => {
     if (!token) return
@@ -25,71 +23,50 @@ const VerifyEmailPage = () => {
       })
   }, [token])
 
-  const renderContent = () => {
-    if (status === 'verifying') {
-      return (
-        <div className="flex flex-col items-center gap-4">
-          <Spinner size="lg" />
-          <p className="text-sm text-gray-400">Verification de votre email...</p>
+  if (status === 'verifying') {
+    return (
+      <AuthLayout title="Vérification" subtitle="Confirmation de votre adresse email">
+        <div className="flex flex-col items-center gap-4 py-6">
+          <Loader2 size={32} className="text-primary-500 animate-spin" />
+          <p className="text-sm text-muted">Vérification en cours...</p>
         </div>
-      )
-    }
+      </AuthLayout>
+    )
+  }
 
-    if (status === 'success') {
-      return (
-        <>
-          <div className="w-12 h-12 rounded-full bg-successLight flex items-center justify-center mx-auto mb-4">
-            <svg className="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
+  if (status === 'success') {
+    return (
+      <AuthLayout title="Email vérifié" subtitle="Votre compte est maintenant actif">
+        <div className="text-center py-2">
+          <div className="w-14 h-14 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-5">
+            <CheckCircle2 size={28} className="text-success" />
           </div>
-          <h1 className="text-xl font-bold text-secondary-500 mb-2">
-            Email verifie
-          </h1>
-          <p className="text-sm text-gray-400 mb-6">
-            Votre adresse email a ete confirmee avec succes.
+          <p className="text-muted text-sm mb-6 leading-relaxed">
+            Votre adresse email a été confirmée. Vous pouvez vous connecter.
           </p>
           <Link to={ROUTES.login}>
-            <Button>Se connecter</Button>
+            <Button fullWidth>Se connecter</Button>
           </Link>
-        </>
-      )
-    }
-
-    return (
-      <>
-        <div className="w-12 h-12 rounded-full bg-errorLight flex items-center justify-center mx-auto mb-4">
-          <svg className="w-6 h-6 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
         </div>
-        <h1 className="text-xl font-bold text-secondary-500 mb-2">
-          Verification echouee
-        </h1>
-        <p className="text-sm text-gray-400 mb-2">{error}</p>
-        <p className="text-sm text-gray-400 mb-6">
-          Le lien a peut-etre expire ou est invalide.
-        </p>
-        <Link to={ROUTES.login}>
-          <Button variant="outline">Retour a la connexion</Button>
-        </Link>
-      </>
+      </AuthLayout>
     )
   }
 
   return (
-    <PageWrapper className="flex items-center justify-center min-h-screen px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="w-full max-w-md"
-      >
-        <Card padding="lg" className="text-center">
-          {renderContent()}
-        </Card>
-      </motion.div>
-    </PageWrapper>
+    <AuthLayout title="Échec de vérification" subtitle="Le lien n'est plus valide">
+      <div className="text-center py-2">
+        <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
+          <AlertCircle size={28} className="text-error" />
+        </div>
+        <p className="text-error text-sm mb-2">{error}</p>
+        <p className="text-muted text-sm mb-6 leading-relaxed">
+          Le lien a peut-être expiré. Essayez de vous reconnecter pour recevoir un nouvel email.
+        </p>
+        <Link to={ROUTES.login}>
+          <Button fullWidth variant="secondary">Retour à la connexion</Button>
+        </Link>
+      </div>
+    </AuthLayout>
   )
 }
 

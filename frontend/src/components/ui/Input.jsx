@@ -9,17 +9,23 @@ const Input = ({
   disabled = false,
   required = false,
   className = '',
+  leftElement,
   rightElement,
+  auth = false,
 }) => (
-  <div className={`flex flex-col gap-1 ${className}`}>
+  <div className={className}>
     {label && (
-      <label htmlFor={name}
-        className="text-sm font-medium text-gray-700">
+      <label htmlFor={name} className="label-field">
         {label}
-        {required && <span className="text-primary-500 ml-1">*</span>}
+        {required && <span className="text-primary-500 ml-0.5">*</span>}
       </label>
     )}
     <div className="relative">
+      {leftElement && (
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none text-primary-400">
+          {leftElement}
+        </div>
+      )}
       <input
         id={name}
         name={name}
@@ -30,24 +36,23 @@ const Input = ({
         disabled={disabled}
         required={required}
         className={`
-          w-full px-3 py-2 rounded-lg border text-sm
-          focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-          disabled:bg-gray-100 disabled:cursor-not-allowed
-          transition-colors duration-200
-          ${error
-            ? 'border-error bg-red-50'
-            : 'border-gray-300 bg-white hover:border-gray-400'}
-          ${rightElement ? 'pr-10' : ''}
+          ${auth ? 'auth-input-field' : 'input-field'}
+          ${error ? 'input-field-error border-error/50' : ''}
+          ${leftElement ? (auth ? 'pl-10' : 'pl-10') : ''}
+          ${rightElement ? 'pr-11' : ''}
         `}
       />
       {rightElement && (
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
           {rightElement}
         </div>
       )}
     </div>
     {error && (
-      <span className="text-xs text-error">{error}</span>
+      <span className="text-xs text-error mt-1.5 flex items-center gap-1">
+        <span className="w-1 h-1 rounded-full bg-error inline-block" />
+        {error}
+      </span>
     )}
   </div>
 )
