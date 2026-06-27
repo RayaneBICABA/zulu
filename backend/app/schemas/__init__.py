@@ -6,6 +6,12 @@ from .commerce_schema import (
     CommerceStep1Schema,
     CommerceStep2Schema,
     CommercePhotoSchema,
+    CommerceStatsSchema,
     HoraireOuvertureSchema,
     HoraireInputSchema,
+    FavoriSchema,
+    FavoriCreateSchema,
+    VueProfileSchema,
+    ProduitImageSchema,
+    ProduitImageCreateSchema,
 )
