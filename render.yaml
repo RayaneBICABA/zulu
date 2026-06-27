@@ -23,7 +23,7 @@ services:
           type: keyvalue
           property: connectionString
       - key: FRONTEND_URL
-        value: https://zawani.app
+        value: https://zawani-frontend.onrender.com
       - key: MAIL_SERVER
         value: smtp.gmail.com
       - key: MAIL_PORT
@@ -56,6 +56,30 @@ services:
         sync: false
     healthCheckPath: /api/health
     autoDeploy: true
+
+  - type: web
+    name: zawani-frontend
+    runtime: static
+    plan: free
+    region: oregon
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    headers:
+      - source: /**
+        headers:
+          - key: X-Frame-Options
+            value: DENY
+          - key: Referrer-Policy
+            value: no-referrer-when-downgrade
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://zawani-api.onrender.com
+
   - type: keyvalue
     name: zawani-redis
     plan: free
