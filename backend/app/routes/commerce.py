@@ -4,6 +4,7 @@ from marshmallow import ValidationError
 from ..schemas.commerce_schema import (
     CommerceStep1Schema, CommerceStep2Schema, CommerceSchema,
     FavoriCreateSchema, ProduitImageCreateSchema,
+    SwitchCommerceSchema,
 )
 from ..schemas.categorie_schema import CategorieCreateSchema
 from ..schemas.commentaire_schema import CommentaireCreateSchema
@@ -18,6 +19,7 @@ categorie_create_schema = CategorieCreateSchema()
 favori_create_schema = FavoriCreateSchema()
 produit_image_create_schema = ProduitImageCreateSchema()
 commentaire_create_schema = CommentaireCreateSchema()
+switch_commerce_schema = SwitchCommerceSchema()
 
 
 @commerce_bp.route("/commerces", methods=["POST"])
@@ -381,6 +383,80 @@ def artisan_profile():
     try:
         user_id = int(get_jwt_identity())
         result = commerce_service.get_artisan_profile(user_id)
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+
+
+@commerce_bp.route("/artisan/active-commerce", methods=["PATCH"])
+@jwt_required()
+@role_required("artisan")
+def switch_commerce():
+    """
+    Changer le commerce actif de l'artisan.
+    ---
+    tags:
+      - Artisan
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - commerce_id
+          properties:
+            commerce_id:
+              type: integer
+    responses:
+      200:
+        description: Commerce active
+      400:
+        description: Erreur de validation
+      401:
+        description: Token manquant ou invalide
+      403:
+        description: Acces refuse
+      404:
+        description: Commerce introuvable
+    """
+    try:
+        data = switch_commerce_schema.load(request.get_json())
+    except ValidationError as err:
+        return jsonify({"error": err.messages}), 400
+
+    try:
+        user_id = int(get_jwt_identity())
+        result = commerce_service.switch_commerce(user_id, data["commerce_id"])
+        return jsonify(result), 200
+    except ValueError as e:
+        error_msg = str(e)
+        if "Acces refuse" in error_msg:
+            return jsonify({"error": error_msg}), 403
+        return jsonify({"error": error_msg}), 404
+
+
+@commerce_bp.route("/artisan/commerces/cards", methods=["GET"])
+@jwt_required()
+@role_required("artisan")
+def get_commerces_cards():
+    """
+    Lister les commerces de l'artisan sous forme de cards.
+    ---
+    tags:
+      - Artisan
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Liste des cards commerces
+      401:
+        description: Token manquant ou invalide
+    """
+    try:
+        user_id = int(get_jwt_identity())
+        result = commerce_service.get_commerces_cards(user_id)
         return jsonify(result), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
