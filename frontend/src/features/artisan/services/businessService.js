@@ -3,9 +3,10 @@ import { ENDPOINTS } from '../../../constants/api'
 import { CATEGORIES } from '../constants'
 
 // Le backend a livré les modèles (Business / BusinessHour / BusinessPhoto)
-// mais pas encore les routes HTTP. On simule en attendant : il suffira de
-// passer USE_MOCK à false quand POST /businesses sera disponible.
-const USE_MOCK = true
+// mais pas encore les routes HTTP. On simule en attendant.
+// POUR BRANCHER LE BACKEND (supprimer le mock) : mettre VITE_USE_MOCK=false
+// dans frontend/.env — aucun autre changement de code nécessaire.
+const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
 
 export const fetchCategories = async () => {
   if (USE_MOCK) return CATEGORIES

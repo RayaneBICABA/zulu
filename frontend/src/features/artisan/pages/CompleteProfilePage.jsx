@@ -10,7 +10,6 @@ import StepBusinessInfo from '../components/StepBusinessInfo'
 import StepLocation from '../components/StepLocation'
 import StepPhotos from '../components/StepPhotos'
 import { createBusiness } from '../services/businessService'
-import { defaultHours } from '../constants'
 
 const STEPS = ['Commerce', 'Localisation', 'Photos']
 
@@ -24,8 +23,9 @@ const CompleteProfilePage = () => {
     description: '',
     latitude: null,
     longitude: null,
+    accuracy: null,
     address_description: '',
-    hours: defaultHours(),
+    hours: [],
     photos: [],
   })
   const [errors, setErrors] = useState({})
@@ -66,6 +66,18 @@ const CompleteProfilePage = () => {
   }
   const back = () => setStep((s) => Math.max(s - 1, 0))
 
+  // Étape valide ? (sans toucher aux erreurs) → sert à activer le bouton Suivant/Enregistrer.
+  const isStepComplete = () => {
+    if (step === 0)
+      return Boolean(
+        data.business_name.trim() && data.whatsapp.trim() && data.category_id && data.description.trim()
+      )
+    if (step === 1)
+      return Boolean(data.latitude != null && data.longitude != null && data.address_description.trim())
+    if (step === 2) return data.photos.length >= 1
+    return false
+  }
+
   // Met les données du formulaire au format attendu par le modèle Business du backend.
   const buildPayload = () => ({
     business_name: data.business_name.trim(),
@@ -75,7 +87,7 @@ const CompleteProfilePage = () => {
     latitude: data.latitude,
     longitude: data.longitude,
     address_description: data.address_description.trim(),
-    hours: data.hours,
+    hours: data.hours.map((h) => ({ ...h, is_closed: false })),
     // TODO: remplacer `preview` par l'URL renvoyée par l'endpoint d'upload une fois dispo.
     photos: data.photos.map((p, i) => ({ image_url: p.preview, is_primary: i === 0, sort_order: i })),
   })
@@ -125,7 +137,7 @@ const CompleteProfilePage = () => {
         className="w-full max-w-md"
       >
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-secondary-500 mb-1">Compléter votre profil</h1>
+          <h1 className="text-2xl font-bold text-secondary-500 mb-1">Complétez votre profil !</h1>
           <p className="text-sm text-gray-400">Renseignez votre commerce pour apparaître dans l'annuaire</p>
         </div>
 
@@ -140,20 +152,27 @@ const CompleteProfilePage = () => {
           {step === 1 && <StepLocation data={data} update={update} errors={errors} />}
           {step === 2 && <StepPhotos data={data} update={update} errors={errors} />}
 
-          <div className="flex gap-3 mt-6">
-            {step > 0 && (
-              <Button variant="ghost" onClick={back} className="flex-1">
-                Précédent
-              </Button>
-            )}
-            {step < STEPS.length - 1 ? (
-              <Button onClick={next} className="flex-1">
-                Suivant
-              </Button>
-            ) : (
-              <Button onClick={handleSubmit} loading={submitting} className="flex-1">
-                Enregistrer
-              </Button>
+          <div className="mt-6">
+            <div className="flex gap-3">
+              {step > 0 && (
+                <Button variant="ghost" onClick={back} className="flex-1">
+                  Précédent
+                </Button>
+              )}
+              {step < STEPS.length - 1 ? (
+                <Button onClick={next} disabled={!isStepComplete()} className="flex-1">
+                  Suivant
+                </Button>
+              ) : (
+                <Button onClick={handleSubmit} loading={submitting} disabled={!isStepComplete()} className="flex-1">
+                  Enregistrer
+                </Button>
+              )}
+            </div>
+            {!isStepComplete() && (
+              <p className="text-center text-xs text-gray-400 mt-2">
+                Renseigne tous les champs pour continuer.
+              </p>
             )}
           </div>
         </Card>

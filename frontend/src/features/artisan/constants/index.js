@@ -21,12 +21,9 @@ export const WEEKDAYS = [
   { key: 'sunday', label: 'Dimanche' },
 ]
 
-// Horaires par défaut : ouvert Lun→Sam 08:00-18:00, fermé le dimanche.
-// Fonction (et non constante) pour renvoyer un tableau frais à chaque init de formulaire.
-export const defaultHours = () =>
-  WEEKDAYS.map((d) => ({
-    day: d.key,
-    opening_time: d.key === 'sunday' ? '' : '08:00',
-    closing_time: d.key === 'sunday' ? '' : '18:00',
-    is_closed: d.key === 'sunday',
-  }))
+// Créneaux horaires proposés dans les menus déroulants (toutes les 30 min, format 24h).
+export const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
+  const h = String(Math.floor(i / 2)).padStart(2, '0')
+  const m = i % 2 === 0 ? '00' : '30'
+  return `${h}:${m}`
+})
