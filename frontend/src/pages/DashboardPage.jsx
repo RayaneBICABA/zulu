@@ -18,12 +18,12 @@ const DashboardPage = () => {
   return (
     <PageWrapper>
       <Navbar />
-      <main className="max-w-5xl mx-auto px-4 py-16">
+      <main className="max-w-lg mx-auto px-4 py-16">
         <Card padding="lg">
-          <h1 className="text-2xl font-bold text-secondary-500 mb-4">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
             Tableau de bord
           </h1>
-          <p className="text-gray-400 mb-2">
+          <p className="text-gray-500 mb-2">
             Bienvenue, {user?.first_name} {user?.last_name}
           </p>
           <p className="text-sm text-gray-400 mb-6">

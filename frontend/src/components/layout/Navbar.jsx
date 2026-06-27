@@ -8,15 +8,18 @@ const Navbar = () => {
   const [open, setOpen] = useState(false)
 
   return (
-    <nav className="bg-secondary-500 text-white shadow-md">
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to={ROUTES.home} className="text-xl font-bold tracking-tight text-white">
-          Zulu<span className="text-primary-500">.</span>
+    <nav className="bg-white border-b border-gray-200">
+      <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
+        <Link to={ROUTES.home} className="flex items-center gap-2">
+          <img src="/logo.png" alt="Zawani" className="h-8 w-8 object-contain" />
+          <span className="text-lg font-bold tracking-tight text-primary-500">
+            Zawani
+          </span>
         </Link>
 
         <div className="hidden md:flex items-center gap-4">
           <Link to={ROUTES.home}
-            className="text-sm text-white/80 hover:text-white transition-colors">
+            className="text-sm text-gray-600 hover:text-primary-500 transition-colors">
             Accueil
           </Link>
           <Button variant="primary" size="sm">
@@ -24,14 +27,14 @@ const Navbar = () => {
           </Button>
         </div>
 
-        <button className="md:hidden" onClick={() => setOpen(!open)}>
-          {open ? <X size={22} /> : <Menu size={22} />}
+        <button className="md:hidden p-2 -mr-2" onClick={() => setOpen(!open)}>
+          {open ? <X size={20} className="text-gray-900" /> : <Menu size={20} className="text-gray-900" />}
         </button>
       </div>
 
       {open && (
-        <div className="bg-secondary-500 md:hidden px-4 pb-4 flex flex-col gap-3">
-          <Link to={ROUTES.home} className="text-sm text-white/80 hover:text-white">
+        <div className="bg-white md:hidden px-4 pb-4 flex flex-col gap-3 border-b border-gray-200">
+          <Link to={ROUTES.home} className="text-sm text-gray-600 hover:text-primary-500 py-2">
             Accueil
           </Link>
           <Button variant="primary" size="sm" fullWidth>
