@@ -140,7 +140,7 @@ const CompleteProfilePage = () => {
               <p className="text-sm text-gray-400 mb-6">
                 Votre fiche a été créée. Elle sera visible dans l'annuaire une fois publiée.
               </p>
-              <Button onClick={() => navigate(ROUTES.home)}>Retour à l'accueil</Button>
+              <Button variant="secondary" onClick={() => navigate(ROUTES.home)}>Retour à l'accueil</Button>
             </div>
           </Card>
         </motion.div>
@@ -180,11 +180,11 @@ const CompleteProfilePage = () => {
                 </Button>
               )}
               {step < STEPS.length - 1 ? (
-                <Button onClick={next} disabled={!isStepComplete()} className="flex-1">
+                <Button variant="secondary" onClick={next} disabled={!isStepComplete()} className="flex-1">
                   Suivant
                 </Button>
               ) : (
-                <Button onClick={handleSubmit} loading={submitting} disabled={!isStepComplete()} className="flex-1">
+                <Button variant="secondary" onClick={handleSubmit} loading={submitting} disabled={!isStepComplete()} className="flex-1">
                   Enregistrer
                 </Button>
               )}
