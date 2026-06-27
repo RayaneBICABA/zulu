@@ -36,6 +36,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    env_file:
+      - ./backend/.env
     environment:
       DATABASE_URL: postgresql://zulu_user:zulu_pass@db:5432/zulu_db
       FLASK_ENV: development
@@ -43,11 +45,6 @@ services:
       JWT_SECRET_KEY: dev-jwt-secret
       FRONTEND_URL: http://localhost:5173
       LIMITER_STORAGE_URL: redis://redis:6379/0
-      MAIL_SERVER: smtp.gmail.com
-      MAIL_PORT: "587"
-      MAIL_USERNAME: rayanebicaba.dev@gmail.com
-      MAIL_PASSWORD: ""
-      MAIL_DEFAULT_SENDER: rayanebicaba.dev@gmail.com
     ports:
       - "5000:5000"
     volumes:
