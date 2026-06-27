@@ -170,3 +170,34 @@ class TestResetPassword:
     def test_reset_password_returns_400_without_fields(self, client):
         response = client.post("/api/auth/reset-password", json={})
         assert response.status_code == 400
+
+
+class TestLogout:
+    def _get_token(self, client):
+        client.post("/api/auth/register", json={
+            "email": "logout@test.com",
+            "password": "password123",
+        })
+        login = client.post("/api/auth/login", json={
+            "email": "logout@test.com",
+            "password": "password123",
+        })
+        return login.get_json()["access_token"]
+
+    def test_logout_returns_200(self, client):
+        token = self._get_token(client)
+        response = client.post("/api/auth/logout", headers={
+            "Authorization": f"Bearer {token}",
+        })
+        assert response.status_code == 200
+        assert response.get_json()["message"] == "Deconnexion reussie."
+
+    def test_logout_returns_401_without_token(self, client):
+        response = client.post("/api/auth/logout")
+        assert response.status_code == 401
+
+    def test_logout_returns_401_with_invalid_token(self, client):
+        response = client.post("/api/auth/logout", headers={
+            "Authorization": "Bearer invalid.token.here",
+        })
+        assert response.status_code == 401

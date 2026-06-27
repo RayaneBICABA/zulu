@@ -617,3 +617,71 @@ class TestGeolocalisation:
         })
         assert response.status_code == 200
         assert response.get_json()["geolocalisation_url"] is None
+
+
+class TestArtisanProfile:
+    def test_profile_returns_200(self, client, user_token, categorie_id):
+        client.post("/api/commerces", json={
+            "nom_commercial": "Mon Atelier",
+            "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {user_token}"})
+
+        response = client.get("/api/artisan/profile", headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "user" in data
+        assert "commerces" in data
+        assert "nb_commerces_actifs" in data
+        assert data["user"]["email"] == "artisan@test.com"
+        assert data["nb_commerces_actifs"] == 0
+        assert len(data["commerces"]) == 1
+        assert data["commerces"][0]["nom_commercial"] == "Mon Atelier"
+
+    def test_profile_returns_200_without_commerce(self, client, user_token):
+        response = client.get("/api/artisan/profile", headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["nb_commerces_actifs"] == 0
+        assert data["commerces"] == []
+        assert data["user"]["email"] == "artisan@test.com"
+
+    def test_profile_returns_401_without_token(self, client):
+        response = client.get("/api/artisan/profile")
+        assert response.status_code == 401
+
+    def test_profile_includes_whatsapp_and_telephone(self, client, user_token, categorie_id):
+        client.post("/api/commerces", json={
+            "nom_commercial": "Contact Test",
+            "categorie_id": categorie_id,
+            "whatsapp_numero": "+22607070707",
+            "contact_telephonique": "+22601010101",
+        }, headers={"Authorization": f"Bearer {user_token}"})
+
+        response = client.get("/api/artisan/profile", headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        data = response.get_json()
+        assert data["commerces"][0]["whatsapp_numero"] == "+22607070707"
+        assert data["commerces"][0]["contact_telephonique"] == "+22601010101"
+
+    def test_profile_returns_multiple_commerces(self, client, user_token, categorie_id):
+        client.post("/api/commerces", json={
+            "nom_commercial": "Commerce A",
+            "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {user_token}"})
+        client.post("/api/commerces", json={
+            "nom_commercial": "Commerce B",
+            "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {user_token}"})
+
+        response = client.get("/api/artisan/profile", headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["nb_commerces_actifs"] == 0
+        assert len(data["commerces"]) == 2
