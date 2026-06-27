@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ROUTES } from '../../../constants/routes'
@@ -9,9 +9,10 @@ import Stepper from '../components/Stepper'
 import StepBusinessInfo from '../components/StepBusinessInfo'
 import StepLocation from '../components/StepLocation'
 import StepPhotos from '../components/StepPhotos'
-import { createBusiness } from '../services/businessService'
+import { submitCommerce, fetchCategories } from '../services/businessService'
 
 const STEPS = ['Commerce', 'Localisation', 'Photos']
+const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
 
 const CompleteProfilePage = () => {
   const navigate = useNavigate()
@@ -19,6 +20,7 @@ const CompleteProfilePage = () => {
   const [data, setData] = useState({
     business_name: '',
     whatsapp: '',
+    phone: '',
     category_id: '',
     description: '',
     latitude: null,
@@ -28,9 +30,17 @@ const CompleteProfilePage = () => {
     hours: [],
     photos: [],
   })
+  const [categories, setCategories] = useState([])
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
+
+  // Charge les catégories du backend (GET /api/categories) au montage.
+  useEffect(() => {
+    fetchCategories()
+      .then(setCategories)
+      .catch(() => setCategories([]))
+  }, [])
 
   // Fusionne un changement partiel dans `data` et efface l'erreur des champs touchés.
   const update = (patch) => {
@@ -78,25 +88,35 @@ const CompleteProfilePage = () => {
     return false
   }
 
-  // Met les données du formulaire au format attendu par le modèle Business du backend.
+  // Met les données du formulaire au format attendu par l'API commerce (3 lots).
   const buildPayload = () => ({
-    business_name: data.business_name.trim(),
-    whatsapp: data.whatsapp.trim(),
-    category_id: Number(data.category_id),
-    description: data.description.trim(),
-    latitude: data.latitude,
-    longitude: data.longitude,
-    address_description: data.address_description.trim(),
-    hours: data.hours.map((h) => ({ ...h, is_closed: false })),
-    // TODO: remplacer `preview` par l'URL renvoyée par l'endpoint d'upload une fois dispo.
-    photos: data.photos.map((p, i) => ({ image_url: p.preview, is_primary: i === 0, sort_order: i })),
+    step1: {
+      nom_commercial: data.business_name.trim(),
+      whatsapp_numero: data.whatsapp.trim(),
+      contact_telephonique: data.phone.trim(),
+      categorie_id: Number(data.category_id),
+      description: data.description.trim(),
+    },
+    step2: {
+      latitude: data.latitude,
+      longitude: data.longitude,
+      adresse_complete: data.address_description.trim(),
+      // Le backend exige les 7 jours : jours ajoutés (opt-in) ouverts, les autres fermés.
+      horaires: JOURS.map((jour) => {
+        const h = data.hours.find((x) => x.day === jour)
+        return h
+          ? { jour, heure_ouverture: h.opening_time, heure_fermeture: h.closing_time, est_ferme: false, est_24h: false }
+          : { jour, heure_ouverture: null, heure_fermeture: null, est_ferme: true, est_24h: false }
+      }),
+    },
+    photos: data.photos,
   })
 
   const handleSubmit = async () => {
     if (!validateStep()) return
     setSubmitting(true)
     try {
-      await createBusiness(buildPayload())
+      await submitCommerce(buildPayload())
       setDone(true)
     } catch (err) {
       setErrors({ submit: err.message })
@@ -148,7 +168,7 @@ const CompleteProfilePage = () => {
             <div className="mb-4 p-3 rounded-lg bg-errorLight text-error text-sm">{errors.submit}</div>
           )}
 
-          {step === 0 && <StepBusinessInfo data={data} update={update} errors={errors} />}
+          {step === 0 && <StepBusinessInfo data={data} update={update} errors={errors} categories={categories} />}
           {step === 1 && <StepLocation data={data} update={update} errors={errors} />}
           {step === 2 && <StepPhotos data={data} update={update} errors={errors} />}
 

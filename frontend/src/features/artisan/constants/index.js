@@ -11,14 +11,15 @@ export const CATEGORIES = [
   { id: 8, name: 'Réparateur de téléphones', icon: '📱' },
 ]
 
+// Les `key` sont en français minuscule = le champ `jour` attendu par le backend.
 export const WEEKDAYS = [
-  { key: 'monday', label: 'Lundi' },
-  { key: 'tuesday', label: 'Mardi' },
-  { key: 'wednesday', label: 'Mercredi' },
-  { key: 'thursday', label: 'Jeudi' },
-  { key: 'friday', label: 'Vendredi' },
-  { key: 'saturday', label: 'Samedi' },
-  { key: 'sunday', label: 'Dimanche' },
+  { key: 'lundi', label: 'Lundi' },
+  { key: 'mardi', label: 'Mardi' },
+  { key: 'mercredi', label: 'Mercredi' },
+  { key: 'jeudi', label: 'Jeudi' },
+  { key: 'vendredi', label: 'Vendredi' },
+  { key: 'samedi', label: 'Samedi' },
+  { key: 'dimanche', label: 'Dimanche' },
 ]
 
 // Créneaux horaires proposés dans les menus déroulants (toutes les 30 min, format 24h).

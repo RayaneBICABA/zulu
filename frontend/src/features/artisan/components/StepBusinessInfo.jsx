@@ -1,11 +1,10 @@
 import Input from '../../../components/ui/Input'
-import { CATEGORIES } from '../constants'
 
 // Style commun (reprend celui de <Input/>) pour le <select> et le <textarea> natifs.
 const fieldBase =
   'w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200'
 
-const StepBusinessInfo = ({ data, update, errors }) => (
+const StepBusinessInfo = ({ data, update, errors, categories }) => (
   <div className="space-y-4">
     <Input
       label="Nom du commerce / de l'artisan"
@@ -27,6 +26,15 @@ const StepBusinessInfo = ({ data, update, errors }) => (
       required
     />
 
+    <Input
+      label="Contact téléphonique"
+      name="phone"
+      placeholder="Ex: +226 01 02 03 04"
+      value={data.phone}
+      onChange={(e) => update({ phone: e.target.value })}
+      error={errors.phone}
+    />
+
     <div className="flex flex-col gap-1">
       <label className="text-sm font-medium text-gray-700">
         Catégorie métier <span className="text-primary-500 ml-1">*</span>
@@ -37,9 +45,9 @@ const StepBusinessInfo = ({ data, update, errors }) => (
         className={`${fieldBase} ${errors.category_id ? 'border-error bg-red-50' : 'border-gray-300 bg-white'}`}
       >
         <option value="">— Choisir un métier —</option>
-        {CATEGORIES.map((c) => (
+        {categories.map((c) => (
           <option key={c.id} value={c.id}>
-            {c.icon} {c.name}
+            {c.nom}
           </option>
         ))}
       </select>

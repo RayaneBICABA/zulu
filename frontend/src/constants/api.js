@@ -17,15 +17,15 @@ export const ENDPOINTS = {
     googleLogin:      '/auth/google/login',
     googleCallback:   '/auth/google/callback',
   },
-  // Endpoints annuaire — prêts pour quand le backend exposera les routes Business.
+  // Endpoints annuaire (contrat backend : docs/api/API_REFERENCE.md).
   categories: {
     list: '/categories',
   },
-  business: {
-    list:    '/businesses',
-    create:  '/businesses',
-    mine:    '/businesses/mine',
-    detail:  (id) => `/businesses/${id}`,
-    publish: (id) => `/businesses/${id}/publish`,
+  commerce: {
+    create:       '/commerces',
+    localisation: (id) => `/commerces/${id}/localisation`,
+    photos:       (id) => `/commerces/${id}/photos`,
+    publish:      (id) => `/commerces/${id}/publish`,
+    detail:       (id) => `/commerces/${id}`,
   },
 }

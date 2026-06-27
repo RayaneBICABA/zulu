@@ -93,6 +93,13 @@ const apiClient = {
       body: JSON.stringify(body),
     }),
 
+  patch: (endpoint, body) =>
+    authFetch(endpoint, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify(body),
+    }),
+
   delete: (endpoint) =>
     authFetch(endpoint, {
       method: 'DELETE',
