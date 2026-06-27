@@ -20,3 +20,22 @@ def seed_roles():
             created += 1
     db.session.commit()
     click.echo(f"{created} role(s) cree(s).")
+
+
+@click.command("clear-users")
+@click.option("--yes", is_flag=True, help="Skip confirmation")
+@with_appcontext
+def clear_users(yes):
+    from .models.user import User
+
+    count = User.query.count()
+    if count == 0:
+        click.echo("Aucun utilisateur a supprimer.")
+        return
+
+    if not yes:
+        click.confirm(f"Supprimer {count} utilisateur(s) ?", abort=True)
+
+    User.query.delete()
+    db.session.commit()
+    click.echo(f"{count} utilisateur(s) supprime(s).")
