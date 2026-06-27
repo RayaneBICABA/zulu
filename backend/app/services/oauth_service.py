@@ -2,6 +2,7 @@ from flask import current_app
 from authlib.integrations.flask_client import OAuth
 from ..extensions import db
 from ..models.user import User
+from ..models.role import Role
 from flask_jwt_extended import create_access_token, create_refresh_token
 from datetime import timedelta
 
@@ -39,12 +40,21 @@ class OAuthService:
             user.set_password(email)
             user.save()
 
+            client_role = Role.query.filter_by(name="client").first()
+            if client_role:
+                user.roles.append(client_role)
+                user.save()
+
         if not user.is_active:
             raise ValueError("Ce compte est desactive.")
 
         access_token = create_access_token(
             identity=str(user.id),
-            additional_claims={"email": user.email, "is_verified": user.is_verified},
+            additional_claims={
+                "email": user.email,
+                "is_verified": user.is_verified,
+                "roles": [r.name for r in user.roles],
+            },
             expires_delta=timedelta(minutes=15),
         )
         refresh_token = create_refresh_token(
