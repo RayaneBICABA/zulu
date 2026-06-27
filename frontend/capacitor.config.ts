@@ -1,11 +1,13 @@
 import { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'com.zulustarter.app',
-  appName: 'Zulu Starter',
+  appId: 'com.zawani.app',
+  appName: 'ZAWANI',
   webDir: 'dist',
   server: {
     androidScheme: 'https',
+    url: 'http://192.168.1.100:5173',
+    cleartext: true,
   },
 }
 
