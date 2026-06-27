@@ -403,3 +403,217 @@ class TestGetCommerce:
             "Authorization": f"Bearer {other_user_token}",
         })
         assert response.status_code == 400
+
+
+class TestArtisanHome:
+    def test_artisan_home_returns_200(self, client, user_token, categorie_id):
+        client.post("/api/commerces", json={
+            "nom_commercial": "Mon Salon",
+            "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {user_token}"})
+        response = client.get("/api/artisan/home", headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "Bienvenue" in data["message"]
+        assert data["commerce"]["nom_commercial"] == "Mon Salon"
+        assert "stats" in data["commerce"]
+        assert "photos" in data["commerce"]
+        assert "horaires" in data["commerce"]
+        assert "produit_images" in data["commerce"]
+
+    def test_artisan_home_returns_404_without_commerce(self, client, user_token):
+        response = client.get("/api/artisan/home", headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        assert response.status_code == 404
+        assert "Aucun commerce" in response.get_json()["error"]
+
+
+class TestRecordVue:
+    def test_record_vue_returns_201(self, client, user_token, categorie_id):
+        resp = client.post("/api/commerces", json={
+            "nom_commercial": "Vue Test",
+            "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {user_token}"})
+        commerce_id = resp.get_json()["id"]
+
+        response = client.post(f"/api/commerces/{commerce_id}/vues")
+        assert response.status_code == 201
+        data = response.get_json()
+        assert data["counted"] is True
+
+    def test_record_vue_anti_spam(self, client, user_token, categorie_id):
+        resp = client.post("/api/commerces", json={
+            "nom_commercial": "Spam Test",
+            "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {user_token}"})
+        commerce_id = resp.get_json()["id"]
+
+        client.post(f"/api/commerces/{commerce_id}/vues")
+        response = client.post(f"/api/commerces/{commerce_id}/vues")
+        assert response.status_code == 201
+        assert response.get_json()["counted"] is False
+
+    def test_record_vue_returns_400_on_unknown(self, client):
+        response = client.post("/api/commerces/9999/vues")
+        assert response.status_code == 400
+
+
+class TestFavoris:
+    def test_add_favori_returns_201(self, client, user_token, categorie_id):
+        resp = client.post("/api/commerces", json={
+            "nom_commercial": "Fav Test",
+            "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {user_token}"})
+        commerce_id = resp.get_json()["id"]
+
+        response = client.post(f"/api/commerces/{commerce_id}/favoris", headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        assert response.status_code == 201
+        assert "favori" in response.get_json()
+
+    def test_add_favori_returns_400_on_duplicate(self, client, user_token, categorie_id):
+        resp = client.post("/api/commerces", json={
+            "nom_commercial": "Dup Fav",
+            "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {user_token}"})
+        commerce_id = resp.get_json()["id"]
+
+        client.post(f"/api/commerces/{commerce_id}/favoris", headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        response = client.post(f"/api/commerces/{commerce_id}/favoris", headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        assert response.status_code == 400
+        assert "deja" in response.get_json()["error"]
+
+    def test_remove_favori_returns_200(self, client, user_token, categorie_id):
+        resp = client.post("/api/commerces", json={
+            "nom_commercial": "Rm Fav",
+            "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {user_token}"})
+        commerce_id = resp.get_json()["id"]
+
+        client.post(f"/api/commerces/{commerce_id}/favoris", headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        response = client.delete(f"/api/commerces/{commerce_id}/favoris", headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        assert response.status_code == 200
+        assert "Retire" in response.get_json()["message"]
+
+    def test_list_favoris_returns_200(self, client, user_token, categorie_id):
+        resp = client.post("/api/commerces", json={
+            "nom_commercial": "List Fav",
+            "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {user_token}"})
+        commerce_id = resp.get_json()["id"]
+
+        client.post(f"/api/commerces/{commerce_id}/favoris", headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        response = client.get("/api/favoris", headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        assert response.status_code == 200
+        assert len(response.get_json()) >= 1
+
+
+class TestProduitImages:
+    def _create_vendeur_commerce(self, client, user_token, categorie_id):
+        resp = client.post("/api/commerces", json={
+            "nom_commercial": "Vendeur",
+            "categorie_id": categorie_id,
+            "is_vendeur_produits": True,
+        }, headers={"Authorization": f"Bearer {user_token}"})
+        return resp.get_json()["id"]
+
+    def test_upload_produit_image_returns_201(self, client, user_token, categorie_id):
+        commerce_id = self._create_vendeur_commerce(client, user_token, categorie_id)
+        with patch("app.services.commerce_service.cloudinary.uploader.upload") as mock_upload:
+            mock_upload.return_value = {"secure_url": "https://res.cloudinary.com/test/prod.jpg"}
+            data = BytesIO(b"fake image data")
+            response = client.post(f"/api/commerces/{commerce_id}/produit-images",
+                data={"image": (data, "prod.jpg")},
+                content_type="multipart/form-data",
+                headers={"Authorization": f"Bearer {user_token}"},
+            )
+            assert response.status_code == 201
+            assert response.get_json()["ordre"] == 1
+
+    def test_upload_produit_image_returns_403_for_non_vendeur(self, client, user_token, categorie_id):
+        resp = client.post("/api/commerces", json={
+            "nom_commercial": "Non Vendeur",
+            "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {user_token}"})
+        commerce_id = resp.get_json()["id"]
+
+        with patch("app.services.commerce_service.cloudinary.uploader.upload") as mock_upload:
+            mock_upload.return_value = {"secure_url": "https://test.jpg"}
+            data = BytesIO(b"fake image")
+            response = client.post(f"/api/commerces/{commerce_id}/produit-images",
+                data={"image": (data, "prod.jpg")},
+                content_type="multipart/form-data",
+                headers={"Authorization": f"Bearer {user_token}"},
+            )
+            assert response.status_code == 403
+
+    def test_delete_produit_image_returns_200(self, client, user_token, categorie_id):
+        commerce_id = self._create_vendeur_commerce(client, user_token, categorie_id)
+        with client.application.app_context():
+            from app.models.commerce import ProduitImage
+            img = ProduitImage(commerce_id=commerce_id, url="http://test.jpg", ordre=1)
+            img.save()
+            img_id = img.id
+
+        response = client.delete(f"/api/commerces/{commerce_id}/produit-images/{img_id}", headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        assert response.status_code == 200
+        assert "supprimee" in response.get_json()["message"]
+
+
+class TestGeolocalisation:
+    def test_geolocalisation_returns_200(self, client, user_token, categorie_id):
+        resp = client.post("/api/commerces", json={
+            "nom_commercial": "Geo Test",
+            "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {user_token}"})
+        commerce_id = resp.get_json()["id"]
+
+        client.put(f"/api/commerces/{commerce_id}/localisation", json={
+            "latitude": 5.36,
+            "longitude": -4.0083,
+            "adresse_complete": "Abidjan",
+            "horaires": [
+                {"jour": "lundi"}, {"jour": "mardi"}, {"jour": "mercredi"},
+                {"jour": "jeudi"}, {"jour": "vendredi"}, {"jour": "samedi"},
+                {"jour": "dimanche", "est_ferme": True},
+            ],
+        }, headers={"Authorization": f"Bearer {user_token}"})
+
+        response = client.get(f"/api/commerces/{commerce_id}/geolocalisation", headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        assert response.status_code == 200
+        url = response.get_json()["geolocalisation_url"]
+        assert "wa.me" in url
+        assert "maps.google.com" in url
+
+    def test_geolocalisation_returns_none_without_coords(self, client, user_token, categorie_id):
+        resp = client.post("/api/commerces", json={
+            "nom_commercial": "No Geo",
+            "categorie_id": categorie_id,
+        }, headers={"Authorization": f"Bearer {user_token}"})
+        commerce_id = resp.get_json()["id"]
+
+        response = client.get(f"/api/commerces/{commerce_id}/geolocalisation", headers={
+            "Authorization": f"Bearer {user_token}",
+        })
+        assert response.status_code == 200
+        assert response.get_json()["geolocalisation_url"] is None

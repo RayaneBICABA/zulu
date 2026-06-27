@@ -292,3 +292,277 @@ class TestCreateCategory:
             commerce_service.create_category({"nom": "Doublon"})
             with pytest.raises(ValueError, match="existe deja"):
                 commerce_service.create_category({"nom": "Doublon"})
+
+
+class TestGetArtisanHome:
+    def test_returns_bienvenue_message(self, app):
+        with app.app_context():
+            from app.models.commerce import CommerceStats, CommercePhoto, ProduitImage
+            user = auth_service.register(email="artisan@home.com", password="password123")
+            user.first_name = "Kofi"
+            user.save()
+            cat = Categorie(nom="Coiffure", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="Salon Kofi", categorie_id=cat.id, latitude=5.36, longitude=-4.0083)
+            commerce.save()
+            stats = CommerceStats(commerce_id=commerce.id)
+            stats.save()
+            result = commerce_service.get_artisan_home(user.id)
+            assert result["message"] == "Bienvenue, Kofi"
+            assert result["commerce"]["id"] == commerce.id
+            assert result["commerce"]["stats"]["nb_vues_profile"] == 0
+            assert result["geolocalisation_url"] is not None
+            assert "wa.me" in result["geolocalisation_url"]
+
+    def test_returns_email_as_fallback_name(self, app):
+        with app.app_context():
+            user = auth_service.register(email="sansnom@test.com", password="password123")
+            cat = Categorie(nom="Jardinage", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="Jardin", categorie_id=cat.id)
+            commerce.save()
+            result = commerce_service.get_artisan_home(user.id)
+            assert result["message"] == "Bienvenue, sansnom"
+
+    def test_raises_when_no_commerce(self, app):
+        with app.app_context():
+            user = auth_service.register(email="empty@test.com", password="password123")
+            with pytest.raises(ValueError, match="Aucun commerce"):
+                commerce_service.get_artisan_home(user.id)
+
+    def test_includes_produit_images(self, app):
+        with app.app_context():
+            from app.models.commerce import ProduitImage
+            user = auth_service.register(email="prod@test.com", password="password123")
+            cat = Categorie(nom="Bijoux", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="Bijoux Pro", categorie_id=cat.id)
+            commerce.save()
+            img = ProduitImage(commerce_id=commerce.id, url="http://img.jpg", ordre=1)
+            img.save()
+            result = commerce_service.get_artisan_home(user.id)
+            assert len(result["commerce"]["produit_images"]) == 1
+
+
+class TestRecordVue:
+    def test_records_vue(self, app):
+        with app.app_context():
+            from app.models.commerce import CommerceStats, VueProfile
+            user = auth_service.register(email="vu@test.com", password="password123")
+            cat = Categorie(nom="Vente", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="Boutique", categorie_id=cat.id)
+            commerce.save()
+            result = commerce_service.record_vue(commerce.id, ip_address="192.168.1.1", user_agent="Mozilla")
+            assert result["counted"] is True
+            stats = CommerceStats.query.filter_by(commerce_id=commerce.id).first()
+            assert stats.nb_vues_profile == 1
+
+    def test_anti_spam_blocks_duplicate(self, app):
+        with app.app_context():
+            user = auth_service.register(email="spam@test.com", password="password123")
+            cat = Categorie(nom="Fleurs", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="Fleuriste", categorie_id=cat.id)
+            commerce.save()
+            commerce_service.record_vue(commerce.id, ip_address="10.0.0.1")
+            result = commerce_service.record_vue(commerce.id, ip_address="10.0.0.1")
+            assert result["counted"] is False
+
+    def test_raises_on_unknown_commerce(self, app):
+        with app.app_context():
+            with pytest.raises(ValueError, match="Commerce introuvable"):
+                commerce_service.record_vue(9999, ip_address="10.0.0.1")
+
+    def test_allows_different_ip(self, app):
+        with app.app_context():
+            from app.models.commerce import CommerceStats
+            user = auth_service.register(email="diff@test.com", password="password123")
+            cat = Categorie(nom="Art", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="Gallery", categorie_id=cat.id)
+            commerce.save()
+            commerce_service.record_vue(commerce.id, ip_address="10.0.0.1")
+            commerce_service.record_vue(commerce.id, ip_address="10.0.0.2")
+            stats = CommerceStats.query.filter_by(commerce_id=commerce.id).first()
+            assert stats.nb_vues_profile == 2
+
+
+class TestAddFavori:
+    def test_adds_favori(self, app):
+        with app.app_context():
+            from app.models.commerce import CommerceStats
+            user = auth_service.register(email="fav@test.com", password="password123")
+            cat = Categorie(nom="Mode", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="Boutique", categorie_id=cat.id)
+            commerce.save()
+            result = commerce_service.add_favori(user.id, commerce.id)
+            assert "favori" in result
+            stats = CommerceStats.query.filter_by(commerce_id=commerce.id).first()
+            assert stats.nb_favoris == 1
+
+    def test_raises_on_duplicate(self, app):
+        with app.app_context():
+            user = auth_service.register(email="dup@test.com", password="password123")
+            cat = Categorie(nom="Livres", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="Librairie", categorie_id=cat.id)
+            commerce.save()
+            commerce_service.add_favori(user.id, commerce.id)
+            with pytest.raises(ValueError, match="deja dans vos favoris"):
+                commerce_service.add_favori(user.id, commerce.id)
+
+    def test_raises_on_unknown_commerce(self, app):
+        with app.app_context():
+            user = auth_service.register(email="noexist@test.com", password="password123")
+            with pytest.raises(ValueError, match="Commerce introuvable"):
+                commerce_service.add_favori(user.id, 9999)
+
+
+class TestRemoveFavori:
+    def test_removes_favori(self, app):
+        with app.app_context():
+            from app.models.commerce import CommerceStats
+            user = auth_service.register(email="rmfav@test.com", password="password123")
+            cat = Categorie(nom="Sport", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="SportShop", categorie_id=cat.id)
+            commerce.save()
+            commerce_service.add_favori(user.id, commerce.id)
+            result = commerce_service.remove_favori(user.id, commerce.id)
+            assert "Retire" in result["message"]
+            stats = CommerceStats.query.filter_by(commerce_id=commerce.id).first()
+            assert stats.nb_favoris == 0
+
+    def test_raises_on_not_found(self, app):
+        with app.app_context():
+            user = auth_service.register(email="norem@test.com", password="password123")
+            with pytest.raises(ValueError, match="Favori introuvable"):
+                commerce_service.remove_favori(user.id, 9999)
+
+
+class TestListFavoris:
+    def test_returns_favoris(self, app):
+        with app.app_context():
+            user = auth_service.register(email="listfav@test.com", password="password123")
+            cat = Categorie(nom="Musique", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="Studio", categorie_id=cat.id)
+            commerce.save()
+            commerce_service.add_favori(user.id, commerce.id)
+            result = commerce_service.list_favoris(user.id)
+            assert len(result) == 1
+            assert "commerce" in result[0]
+
+    def test_returns_empty_list(self, app):
+        with app.app_context():
+            user = auth_service.register(email="emptyfav@test.com", password="password123")
+            result = commerce_service.list_favoris(user.id)
+            assert result == []
+
+
+class TestUploadProduitImage:
+    def test_uploads_image(self, app):
+        with app.app_context():
+            user = auth_service.register(email="prodimg@test.com", password="password123")
+            cat = Categorie(nom="Alimentation", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="Maraicher", categorie_id=cat.id, is_vendeur_produits=True)
+            commerce.save()
+            mock_file = MagicMock()
+            mock_file.content_type = "image/jpeg"
+            mock_file.seek = MagicMock()
+            mock_file.tell = MagicMock(return_value=1024)
+            with patch("app.services.commerce_service.cloudinary.uploader.upload") as mock_upload:
+                mock_upload.return_value = {"secure_url": "https://res.cloudinary.com/test/prod.jpg"}
+                result = commerce_service.upload_produit_image(commerce.id, user.id, mock_file)
+                assert result["url"] == "https://res.cloudinary.com/test/prod.jpg"
+                assert result["ordre"] == 1
+
+    def test_raises_on_non_vendeur(self, app):
+        with app.app_context():
+            user = auth_service.register(email="nonvendeur@test.com", password="password123")
+            cat = Categorie(nom="Fleuriste", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="Fleurs", categorie_id=cat.id, is_vendeur_produits=False)
+            commerce.save()
+            mock_file = MagicMock()
+            mock_file.content_type = "image/jpeg"
+            mock_file.seek = MagicMock()
+            mock_file.tell = MagicMock(return_value=1024)
+            with pytest.raises(ValueError, match="n'est pas vendeur"):
+                commerce_service.upload_produit_image(commerce.id, user.id, mock_file)
+
+    def test_raises_on_max_images(self, app):
+        with app.app_context():
+            from app.models.commerce import ProduitImage
+            user = auth_service.register(email="maxprod@test.com", password="password123")
+            cat = Categorie(nom="Tissus", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="TissusPro", categorie_id=cat.id, is_vendeur_produits=True)
+            commerce.save()
+            for i in range(5):
+                img = ProduitImage(commerce_id=commerce.id, url=f"http://img{i}.jpg", ordre=i + 1)
+                img.save()
+            mock_file = MagicMock()
+            mock_file.content_type = "image/jpeg"
+            mock_file.seek = MagicMock()
+            mock_file.tell = MagicMock(return_value=1024)
+            with pytest.raises(ValueError, match="Maximum 5"):
+                commerce_service.upload_produit_image(commerce.id, user.id, mock_file)
+
+
+class TestDeleteProduitImage:
+    def test_deletes_image(self, app):
+        with app.app_context():
+            from app.models.commerce import ProduitImage
+            user = auth_service.register(email="delprod@test.com", password="password123")
+            cat = Categorie(nom="Cuir", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="Maroquinerie", categorie_id=cat.id)
+            commerce.save()
+            img = ProduitImage(commerce_id=commerce.id, url="http://img.jpg", ordre=1)
+            img.save()
+            img_id = img.id
+            result = commerce_service.delete_produit_image(commerce.id, img_id, user.id)
+            assert "supprimee" in result["message"]
+            assert ProduitImage.query.get(img_id) is None
+
+    def test_raises_on_wrong_owner(self, app):
+        with app.app_context():
+            from app.models.commerce import ProduitImage
+            user = auth_service.register(email="ownerprod@test.com", password="password123")
+            cat = Categorie(nom="Poterie", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="Potier", categorie_id=cat.id)
+            commerce.save()
+            img = ProduitImage(commerce_id=commerce.id, url="http://img.jpg", ordre=1)
+            img.save()
+            other = auth_service.register(email="otherprod@test.com", password="password123")
+            with pytest.raises(ValueError, match="Acces refuse"):
+                commerce_service.delete_produit_image(commerce.id, img.id, other.id)
+
+
+class TestBuildGeolocalisationUrl:
+    def test_returns_url_with_coords(self, app):
+        with app.app_context():
+            user = auth_service.register(email="geo@test.com", password="password123")
+            cat = Categorie(nom="Restaurant", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="Chez Tanti", categorie_id=cat.id, latitude=5.36, longitude=-4.0083)
+            commerce.save()
+            url = commerce_service.build_geolocalisation_url(commerce.id)
+            assert "wa.me" in url
+            assert "maps.google.com" in url
+            assert "5.36" in url
+
+    def test_returns_none_when_no_coords(self, app):
+        with app.app_context():
+            user = auth_service.register(email="nogeo@test.com", password="password123")
+            cat = Categorie(nom="Bijoux", is_active=True)
+            cat.save()
+            commerce = Commerce(user_id=user.id, nom_commercial="BijouxGeo", categorie_id=cat.id)
+            commerce.save()
+            url = commerce_service.build_geolocalisation_url(commerce.id)
+            assert url is None
