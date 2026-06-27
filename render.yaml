@@ -17,18 +17,16 @@ services:
         fromDatabase:
           name: zawani-db
           property: connectionString
-      - key: REDIS_URL
-        fromRedis:
+      - key: LIMITER_STORAGE_URL
+        fromService:
           name: zawani-redis
+          type: keyvalue
           property: connectionString
       - key: FRONTEND_URL
-        sync: false
         value: https://zawani.app
       - key: MAIL_SERVER
-        sync: false
         value: smtp.gmail.com
       - key: MAIL_PORT
-        sync: false
         value: "587"
       - key: MAIL_USERNAME
         sync: false
@@ -37,7 +35,6 @@ services:
       - key: MAIL_DEFAULT_SENDER
         sync: false
       - key: MAIL_USE_TLS
-        sync: false
         value: "true"
       - key: GOOGLE_CLIENT_ID
         sync: false
@@ -55,13 +52,12 @@ services:
         sync: false
     healthCheckPath: /api/health
     autoDeploy: true
-    preDeployCommand: "flask db upgrade"
+  - type: keyvalue
+    name: zawani-redis
+    plan: free
 
 databases:
   - name: zawani-db
     plan: free
     databaseName: zawani
     postgresMajorVersion: "16"
-
-  - name: zawani-redis
-    plan: free
