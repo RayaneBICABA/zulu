@@ -347,13 +347,23 @@ def clear_users():
     from sqlalchemy import text
     from ..extensions import db
 
-    db.session.execute(text("DELETE FROM commentaires WHERE moderated_by IN (SELECT id FROM users)"))
-    db.session.execute(text("DELETE FROM commentaires WHERE auteur_id IN (SELECT id FROM users)"))
-    db.session.execute(text("DELETE FROM vues_profile WHERE user_id IN (SELECT id FROM users)"))
-    db.session.execute(text("DELETE FROM favoris WHERE user_id IN (SELECT id FROM users)"))
-    db.session.execute(text("DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users)"))
-    for user in User.query.all():
-        db.session.delete(user)
-    db.session.commit()
+    try:
+        db.session.execute(text("DELETE FROM produit_images WHERE commerce_id IN (SELECT id FROM commerces WHERE user_id IN (SELECT id FROM users))"))
+        db.session.execute(text("DELETE FROM horaires_ouverture WHERE commerce_id IN (SELECT id FROM commerces WHERE user_id IN (SELECT id FROM users))"))
+        db.session.execute(text("DELETE FROM commerce_photos WHERE commerce_id IN (SELECT id FROM commerces WHERE user_id IN (SELECT id FROM users))"))
+        db.session.execute(text("DELETE FROM commerce_stats WHERE commerce_id IN (SELECT id FROM commerces WHERE user_id IN (SELECT id FROM users))"))
+        db.session.execute(text("DELETE FROM commentaires WHERE commerce_id IN (SELECT id FROM commerces WHERE user_id IN (SELECT id FROM users))"))
+        db.session.execute(text("DELETE FROM commentaires WHERE moderated_by IN (SELECT id FROM users)"))
+        db.session.execute(text("DELETE FROM commentaires WHERE auteur_id IN (SELECT id FROM users)"))
+        db.session.execute(text("DELETE FROM vues_profile WHERE user_id IN (SELECT id FROM users)"))
+        db.session.execute(text("DELETE FROM favoris WHERE user_id IN (SELECT id FROM users)"))
+        db.session.execute(text("DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users)"))
+        db.session.execute(text("DELETE FROM commerces WHERE user_id IN (SELECT id FROM users)"))
+        for user in User.query.all():
+            db.session.delete(user)
+        db.session.commit()
 
-    return jsonify({"message": "Tous les utilisateurs ont ete supprimes."}), 200
+        return jsonify({"message": "Tous les utilisateurs ont ete supprimes."}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
