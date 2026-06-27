@@ -44,6 +44,9 @@ class OAuthService:
             if client_role:
                 user.roles.append(client_role)
                 user.save()
+        elif not user.is_verified:
+            user.is_verified = True
+            user.save()
 
         if not user.is_active:
             raise ValueError("Ce compte est desactive.")

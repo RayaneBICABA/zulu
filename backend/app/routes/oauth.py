@@ -1,6 +1,9 @@
+import logging
 from flask import Blueprint, request, jsonify, redirect, current_app
 from ..services.oauth_service import oauth, OAuthService
 from ..extensions import limiter
+
+logger = logging.getLogger(__name__)
 
 oauth_bp = Blueprint("oauth", __name__)
 oauth_service = OAuthService()
@@ -79,6 +82,7 @@ def google_callback():
         )
         return redirect(redirect_url)
     except Exception as e:
+        logger.exception(f"Google auth callback failed: {e}")
         return redirect(f"{frontend_url}/login?error=google_auth_failed")
 
 

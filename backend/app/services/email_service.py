@@ -58,6 +58,7 @@ def _send_smtp(to, subject, html_body):
         logger.info(f"[EMAIL] Sent to {to}")
     except Exception as e:
         logger.error(f"[EMAIL] Failed to send to {to}: {e}")
+        raise
 
 
 def send_verification_email(to, token):
