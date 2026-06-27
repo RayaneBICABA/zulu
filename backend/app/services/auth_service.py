@@ -33,7 +33,11 @@ class AuthService:
             user.save()
 
         token = generate_verification_token(email)
-        send_verification_email(email, token)
+        try:
+            send_verification_email(email, token)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Email verification failed for {email}: {e}")
         return user
 
     def verify_email(self, token):
