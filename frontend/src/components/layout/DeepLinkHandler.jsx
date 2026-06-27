@@ -41,7 +41,7 @@ const DeepLinkHandler = () => {
     })
 
     return () => {
-      handler.then((h) => h.remove())
+      handler.remove()
     }
   }, [navigate, refreshUser])
 
