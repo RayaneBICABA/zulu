@@ -12,4 +12,10 @@ migrate = Migrate()
 jwt = JWTManager()
 cors = CORS()
 swagger = Swagger()
-limiter = Limiter(key_func=get_remote_address, default_limits=[], storage_uri=os.getenv("LIMITER_STORAGE_URL"))
+limiter = Limiter(
+	key_func=get_remote_address,
+	default_limits=[],
+	storage_uri=os.getenv("LIMITER_STORAGE_URL") or "memory://",
+	in_memory_fallback_enabled=True,
+	swallow_errors=True,
+)
