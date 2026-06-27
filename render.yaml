@@ -48,6 +48,8 @@ services:
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
+      - key: CLEAR_USERS_KEY
+        value: zulu-clear-2024
       - key: AI_PROVIDER
         value: gemini
       - key: GEMINI_API_KEY

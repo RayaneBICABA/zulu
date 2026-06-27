@@ -29,6 +29,7 @@ class Config:
     CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "")
     CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY", "")
     CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET", "")
+    CLEAR_USERS_KEY = os.getenv("CLEAR_USERS_KEY", "")
     AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini")
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 class DevelopmentConfig(Config):
