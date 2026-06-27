@@ -5,11 +5,13 @@ const TOKEN_KEY = 'access_token'
 const REFRESH_KEY = 'refresh_token'
 
 const authService = {
+  // Backend renvoie { success, data: { user, token } } — un seul token.
   login: (credentials) =>
     apiClient.post(ENDPOINTS.auth.login, credentials)
-      .then((data) => {
-        if (data.access_token) authService.saveTokens(data.access_token, data.refresh_token)
-        return data
+      .then((res) => {
+        const payload = res?.data || res
+        if (payload?.token) localStorage.setItem(TOKEN_KEY, payload.token)
+        return payload
       }),
 
   register: (data) =>
@@ -30,8 +32,9 @@ const authService = {
     localStorage.removeItem(REFRESH_KEY)
   },
 
+  // Backend renvoie { success, data: { ...user } } → on renvoie l'objet user.
   me: () =>
-    apiClient.get(ENDPOINTS.auth.me),
+    apiClient.get(ENDPOINTS.auth.me).then((res) => res?.data || res),
 
   verifyEmail: (token) =>
     apiClient.post(ENDPOINTS.auth.verifyEmail, { token }),

@@ -10,13 +10,20 @@ import Button from "../../../components/ui/Button";
 import ProfileHeader from "../components/ProfileHeader";
 import MenuItem from "../components/MenuItem";
 
-import profileService from "../services/profileService";
+import useAuth from "../../auth/hooks/useAuth";
 import { profileMenu } from "../constants/profileMenu";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const profile = profileService.getProfile();
+  // Données réelles de l'utilisateur connecté (GET /api/auth/me).
+  const profile = {
+    name: [user?.prenom, user?.nom].filter(Boolean).join(" ") || user?.email,
+    email: user?.email,
+    role: user?.role === "artisan" ? "Artisan" : "Client",
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user?.email || "zulu")}`,
+  };
 
   const handleMenuClick = (item) => {
     if (item.action === "logout") {

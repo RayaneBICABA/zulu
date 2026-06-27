@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, CheckCircle2, UserPlus, Mail, Lock, User } from 'lucide-react'
+import { Eye, EyeOff, CheckCircle2, UserPlus, Mail, Lock, User, Phone } from 'lucide-react'
 import { ROUTES } from '../../../constants/routes'
 import useAuth from '../hooks/useAuth'
 import AuthLayout from '../../../components/layout/AuthLayout'
@@ -18,6 +18,7 @@ const RegisterPage = () => {
     confirm_password: '',
     first_name: '',
     last_name: '',
+    telephone: '',
   })
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -39,6 +40,7 @@ const RegisterPage = () => {
     if (form.password !== form.confirm_password) errors.confirm_password = 'Les mots de passe ne correspondent pas'
     if (!form.first_name) errors.first_name = 'Prénom requis'
     if (!form.last_name) errors.last_name = 'Nom requis'
+    if (!form.telephone) errors.telephone = 'Téléphone requis'
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -52,8 +54,9 @@ const RegisterPage = () => {
       await register({
         email: form.email,
         password: form.password,
-        first_name: form.first_name,
-        last_name: form.last_name,
+        nom: form.last_name,
+        prenom: form.first_name,
+        telephone: form.telephone,
       })
       setSuccess(true)
     } catch (err) {
@@ -121,6 +124,19 @@ const RegisterPage = () => {
               onChange={handleChange}
               error={fieldErrors.last_name}
               leftElement={<User size={15} />}
+            />
+          </div>
+          <div className="mt-3.5">
+            <Input
+              auth
+              label="Téléphone"
+              name="telephone"
+              type="tel"
+              placeholder="+226 70 00 00 00"
+              value={form.telephone}
+              onChange={handleChange}
+              error={fieldErrors.telephone}
+              leftElement={<Phone size={16} />}
             />
           </div>
         </div>
