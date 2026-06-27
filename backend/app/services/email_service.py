@@ -2,10 +2,11 @@ import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from flask import current_app, render_template
-from itsdangerous import URLSafeTimedSerializer
+from flask import current_app
 
 logger = logging.getLogger(__name__)
+
+from itsdangerous import URLSafeTimedSerializer
 
 
 def _get_serializer(salt):
@@ -62,34 +63,162 @@ def _send_smtp(to, subject, html_body):
 def send_verification_email(to, token):
     link = f"{current_app.config['FRONTEND_URL']}/verifier-email?token={token}"
     html = f"""
+    <!DOCTYPE html>
     <html>
-      <body style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2>Verifiez votre email</h2>
-        <p>Bonjour,</p>
-        <p>Cliquez sur le lien ci-dessous pour activer votre compte :</p>
-        <p><a href="{link}" style="background: #2563eb; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block;">Verifier mon email</a></p>
-        <p>Ou copiez ce lien dans votre navigateur :</p>
-        <p style="word-break: break-all; color: #2563eb;">{link}</p>
-        <p>Ce lien expire dans 24 heures.</p>
-      </body>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin:0;padding:0;background-color:#f7f7f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f7f7;padding:40px 20px;">
+        <tr>
+          <td align="center">
+            <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+
+              <tr>
+                <td style="padding:40px 32px 24px;text-align:center;">
+                  <h1 style="margin:0 0 8px;font-size:28px;font-weight:800;color:#c94301;letter-spacing:-0.5px;">ZAWANI</h1>
+                  <p style="margin:0;font-size:13px;color:#999999;">Votre plateforme d'artisans</p>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:0 32px;">
+                  <div style="height:1px;background-color:#f0f0f0;"></div>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:32px;">
+                  <h2 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#1a1a1a;">Verifiez votre email</h2>
+                  <p style="margin:0 0 8px;font-size:15px;color:#555555;line-height:1.6;">
+                    Bonjour,
+                  </p>
+                  <p style="margin:0 0 24px;font-size:15px;color:#555555;line-height:1.6;">
+                    Merci pour votre inscription sur Zawani. Cliquez sur le bouton ci-dessous pour activer votre compte :
+                  </p>
+
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td align="center" style="padding:0 0 24px;">
+                        <a href="{link}" style="display:inline-block;background-color:#c94301;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:10px;">
+                          Verifier mon email
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <p style="margin:0 0 8px;font-size:13px;color:#999999;line-height:1.5;">
+                    Ou copiez ce lien dans votre navigateur :
+                  </p>
+                  <p style="margin:0 0 24px;font-size:12px;color:#c94301;word-break:break-all;line-height:1.5;">
+                    {link}
+                  </p>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:0 32px;">
+                  <div style="height:1px;background-color:#f0f0f0;"></div>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:24px 32px 32px;text-align:center;">
+                  <p style="margin:0;font-size:12px;color:#bbbbbb;line-height:1.5;">
+                    Ce lien expire dans 24 heures.<br>
+                    Si vous n'avez pas cree de compte, ignorez cet email.
+                  </p>
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
     </html>
     """
-    _send_smtp(to, "Zulu — Verification de votre email", html)
+    _send_smtp(to, "ZAWANI — Verifiez votre email", html)
 
 
 def send_reset_password_email(to, token):
     link = f"{current_app.config['FRONTEND_URL']}/reinitialiser-mot-de-passe?token={token}"
     html = f"""
+    <!DOCTYPE html>
     <html>
-      <body style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2>Reinitialisation de mot de passe</h2>
-        <p>Bonjour,</p>
-        <p>Cliquez sur le lien ci-dessous pour reinitialiser votre mot de passe :</p>
-        <p><a href="{link}" style="background: #2563eb; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block;">Reinitialiser mon mot de passe</a></p>
-        <p>Ou copiez ce lien dans votre navigateur :</p>
-        <p style="word-break: break-all; color: #2563eb;">{link}</p>
-        <p>Ce lien expire dans 1 heure. Si vous n'avez pas demande cette reinitialisation, ignorez cet email.</p>
-      </body>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin:0;padding:0;background-color:#f7f7f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f7f7;padding:40px 20px;">
+        <tr>
+          <td align="center">
+            <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+
+              <tr>
+                <td style="padding:40px 32px 24px;text-align:center;">
+                  <h1 style="margin:0 0 8px;font-size:28px;font-weight:800;color:#c94301;letter-spacing:-0.5px;">ZAWANI</h1>
+                  <p style="margin:0;font-size:13px;color:#999999;">Votre plateforme d'artisans</p>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:0 32px;">
+                  <div style="height:1px;background-color:#f0f0f0;"></div>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:32px;">
+                  <h2 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#1a1a1a;">Reinitialisation de mot de passe</h2>
+                  <p style="margin:0 0 8px;font-size:15px;color:#555555;line-height:1.6;">
+                    Bonjour,
+                  </p>
+                  <p style="margin:0 0 24px;font-size:15px;color:#555555;line-height:1.6;">
+                    Vous avez demande la reinitialisation de votre mot de passe. Cliquez sur le bouton ci-dessous :
+                  </p>
+
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td align="center" style="padding:0 0 24px;">
+                        <a href="{link}" style="display:inline-block;background-color:#c94301;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:10px;">
+                          Reinitialiser mon mot de passe
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <p style="margin:0 0 8px;font-size:13px;color:#999999;line-height:1.5;">
+                    Ou copiez ce lien dans votre navigateur :
+                  </p>
+                  <p style="margin:0 0 24px;font-size:12px;color:#c94301;word-break:break-all;line-height:1.5;">
+                    {link}
+                  </p>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:0 32px;">
+                  <div style="height:1px;background-color:#f0f0f0;"></div>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:24px 32px 32px;text-align:center;">
+                  <p style="margin:0;font-size:12px;color:#bbbbbb;line-height:1.5;">
+                    Ce lien expire dans 1 heure.<br>
+                    Si vous n'avez pas demande cette reinitialisation, ignorez cet email.
+                  </p>
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
     </html>
     """
-    _send_smtp(to, "Zulu — Reinitialisation de mot de passe", html)
+    _send_smtp(to, "ZAWANI — Reinitialisation de mot de passe", html)
