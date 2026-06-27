@@ -16,6 +16,7 @@ export const ENDPOINTS = {
     resetPassword:    '/auth/reset-password',
     googleLogin:      '/auth/google/login',
     googleCallback:   '/auth/google/callback',
+    becomeArtisan:    '/auth/become-artisan',
   },
   commerces: '/commerces',
   categories: '/categories',

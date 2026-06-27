@@ -35,6 +35,9 @@ const authService = {
   resetPassword: (token, password) =>
     apiClient.post(ENDPOINTS.auth.resetPassword, { token, password }),
 
+  becomeArtisan: () =>
+    apiClient.post(ENDPOINTS.auth.becomeArtisan),
+
   saveTokens: (access, refresh) => {
     localStorage.setItem(TOKEN_KEY, access)
     if (refresh) localStorage.setItem(REFRESH_KEY, refresh)

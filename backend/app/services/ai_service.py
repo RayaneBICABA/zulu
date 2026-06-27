@@ -44,16 +44,19 @@ def _parse_llm_response(text):
 
 
 def _call_gemini(user_prompt):
-    import google.generativeai as genai
+    from google import genai
     api_key = current_app.config.get("GEMINI_API_KEY", "")
     if not api_key:
         raise ValueError("GEMINI_API_KEY non configuree.")
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
-        system_instruction=SYSTEM_PROMPT,
+    client = genai.Client(api_key=api_key)
+    model_name = "gemini-2.0-flash"
+    response = client.models.generate_content(
+        model=model_name,
+        contents=user_prompt,
+        config=genai.types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+        ),
     )
-    response = model.generate_content(user_prompt)
     return response.text
 
 

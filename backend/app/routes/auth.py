@@ -5,6 +5,7 @@ from ..schemas import RegisterSchema, LoginSchema, UserSchema
 from ..services import auth_service
 from ..extensions import limiter
 from ..models.user import User
+from ..models.role import Role
 from ..services.email_service import generate_verification_token, send_verification_email
 
 auth_bp = Blueprint("auth", __name__)
@@ -283,6 +284,43 @@ def resend_verification():
     token = generate_verification_token(user.email)
     send_verification_email(user.email, token)
     return jsonify({"message": "Email de verification renvoye."}), 200
+
+
+@auth_bp.route("/auth/become-artisan", methods=["POST"])
+@jwt_required()
+def become_artisan():
+    """
+    Permet a un client de devenir artisan.
+    ---
+    tags:
+      - Authentification
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Role artisan ajoute avec succes
+      400:
+        description: Deja artisan ou erreur
+    """
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "Utilisateur introuvable."}), 404
+
+    if user.has_role("artisan"):
+        return jsonify({"error": "Vous etes deja artisan."}), 400
+
+    artisan_role = Role.query.filter_by(name="artisan").first()
+    if not artisan_role:
+        return jsonify({"error": "Role artisan introuvable."}), 500
+
+    user.roles.append(artisan_role)
+    user.save()
+
+    return jsonify({
+        "message": "Felicitation ! Vous etes maintenant artisan.",
+        "user": user.to_dict(),
+    }), 200
 
 
 @auth_bp.route("/auth/logout", methods=["POST"])
