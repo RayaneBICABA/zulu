@@ -17,6 +17,8 @@ import ArtisanCommentsPage from './pages/ArtisanCommentsPage'
 import ArtisanProfilePage from './pages/ArtisanProfilePage'
 import AddBusinessPage from './pages/AddBusinessPage'
 import CompleteProfilePage from './features/artisan/pages/CompleteProfilePage'
+import CommercesPage from './pages/CommercesPage'
+import NewCommercePage from './pages/NewCommercePage'
 
 const App = () => (
   <BrowserRouter>
@@ -56,6 +58,8 @@ const App = () => (
             </ProtectedRoute>
           } />
           {/* Stepper connecté au backend — doublon à arbitrer avec AddBusinessPage */}
+          <Route path={ROUTES.commerces} element={<ProtectedRoute><CommercesPage /></ProtectedRoute>} />
+          <Route path={ROUTES.newCommerce} element={<ProtectedRoute><NewCommercePage /></ProtectedRoute>} />
           <Route path={ROUTES.completeProfile} element={<CompleteProfilePage />} />
           <Route path={ROUTES.notFound}      element={<NotFoundPage />} />
         </Routes>

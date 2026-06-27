@@ -12,5 +12,7 @@ export const ROUTES = {
   artisanProfile: '/artisan-profile',
   addBusiness:   '/dashboard/ajouter-commerce',
   completeProfile:'/completer-profil',
+  commerces:     '/mes-commerces',
+  newCommerce:   '/nouveau-commerce',
   notFound:      '*',
 }

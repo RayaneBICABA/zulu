@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Search, Map, Heart, User } from 'lucide-react'
+import { Home, User } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { ROUTES } from '../../constants/routes'
 
@@ -17,9 +17,7 @@ const NavItem = ({ to, icon: Icon, label, active }) => (
         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
       />
     )}
-    <div className={`p-1.5 rounded-xl transition-all duration-200 ${
-      active ? 'bg-primary-100 text-primary-600' : ''
-    }`}>
+    <div className={`p-1.5 rounded-xl transition-all duration-200 ${active ? 'bg-primary-100 text-primary-600' : ''}`}>
       <Icon size={20} strokeWidth={active ? 2.5 : 2} />
     </div>
     <span className="text-[9px] font-medium truncate w-full text-center">{label}</span>
@@ -28,26 +26,15 @@ const NavItem = ({ to, icon: Icon, label, active }) => (
 
 const MobileNav = () => {
   const location = useLocation()
-
   const navItems = [
-    { to: ROUTES.home, icon: Home, label: 'Accueil' },
-    { to: '/search', icon: Search, label: 'Découvrir' },
-    { to: '/map', icon: Map, label: 'Carte' },
-    { to: '/favorites', icon: Heart, label: 'Favoris' },
+    { to: ROUTES.home,      icon: Home, label: 'Accueil' },
     { to: ROUTES.dashboard, icon: User, label: 'Profil' },
   ]
-
   return (
     <nav className="nav-floating">
       <div className="flex items-center justify-between">
         {navItems.map((item) => (
-          <NavItem
-            key={item.to}
-            to={item.to}
-            icon={item.icon}
-            label={item.label}
-            active={location.pathname === item.to}
-          />
+          <NavItem key={item.to} to={item.to} icon={item.icon} label={item.label} active={location.pathname === item.to} />
         ))}
       </div>
     </nav>

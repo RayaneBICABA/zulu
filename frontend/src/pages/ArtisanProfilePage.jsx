@@ -1,113 +1,101 @@
 import { motion } from 'framer-motion'
-import { Award, LogOut, Mail, Phone, Store, User, MessageCircle } from 'lucide-react'
+import { Award, LogOut, User, Store, Mail, Phone, MessageCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import ArtisanBottomNav from '../components/layout/ArtisanBottomNav'
 import useAuth from '../features/auth/hooks/useAuth'
 import { ROUTES } from '../constants/routes'
+import ArtisanBottomNav from '../components/layout/ArtisanBottomNav'
+
+const InfoRow = ({ icon: Icon, label, value }) => (
+  <motion.div
+    initial={{ opacity: 0, x: -10 }}
+    animate={{ opacity: 1, x: 0 }}
+    className="flex items-center gap-4 bg-white rounded-2xl px-5 py-4 shadow-sm border border-blue-50"
+  >
+    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+      <Icon size={18} className="text-blue-400" />
+    </div>
+    <div>
+      <p className="text-xs text-slate-400 font-medium">{label}</p>
+      <p className="text-sm font-bold text-slate-700">{value || '—'}</p>
+    </div>
+  </motion.div>
+)
 
 const ArtisanProfilePage = () => {
   const navigate = useNavigate()
-  const { user, logout } = useAuth()
-
-  const firstName = user?.first_name || 'Priscilla'
-  const lastName = user?.last_name || 'Traore'
-  const email = user?.email || 'priscilla.traore@gmail.com'
+  const { logout, user } = useAuth()
 
   const handleLogout = () => {
     logout()
     navigate(ROUTES.login)
   }
 
-  const details = [
-    { label: 'Nom du commerce', value: 'Atelier Soudure Alpha', icon: Store },
-    { label: 'Prénom', value: firstName, icon: User },
-    { label: 'Nom', value: lastName, icon: User },
-    { label: 'Email', value: email, icon: Mail },
-    { label: 'WhatsApp', value: '+226 70 00 00 00', icon: MessageCircle },
-    { label: 'Téléphone', value: '+226 70 00 00 00', icon: Phone },
-  ]
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 via-blue-50 to-slate-50 pb-24">
-      <main className="relative mx-auto min-h-screen max-w-lg overflow-hidden px-6 py-8">
-        <div
-          className="absolute inset-0 opacity-[0.08]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='84' height='84' viewBox='0 0 84 84' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23d97706' stroke-width='1'%3E%3Cpath d='M8 8h20v20H8zM56 8h20v20H56zM8 56h20v20H8zM56 56h20v20H56zM42 18l10 10-10 10-10-10zM18 42l10 10-10 10L8 52zM66 42l10 10-10 10-10-10z'/%3E%3Cpath d='M0 42h84M42 0v84' opacity='.35'/%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        />
-
-        <motion.section
-          initial={{ opacity: 0, y: 18 }}
+    <div className="min-h-screen pb-24 max-w-md mx-auto" style={{ background: 'linear-gradient(180deg, #EEF4FF 0%, #F8F9FF 100%)' }}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="px-5 pt-10"
+      >
+        {/* Header */}
+        <motion.h1
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-[2rem] bg-white/84 p-5 shadow-xl ring-1 ring-orange-100"
+          className="text-3xl font-black text-amber-500 leading-tight mb-6"
         >
-          <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-orange-200/70 to-transparent" />
+          Profile de{'\n'}l'Artisan
+        </motion.h1>
 
-          <div className="relative">
-            <h1 className="mb-7 max-w-[12rem] text-3xl font-black leading-tight text-orange-500">
-              Profile DE aRTISAN
-            </h1>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.08 }}
-              className="mb-7 overflow-hidden rounded-xl bg-gradient-to-r from-black via-stone-800 to-orange-950 p-4 text-white shadow-lg"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-pink-600 text-white ring-4 ring-pink-500/30">
-                  <Award size={20} />
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-orange-300">
-                    Compte pro
-                  </p>
-                  <p className="text-sm font-bold">Tableau de bord Artisan</p>
-                  <p className="text-[10px] text-white/60">120 nouveaux avis</p>
-                </div>
-              </div>
-            </motion.div>
-
-            <div className="space-y-3">
-              {details.map((item, index) => {
-                const Icon = item.icon
-                return (
-                  <motion.div
-                    key={item.label}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.12 + index * 0.04 }}
-                    className="flex items-center gap-3 rounded-2xl bg-white/70 p-3 shadow-sm ring-1 ring-orange-100/70"
-                  >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-orange-500">
-                      <Icon size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-bold uppercase tracking-wide text-orange-500">
-                        {item.label}
-                      </p>
-                      <p className="truncate text-sm font-semibold text-gray-700">{item.value}</p>
-                    </div>
-                  </motion.div>
-                )
-              })}
+        {/* Carte Pro */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
+          whileHover={{ scale: 1.02 }}
+          className="mb-6 overflow-hidden rounded-3xl bg-gradient-to-r from-blue-100 via-blue-50 to-slate-100 p-5 shadow-xl"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-pink-600 flex items-center justify-center shadow-lg ring-4 ring-pink-500/20">
+              <Award size={22} className="text-slate-800" />
             </div>
-
-            <motion.button
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.42 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={handleLogout}
-              className="mt-7 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-bold text-red-500 shadow-md ring-1 ring-red-100"
-            >
-              <LogOut size={16} />
-              Se déconnecter
-            </motion.button>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-1">Compte Pro</p>
+              <p className="text-sm font-bold text-slate-800">Tableau de bord Artisan</p>
+              <p className="text-xs text-slate-800/50 mt-0.5">120 nouveaux avis</p>
+            </div>
           </div>
-        </motion.section>
-      </main>
+        </motion.div>
+
+        {/* Infos utilisateur */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-3 mb-8"
+        >
+          <InfoRow icon={Store}          label="Commerce"   value="Atelier Soudure Alpha" />
+          <InfoRow icon={User}           label="Prénom"     value={user?.first_name} />
+          <InfoRow icon={User}           label="Nom"        value={user?.last_name} />
+          <InfoRow icon={Mail}           label="Email"      value={user?.email} />
+          <InfoRow icon={MessageCircle}  label="WhatsApp"   value={user?.whatsapp || '+226 XX XX XX XX'} />
+          <InfoRow icon={Phone}          label="Téléphone"  value={user?.phone || '+226 XX XX XX XX'} />
+        </motion.div>
+
+        {/* Bouton déconnexion */}
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 h-14 rounded-2xl bg-white border border-red-100 text-red-500 font-bold text-sm shadow-sm hover:bg-red-50 transition-colors"
+        >
+          <LogOut size={16} />
+          Se déconnecter
+        </motion.button>
+      </motion.div>
 
       <ArtisanBottomNav />
     </div>

@@ -1,230 +1,120 @@
-import { motion } from 'framer-motion'
-import { Eye, Heart, Store, User, ImageIcon, TrendingUp, Camera, Edit3, MessageSquare } from 'lucide-react'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Eye, Heart, Share2, Star, Plus } from 'lucide-react'
 import useAuth from '../features/auth/hooks/useAuth'
-import { ROUTES } from '../constants/routes'
-import { useNavigate } from 'react-router-dom'
 import ArtisanBottomNav from '../components/layout/ArtisanBottomNav'
 
-/* Animation variants */
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.15 },
-  },
-}
-
-const fadeInUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] },
-  },
-}
-
-const scaleIn = {
-  hidden: { opacity: 0, scale: 0.9 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
-  },
-}
-
-/* Données mock */
 const MOCK_BUSINESS = {
   name: 'Atelier Soudure Alpha',
+  rating: 4.6,
   views: 248,
   favorites: 36,
-  description:
-    'Spécialiste en soudure et ferronnerie depuis 12 ans à Ouagadougou. Réparations, portails, grilles et structures métalliques sur mesure.',
-  photos: [
-    'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?q=80&w=400&auto=format&fit=crop',
-    null,
-    null,
-  ],
+  description: 'Spécialiste en soudure et ferronnerie depuis 12 ans à Ouagadougou.',
 }
-
-/* Stat Card avec gradient */
-const StatCard = ({ icon: Icon, label, value, gradient, delay }) => (
-  <motion.div
-    variants={scaleIn}
-    whileHover={{ y: -6, scale: 1.02 }}
-    className="relative overflow-hidden rounded-3xl p-5 bg-white shadow-lg hover:shadow-2xl transition-all duration-300"
-  >
-    <div className={`absolute inset-0 opacity-10 ${gradient}`} />
-    <div className="relative">
-      <div className="flex items-center justify-between mb-3">
-        <div className={`w-12 h-12 rounded-2xl ${gradient} flex items-center justify-center text-white shadow-lg`}>
-          <Icon size={22} />
-        </div>
-        <TrendingUp size={16} className="text-green-500" />
-      </div>
-      <p className="text-3xl font-bold text-gray-800 mb-1">{value}</p>
-      <p className="text-sm text-gray-500 font-medium">{label}</p>
-    </div>
-  </motion.div>
-)
-
-/* Photo Card */
-const PhotoCard = ({ photo, index }) => (
-  <motion.div
-    variants={scaleIn}
-    whileHover={{ scale: 1.05 }}
-    className="aspect-square rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300"
-  >
-    {photo ? (
-      <motion.img
-        src={photo}
-        alt={`Photo ${index + 1}`}
-        className="w-full h-full object-cover"
-        whileHover={{ scale: 1.1 }}
-        transition={{ duration: 0.4 }}
-      />
-    ) : (
-      <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center gap-2">
-        <div className="w-16 h-16 rounded-2xl bg-white/80 flex items-center justify-center shadow-md">
-          <Camera size={28} className="text-gray-400" />
-        </div>
-        <span className="text-xs text-gray-500 font-medium">Ajouter</span>
-      </div>
-    )}
-  </motion.div>
-)
 
 const ArtisanHomePage = () => {
   const { user } = useAuth()
-  const navigate = useNavigate()
-  const business = MOCK_BUSINESS
   const firstName = user?.first_name || 'Artisan'
+  const business = MOCK_BUSINESS
+  const [photos, setPhotos] = useState([])
+  const whatsappUrl = `https://wa.me/?text=Découvrez ${encodeURIComponent(business.name)} sur Zulu !`
+
+  const handleAddPhoto = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.multiple = true
+    input.onchange = (e) => {
+      const files = Array.from(e.target.files).slice(0, 3 - photos.length)
+      const urls = files.map(f => URL.createObjectURL(f))
+      setPhotos(prev => [...prev, ...urls].slice(0, 3))
+    }
+    input.click()
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 pb-24">
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8"
-      >
-        {/* Header avec salutation */}
-        <motion.header variants={fadeInUp} className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm sm:text-base text-gray-500 font-medium mb-1">Bonjour 👋</p>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-amber-600 via-orange-500 to-amber-600 bg-clip-text text-transparent">
-                {firstName}
-              </h1>
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => navigate(ROUTES.dashboard)}
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white shadow-lg flex items-center justify-center hover:shadow-xl transition-shadow"
-            >
-              <User size={22} className="text-gray-600" />
-            </motion.button>
-          </div>
-          
-          {/* Badge commerce */}
-          <motion.div
-            variants={fadeInUp}
-            className="inline-flex items-center gap-3 px-4 sm:px-5 py-3 rounded-2xl bg-white shadow-lg"
-          >
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md">
-              <Store size={20} className="text-white" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 font-medium">Votre commerce</p>
-              <p className="text-base sm:text-lg font-bold text-gray-800">{business.name}</p>
-            </div>
-          </motion.div>
-        </motion.header>
+    <div className="min-h-screen pb-24 max-w-md mx-auto" style={{ background: 'linear-gradient(180deg, #EEF4FF 0%, #F8F9FF 100%)' }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="px-5 pt-10">
 
-        {/* Stats Grid */}
-        <motion.section variants={fadeInUp} className="mb-8">
-          <div className="grid grid-cols-2 gap-4 sm:gap-6">
-            <StatCard
-              icon={Eye}
-              label="Vues totales"
-              value={business.views}
-              gradient="bg-gradient-to-br from-blue-500 to-blue-600"
-              delay={0.2}
-            />
-            <StatCard
-              icon={Heart}
-              label="Favoris"
-              value={business.favorites}
-              gradient="bg-gradient-to-br from-pink-500 to-rose-600"
-              delay={0.3}
-            />
+        {/* Header */}
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex items-start justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-black text-amber-500 leading-tight">Artisans Home</h1>
+            <p className="text-sm text-slate-400 mt-1">Bonjour {firstName}</p>
+            <p className="text-base font-bold text-slate-700 mt-1">{business.name}</p>
           </div>
-        </motion.section>
+          <div className="flex flex-col items-end gap-2">
+            <motion.div whileHover={{ scale: 1.05 }} className="flex items-center gap-1 bg-white rounded-full px-3 py-1 shadow-md border border-blue-50">
+              <Star size={14} className="text-amber-400 fill-amber-400" />
+              <span className="text-sm font-bold text-slate-700">{business.rating}</span>
+            </motion.div>
+            <motion.a whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white rounded-full shadow-md border border-blue-50 flex items-center justify-center">
+              <Share2 size={18} className="text-slate-500" />
+            </motion.a>
+          </div>
+        </motion.div>
 
-        <motion.section variants={fadeInUp} className="mb-8">
-          <motion.button
-            whileHover={{ y: -3 }}
-            whileTap={{ scale: 0.96 }}
-            onClick={() => navigate(ROUTES.artisanComments)}
-            className="flex w-full items-center justify-between rounded-3xl bg-white p-5 text-left shadow-lg transition-all hover:shadow-2xl"
-          >
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md">
-                <MessageSquare size={24} />
-              </div>
-              <div>
-                <p className="text-base font-bold text-gray-800">Voir les comments</p>
-                <p className="text-sm text-gray-500">Consulter les avis clients</p>
-              </div>
-            </div>
-            <div className="rounded-2xl bg-orange-50 px-3 py-2 text-orange-600">
-              <span className="text-sm font-black">4.8</span>
-            </div>
-          </motion.button>
-        </motion.section>
+        {/* Stats */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="flex gap-6 mb-6 bg-white rounded-2xl px-5 py-3 shadow-sm border border-blue-50">
+          <div className="flex items-center gap-2">
+            <Eye size={16} className="text-blue-400" />
+            <span className="text-sm text-slate-600 font-semibold">{business.views} vues</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Heart size={16} className="text-rose-400" />
+            <span className="text-sm text-slate-600 font-semibold">{business.favorites} favoris</span>
+          </div>
+        </motion.div>
 
         {/* Carte présentation */}
-        <motion.section variants={fadeInUp} className="mb-8">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-500 p-6 sm:p-8 shadow-2xl">
-            {/* Decorations */}
-            <div className="absolute top-0 right-0 w-32 h-32 sm:w-48 sm:h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 sm:w-40 sm:h-40 bg-white/10 rounded-full blur-2xl -ml-10 -mb-10" />
-            
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-4">
-                <Edit3 size={18} className="text-white" />
-                <h3 className="text-white text-lg sm:text-xl font-bold">Présentation</h3>
-              </div>
-              <p className="text-white/90 text-sm sm:text-base lg:text-lg leading-relaxed mb-4">
-                {business.description}
-              </p>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                <span className="text-white/80 text-xs sm:text-sm font-medium">Commerce actif</span>
-              </div>
-            </div>
-          </div>
-        </motion.section>
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} className="bg-blue-100 rounded-3xl p-6 mb-6 shadow-lg">
+          <p className="text-blue-800 font-bold text-base mb-2">Présentation de notre APP</p>
+          <p className="text-blue-600 text-sm leading-relaxed">{business.description}</p>
+        </motion.div>
 
-        {/* Photos Grid */}
-        <motion.section variants={fadeInUp}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-800">Photos du commerce</h3>
-            <button className="text-sm text-amber-600 font-semibold hover:text-amber-700">
-              Voir tout
-            </button>
-          </div>
-          <motion.div
-            variants={containerVariants}
-            className="grid grid-cols-3 gap-3 sm:gap-4 lg:gap-6"
-          >
-            {business.photos.map((photo, i) => (
-              <PhotoCard key={i} photo={photo} index={i} />
-            ))}
-          </motion.div>
-        </motion.section>
+        {/* Photos */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+          <p className="text-sm text-slate-500 mb-4">Vous avez des produits ? Ajouter une image</p>
+
+          {/* Bouton ajouter — visible seulement si moins de 3 photos */}
+          {photos.length < 3 && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleAddPhoto}
+              className="w-full flex items-center justify-center gap-2 h-12 rounded-2xl bg-white border-2 border-dashed border-blue-200 text-blue-400 font-semibold text-sm shadow-sm hover:bg-blue-50 transition-colors mb-4"
+            >
+              <Plus size={18} />
+              Ajouter une image
+            </motion.button>
+          )}
+
+          {/* Cards photos — visibles seulement après ajout */}
+          <AnimatePresence>
+            {photos.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="grid grid-cols-3 gap-3"
+              >
+                {photos.map((photo, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="aspect-square rounded-2xl overflow-hidden shadow-md"
+                  >
+                    <img src={photo} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
       </motion.div>
-
       <ArtisanBottomNav />
     </div>
   )
