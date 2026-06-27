@@ -15,16 +15,6 @@ const authService = {
   register: (data) =>
     apiClient.post(ENDPOINTS.auth.register, data),
 
-  refresh: () => {
-    const refresh = localStorage.getItem(REFRESH_KEY)
-    if (!refresh) return Promise.reject(new Error('No refresh token'))
-    return apiClient.post(ENDPOINTS.auth.refresh, { refresh_token: refresh })
-      .then((data) => {
-        authService.saveTokens(data.access_token, data.refresh_token)
-        return data
-      })
-  },
-
   logout: () => {
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(REFRESH_KEY)
