@@ -7,6 +7,7 @@ from ..models.commerce import (
     Commerce, CommercePhoto, CommerceStats, HoraireOuverture,
     JourSemaine, Favori, VueProfile, ProduitImage,
 )
+from ..models.commentaire import Commentaire
 from ..models.categorie import Categorie
 from ..models.user import User
 
@@ -376,6 +377,94 @@ class CommerceService:
             commerce.latitude,
             commerce.longitude,
         )
+
+    def create_commentaire(self, user_id, commerce_id, data):
+        commerce = Commerce.query.get(commerce_id)
+        if not commerce:
+            raise ValueError("Commerce introuvable.")
+        if not commerce.is_active:
+            raise ValueError("Ce commerce n'est pas encore publie.")
+        if commerce.user_id == user_id:
+            raise ValueError("Vous ne pouvez pas commenter votre propre commerce.")
+
+        commentaire = Commentaire(
+            commerce_id=commerce_id,
+            auteur_id=user_id,
+            contenu=data["contenu"],
+        )
+        db.session.add(commentaire)
+
+        stats = CommerceStats.query.filter_by(commerce_id=commerce_id).first()
+        if not stats:
+            stats = CommerceStats(commerce_id=commerce_id)
+            db.session.add(stats)
+        stats.nb_commentaires = (stats.nb_commentaires or 0) + 1
+
+        db.session.commit()
+
+        try:
+            from app.services.ai_service import analyze_and_update_rating
+            analyze_and_update_rating(commerce_id)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"[AI] Rating update failed: {e}")
+
+        return commentaire.to_dict()
+
+    def list_commentaires(self, commerce_id):
+        commerce = Commerce.query.get(commerce_id)
+        if not commerce:
+            raise ValueError("Commerce introuvable.")
+
+        commentaires = (
+            Commentaire.query
+            .filter_by(commerce_id=commerce_id, is_visible=True)
+            .order_by(Commentaire.created_at.desc())
+            .all()
+        )
+
+        result = []
+        for c in commentaires:
+            auteur = User.query.get(c.auteur_id)
+            result.append({
+                "id": c.id,
+                "contenu": c.contenu,
+                "created_at": c.created_at.isoformat() if c.created_at else None,
+                "auteur": {
+                    "id": auteur.id,
+                    "first_name": auteur.first_name,
+                    "last_name": auteur.last_name,
+                } if auteur else None,
+            })
+
+        return {
+            "commentaires": result,
+            "nb_commentaires": len(result),
+        }
+
+    def delete_commentaire(self, user_id, commentaire_id):
+        commentaire = Commentaire.query.get(commentaire_id)
+        if not commentaire:
+            raise ValueError("Commentaire introuvable.")
+        if commentaire.auteur_id != user_id:
+            raise ValueError("Acces refuse.")
+
+        commerce_id = commentaire.commerce_id
+        commentaire.delete()
+
+        stats = CommerceStats.query.filter_by(commerce_id=commerce_id).first()
+        if stats and stats.nb_commentaires > 0:
+            stats.nb_commentaires -= 1
+            stats.save()
+
+        try:
+            from app.services.ai_service import analyze_and_update_rating
+            analyze_and_update_rating(commerce_id)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"[AI] Rating update failed: {e}")
+
+        return {"message": "Commentaire supprime."}
 
 
 def _build_whatsapp_geo_url(commerce_name, latitude, longitude):
