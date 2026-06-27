@@ -1,4 +1,4 @@
-.PHONY: build sync apk apk-debug apk-release install clean icons
+.PHONY: build sync apk apk-debug apk-release install clean icons live-reload
 
 APP_NAME    := ZAWANI
 APK_DIR     := frontend/android/app/build/outputs/apk
@@ -56,6 +56,13 @@ apk-release: sync
 install: apk-debug
 	adb install -r $(APK_DIR)/debug/app-debug.apk
 	@echo "$(APP_NAME) installed on device."
+
+# ─── Live Reload (no rebuild needed) ───────────────────────
+# 1. Lance le serveur Vite:  cd frontend && npm run dev:network
+# 2. Lance l'app sur le device:  make live-reload
+# 3. Modifie le code → hot reload instantané sur l'appareil
+live-reload:
+	cd frontend && npx cap run android --livereload --external
 
 # ─── Clean ──────────────────────────────────────────────────
 clean:
