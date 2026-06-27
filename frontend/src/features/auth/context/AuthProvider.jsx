@@ -6,6 +6,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [sessionExpired, setSessionExpired] = useState(false)
   const initialised = useRef(false)
 
   const refreshUser = useCallback(async () => {
@@ -20,6 +21,7 @@ export const AuthProvider = ({ children }) => {
     } catch {
       authService.logout()
       setUser(null)
+      setSessionExpired(true)
     } finally {
       setLoading(false)
     }
@@ -35,6 +37,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const handleForceLogout = () => {
       setUser(null)
+      setSessionExpired(true)
     }
     window.addEventListener('auth:logout', handleForceLogout)
     return () => window.removeEventListener('auth:logout', handleForceLogout)
@@ -42,6 +45,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback(async (credentials) => {
     setError(null)
+    setSessionExpired(false)
     const data = await authService.login(credentials)
     const userData = data.user || data
     setUser(userData)
@@ -50,6 +54,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = useCallback(async (data) => {
     setError(null)
+    setSessionExpired(false)
     return authService.register(data)
   }, [])
 
@@ -57,6 +62,11 @@ export const AuthProvider = ({ children }) => {
     authService.logout()
     setUser(null)
     setError(null)
+    setSessionExpired(false)
+  }, [])
+
+  const clearSessionExpired = useCallback(() => {
+    setSessionExpired(false)
   }, [])
 
   const hasRole = useCallback((role) => {
@@ -76,6 +86,8 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     error,
+    sessionExpired,
+    clearSessionExpired,
     login,
     register,
     logout,
