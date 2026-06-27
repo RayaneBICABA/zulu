@@ -2,7 +2,7 @@ services:
   - type: web
     name: zawani-api
     runtime: docker
-    region: frankfurt
+    region: oregon
     plan: free
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
@@ -57,12 +57,12 @@ services:
   - type: keyvalue
     name: zawani-redis
     plan: free
-    region: frankfurt
+    region: oregon
     ipAllowList: []
 
 databases:
   - name: zawani-db
     plan: free
-    region: frankfurt
+    region: oregon
     databaseName: zawani
     postgresMajorVersion: "16"
