@@ -6,5 +6,7 @@ export const ROUTES = {
   resetPassword: '/reinitialiser-mot-de-passe',
   verifyEmail:   '/verifier-email',
   dashboard:     '/dashboard',
+  addBusiness:   '/dashboard/ajouter-commerce',
+  artisanHome:   '/artisan-home',
   notFound:      '*',
 }
