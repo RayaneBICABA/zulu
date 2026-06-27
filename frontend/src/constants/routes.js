@@ -7,6 +7,8 @@ export const ROUTES = {
   resetPassword:      '/reinitialiser-mot-de-passe',
   verifyEmail:        '/verifier-email',
   googleCallback:     '/auth/google/callback',
+  favoris:            '/favoris',
+  profile:            '/profil',
   dashboard:          '/dashboard',
   notFound:           '*',
 }
