@@ -22,6 +22,49 @@ commentaire_create_schema = CommentaireCreateSchema()
 switch_commerce_schema = SwitchCommerceSchema()
 
 
+@commerce_bp.route("/commerces", methods=["GET"])
+def list_public_commerces():
+    """
+    Lister les commerces actifs (public).
+    ---
+    tags:
+      - Commerce
+    parameters:
+      - in: query
+        name: q
+        type: string
+        description: Recherche par nom commercial ou categorie
+      - in: query
+        name: categorie_id
+        type: integer
+        description: Filtrer par categorie
+      - in: query
+        name: page
+        type: integer
+        default: 1
+      - in: query
+        name: per_page
+        type: integer
+        default: 20
+    responses:
+      200:
+        description: Liste des commerces actifs
+    """
+    from flask import request as req
+    search = req.args.get("q", type=str)
+    categorie_id = req.args.get("categorie_id", type=int)
+    page = req.args.get("page", 1, type=int)
+    per_page = req.args.get("per_page", 20, type=int)
+
+    result = commerce_service.list_public_commerces(
+        search=search,
+        categorie_id=categorie_id,
+        page=page,
+        per_page=per_page,
+    )
+    return jsonify(result), 200
+
+
 @commerce_bp.route("/commerces", methods=["POST"])
 @jwt_required()
 def create_commerce():
