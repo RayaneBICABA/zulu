@@ -17,4 +17,7 @@ export const ENDPOINTS = {
     googleLogin:      '/auth/google/login',
     googleCallback:   '/auth/google/callback',
   },
+  commerces: '/commerces',
+  categories: '/categories',
+  favoris: '/favoris',
 }
