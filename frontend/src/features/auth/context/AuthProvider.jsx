@@ -1,72 +1,118 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { AuthContext } from './AuthContext'
-import authService from '../../../services/authService'
+import { auth, onAuthStateChanged, signOut as fbSignOut } from '../../../firebase'
+import apiClient from '../../../services/apiClient'
+import { API_URL } from '../../../constants/api'
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
   const [sessionExpired, setSessionExpired] = useState(false)
   const initialised = useRef(false)
 
-  const refreshUser = useCallback(async () => {
-    if (!authService.isAuthenticated()) {
+  const syncUserWithBackend = useCallback(async (firebaseUser) => {
+    if (!firebaseUser) {
       setUser(null)
       setLoading(false)
       return
     }
+
     try {
-      const data = await authService.me()
-      setUser(data.user || data)
-    } catch {
-      authService.logout()
+      const token = await firebaseUser.getIdToken()
+      const res = await fetch(`${API_URL}/auth/firebase-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Sync failed')
+      }
+      const data = await res.json()
+      setUser(data.user)
+    } catch (e) {
+      console.error('Failed to sync user with backend:', e)
       setUser(null)
-      setSessionExpired(true)
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    if (!initialised.current) {
-      initialised.current = true
-      refreshUser()
+    if (initialised.current) return
+    initialised.current = true
+
+    ;(async () => {
+      try {
+        const { getRedirectResult, googleProvider } = await import('../../../firebase')
+        const result = await getRedirectResult(auth)
+        if (result?.user) {
+          await syncUserWithBackend(result.user)
+        }
+      } catch { }
+    })()
+
+    if (window.Capacitor?.isNativePlatform?.()) {
+      import('@capacitor/app').then(({ App }) => {
+        App.addListener('appUrlOpen', async (data) => {
+          if (!data.url.startsWith('zawani://auth')) return
+          const params = new URLSearchParams(data.url.split('?')[1] || '')
+          const idToken = params.get('token')
+          if (!idToken) return
+          try {
+            const { signInWithCredential, GoogleAuthProvider } = await import('../../../firebase')
+            const credential = GoogleAuthProvider.credential(idToken)
+            await signInWithCredential(auth, credential)
+          } catch { }
+        })
+      })
     }
-  }, [refreshUser])
 
-  useEffect(() => {
-    const handleForceLogout = () => {
-      setUser(null)
-      setSessionExpired(true)
-    }
-    window.addEventListener('auth:logout', handleForceLogout)
-    return () => window.removeEventListener('auth:logout', handleForceLogout)
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      syncUserWithBackend(firebaseUser)
+    })
+
+    return () => unsubscribe()
+  }, [syncUserWithBackend])
+
+  const login = useCallback(async ({ email, password }) => {
+    const { signInWithEmailAndPassword } = await import('../../../firebase')
+    await signInWithEmailAndPassword(auth, email, password)
   }, [])
 
-  const login = useCallback(async (credentials) => {
-    setError(null)
-    setSessionExpired(false)
-    const data = await authService.login(credentials)
-    const userData = data.user || data
-    setUser(userData)
-    return userData
+  const register = useCallback(async ({ email, password, first_name, last_name }) => {
+    const { createUserWithEmailAndPassword } = await import('../../../firebase')
+    const cred = await createUserWithEmailAndPassword(auth, email, password)
+    const token = await cred.user.getIdToken()
+    await fetch(`${API_URL}/auth/firebase-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, first_name, last_name }),
+    })
   }, [])
 
-  const register = useCallback(async (data) => {
-    setError(null)
-    setSessionExpired(false)
-    return authService.register(data)
-  }, [])
-
-  const logout = useCallback(() => {
-    authService.logout()
+  const logout = useCallback(async () => {
+    await fbSignOut(auth)
     setUser(null)
-    setError(null)
     setSessionExpired(false)
   }, [])
 
-  const clearSessionExpired = useCallback(() => {
-    setSessionExpired(false)
+  const refreshUser = useCallback(async () => {
+    const currentUser = auth.currentUser
+    if (!currentUser) {
+      setUser(null)
+      return
+    }
+    const token = await currentUser.getIdToken(true)
+    const res = await fetch(`${API_URL}/auth/firebase-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setUser(data.user)
+    }
   }, [])
 
   const hasRole = useCallback((role) => {
@@ -86,9 +132,9 @@ export const AuthProvider = ({ children }) => {
     user,
     setUser,
     loading,
-    error,
     sessionExpired,
-    clearSessionExpired,
+    setSessionExpired,
+    clearSessionExpired: () => setSessionExpired(false),
     login,
     register,
     logout,
@@ -96,6 +142,10 @@ export const AuthProvider = ({ children }) => {
     hasRole,
     hasPermission,
     isAuthenticated: !!user,
+    getFirebaseToken: () => {
+      const u = auth.currentUser
+      return u ? u.getIdToken() : null
+    },
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

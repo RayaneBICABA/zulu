@@ -24,24 +24,14 @@ services:
           property: connectionString
       - key: FRONTEND_URL
         value: https://zawani-frontend.onrender.com
-      - key: MAIL_SERVER
-        value: smtp.gmail.com
-      - key: MAIL_PORT
-        value: "587"
-      - key: MAIL_USERNAME
-        sync: false
-      - key: MAIL_PASSWORD
-        sync: false
-      - key: MAIL_DEFAULT_SENDER
-        sync: false
-      - key: MAIL_USE_TLS
-        value: "true"
-      - key: GOOGLE_CLIENT_ID
-        sync: false
-      - key: GOOGLE_CLIENT_SECRET
-        sync: false
-      - key: GOOGLE_REDIRECT_URI
-        value: https://zawani-api.onrender.com/api/auth/google/callback
+      - key: FIREBASE_API_KEY
+        value: AIzaSyBbeyWpC0nEEuZIuK5eONt0LDGYuKm038Q
+      - key: FIREBASE_AUTH_DOMAIN
+        value: zawani-aeba8.firebaseapp.com
+      - key: FIREBASE_PROJECT_ID
+        value: zawani-aeba8
+      - key: FIREBASE_APP_ID
+        value: 1:720010119224:web:5ec800f4f49883bbb43ecd
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
@@ -78,7 +68,7 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        value: https://zawani-api.onrender.com
+        value: https://zawani-api.onrender.com/api
 
   - type: keyvalue
     name: zawani-redis

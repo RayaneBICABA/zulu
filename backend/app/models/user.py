@@ -7,7 +7,8 @@ class User(BaseModel):
     __tablename__ = "users"
 
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
-    password_hash = db.Column(db.String(255), nullable=False)
+    firebase_uid = db.Column(db.String(255), unique=True, nullable=True, index=True)
+    password_hash = db.Column(db.String(255), nullable=True)
     first_name = db.Column(db.String(150), nullable=True)
     last_name = db.Column(db.String(150), nullable=True)
     is_verified = db.Column(db.Boolean, default=False, nullable=False)

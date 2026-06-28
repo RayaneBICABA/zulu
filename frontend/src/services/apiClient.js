@@ -1,10 +1,7 @@
+import { auth } from '../firebase'
 import { API_URL } from '../constants/api'
 
-const TOKEN_KEY = 'access_token'
-const REFRESH_KEY = 'refresh_token'
 const REQUEST_TIMEOUT_MS = 90000
-let isRefreshing = false
-let refreshQueue = []
 
 const fetchWithTimeout = async (url, options = {}) => {
   const controller = new AbortController()
@@ -24,9 +21,15 @@ const fetchWithTimeout = async (url, options = {}) => {
   }
 }
 
-const getAuthHeader = () => {
-  const token = localStorage.getItem(TOKEN_KEY)
-  return token ? { Authorization: `Bearer ${token}` } : {}
+const getAuthHeader = async () => {
+  const user = auth.currentUser
+  if (!user) return {}
+  try {
+    const token = await user.getIdToken()
+    return { Authorization: `Bearer ${token}` }
+  } catch {
+    return {}
+  }
 }
 
 const handleResponse = async (res) => {
@@ -40,101 +43,49 @@ const handleResponse = async (res) => {
   return data
 }
 
-const refreshToken = async () => {
-  const refresh = localStorage.getItem(REFRESH_KEY)
-  if (!refresh) throw new Error('No refresh token')
-  const res = await fetchWithTimeout(`${API_URL}/auth/refresh`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${refresh}`,
-    },
-  })
-  if (!res.ok) throw new Error('Refresh failed')
-  const data = await res.json()
-  localStorage.setItem(TOKEN_KEY, data.access_token)
-  if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token)
-  return data.access_token
-}
-
-const authFetch = async (endpoint, options = {}, clientOptions = {}) => {
+const authFetch = async (endpoint, options = {}) => {
   const url = `${API_URL}${endpoint}`
-  const res = await fetchWithTimeout(url, options)
-  if (res.status !== 401) return handleResponse(res)
+  const headers = { ...options.headers, ...(await getAuthHeader()) }
+  const res = await fetchWithTimeout(url, { ...options, headers })
 
-  if (clientOptions.skipAuthRefresh) {
-    return handleResponse(res)
-  }
-
-  const originalRequest = () =>
-    fetchWithTimeout(url, { ...options, headers: { ...options.headers, ...getAuthHeader() } })
-      .then(handleResponse)
-
-  if (isRefreshing) {
-    return new Promise((resolve, reject) => {
-      refreshQueue.push({ resolve, reject })
-    }).then(() => originalRequest())
-  }
-
-  isRefreshing = true
-  try {
-    await refreshToken()
-    isRefreshing = false
-    refreshQueue.forEach((q) => q.resolve())
-    refreshQueue = []
-    return originalRequest()
-  } catch (err) {
-    isRefreshing = false
-    refreshQueue.forEach((q) => q.reject(err))
-    refreshQueue = []
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(REFRESH_KEY)
+  if (res.status === 401) {
     window.dispatchEvent(new CustomEvent('auth:logout'))
-    const sessionError = new Error('Session expirée, veuillez vous reconnecter', { cause: err })
-    throw sessionError
+    throw new Error('Session expirée, veuillez vous reconnecter')
   }
+
+  return handleResponse(res)
 }
 
 const apiClient = {
   get: (endpoint) =>
-    authFetch(endpoint, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-    }),
+    authFetch(endpoint, { method: 'GET', headers: { 'Content-Type': 'application/json' } }),
 
-  post: (endpoint, body, clientOptions = {}) =>
+  post: (endpoint, body) =>
     authFetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-    }, clientOptions),
+    }),
 
   postMultipart: (endpoint, formData) =>
-    authFetch(endpoint, {
-      method: 'POST',
-      headers: { ...getAuthHeader() },
-      body: formData,
-    }),
+    authFetch(endpoint, { method: 'POST', headers: {}, body: formData }),
 
   put: (endpoint, body) =>
     authFetch(endpoint, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     }),
 
   patch: (endpoint, body) =>
     authFetch(endpoint, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      headers: { 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : undefined,
     }),
 
   delete: (endpoint) =>
-    authFetch(endpoint, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-    }),
+    authFetch(endpoint, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } }),
 }
 
 export default apiClient

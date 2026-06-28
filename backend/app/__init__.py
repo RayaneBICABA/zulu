@@ -85,4 +85,7 @@ def create_app(env=None):
     from .services.oauth_service import init_oauth
     init_oauth(app)
 
+    from .services.firebase_auth import init_firebase
+    init_firebase(app)
+
     return app

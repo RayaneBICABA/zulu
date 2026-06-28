@@ -1,56 +1,8 @@
 import apiClient from './apiClient'
-import { ENDPOINTS } from '../constants/api'
-
-const TOKEN_KEY = 'access_token'
-const REFRESH_KEY = 'refresh_token'
 
 const authService = {
-  login: (credentials) =>
-    apiClient.post(ENDPOINTS.auth.login, credentials, { skipAuthRefresh: true })
-      .then((data) => {
-        if (data.access_token) authService.saveTokens(data.access_token, data.refresh_token)
-        return data
-      }),
-
-  register: (data) =>
-    apiClient.post(ENDPOINTS.auth.register, data, { skipAuthRefresh: true }),
-
-  logout: () => {
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(REFRESH_KEY)
-  },
-
-  me: () =>
-    apiClient.get(ENDPOINTS.auth.me),
-
-  verifyEmail: (token) =>
-    apiClient.post(ENDPOINTS.auth.verifyEmail, { token }),
-
-  resendVerification: () =>
-    apiClient.post(ENDPOINTS.auth.resendVerification),
-
-  forgotPassword: (email) =>
-    apiClient.post(ENDPOINTS.auth.forgotPassword, { email }),
-
-  resetPassword: (token, password) =>
-    apiClient.post(ENDPOINTS.auth.resetPassword, { token, password }),
-
-  becomeArtisan: () =>
-    apiClient.post(ENDPOINTS.auth.becomeArtisan),
-
-  saveTokens: (access, refresh) => {
-    localStorage.setItem(TOKEN_KEY, access)
-    if (refresh) localStorage.setItem(REFRESH_KEY, refresh)
-  },
-
-  getToken: () =>
-    localStorage.getItem(TOKEN_KEY),
-
-  getRefreshToken: () =>
-    localStorage.getItem(REFRESH_KEY),
-
-  isAuthenticated: () =>
-    !!localStorage.getItem(TOKEN_KEY),
+  me: () => apiClient.get('/auth/me'),
+  becomeArtisan: () => apiClient.post('/auth/become-artisan'),
 }
 
 export default authService

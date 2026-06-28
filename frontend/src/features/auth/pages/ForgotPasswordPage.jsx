@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ROUTES } from '../../../constants/routes'
-import authService from '../../../services/authService'
 import Button from '../../../components/ui/Button'
 import Input from '../../../components/ui/Input'
 import Card from '../../../components/ui/Card'
@@ -23,10 +22,11 @@ const ForgotPasswordPage = () => {
     setError(null)
     setLoading(true)
     try {
-      await authService.forgotPassword(email)
+      const { auth, sendPasswordResetEmail } = await import('../../../firebase')
+      await sendPasswordResetEmail(auth, email)
       setSent(true)
     } catch (err) {
-      setError(err.message)
+      setError('Email non trouve ou erreur technique.')
     } finally {
       setLoading(false)
     }

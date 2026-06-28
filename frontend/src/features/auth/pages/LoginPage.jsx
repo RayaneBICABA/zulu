@@ -2,9 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff } from 'lucide-react'
-import { Browser } from '@capacitor/browser'
 import { ROUTES } from '../../../constants/routes'
-import { API_URL } from '../../../constants/api'
 import useAuth from '../hooks/useAuth'
 import Button from '../../../components/ui/Button'
 import Input from '../../../components/ui/Input'
@@ -44,22 +42,23 @@ const LoginPage = () => {
       await login(form)
       navigate(from, { replace: true })
     } catch (err) {
-      setError(err.message)
+      const code = err.code
+      if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
+        setError('Email ou mot de passe incorrect.')
+      } else if (code === 'auth/too-many-requests') {
+        setError('Trop de tentatives. Reessayez plus tard.')
+      } else {
+        setError(err.message || 'Erreur de connexion.')
+      }
     } finally {
       setLoading(false)
     }
   }
 
-  const handleGoogleLogin = async (e) => {
-    e.preventDefault()
-    try {
-      await Browser.open({
-        url: `${API_URL}/auth/google/login?mobile=1`,
-        windowName: '_self'
-      })
-    } catch (err) {
-      setError("Impossible d'ouvrir le navigateur pour l'authentification Google.")
-    }
+  const handleGoogleLogin = async () => {
+    const { signInWithRedirect, googleProvider } = await import('../../../firebase')
+    const { auth } = await import('../../../firebase')
+    await signInWithRedirect(auth, googleProvider)
   }
 
   return (

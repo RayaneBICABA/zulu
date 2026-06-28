@@ -2,9 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Check } from 'lucide-react'
-import { Browser } from '@capacitor/browser'
 import { ROUTES } from '../../../constants/routes'
-import { API_URL } from '../../../constants/api'
 import useAuth from '../hooks/useAuth'
 import Button from '../../../components/ui/Button'
 import Input from '../../../components/ui/Input'
@@ -59,22 +57,24 @@ const RegisterPage = () => {
       })
       setSuccess(true)
     } catch (err) {
-      setError(err.message)
+      const code = err.code
+      if (code === 'auth/email-already-in-use') {
+        setError('Un compte avec cet email existe deja.')
+      } else if (code === 'auth/weak-password') {
+        setError('Le mot de passe est trop faible.')
+      } else if (code === 'auth/invalid-email') {
+        setError('Email invalide.')
+      } else {
+        setError(err.message || "Erreur lors de l'inscription.")
+      }
     } finally {
       setLoading(false)
     }
   }
 
-  const handleGoogleLogin = async (e) => {
-    e.preventDefault()
-    try {
-      await Browser.open({
-        url: `${API_URL}/auth/google/login?mobile=1`,
-        windowName: '_self'
-      })
-    } catch (err) {
-      setError("Impossible d'ouvrir le navigateur pour l'authentification Google.")
-    }
+  const handleGoogleLogin = async () => {
+    const { signInWithRedirect, googleProvider, auth } = await import('../../../firebase')
+    await signInWithRedirect(auth, googleProvider)
   }
 
   if (success) {
@@ -92,7 +92,7 @@ const RegisterPage = () => {
             Inscription reussie
           </h1>
           <p className="text-sm text-gray-400 mb-8">
-            Un email de verification vous a ete envoye.
+            Bienvenue sur Zawani ! Vous pouvez des maintenant vous connecter.
           </p>
           <Button onClick={() => navigate(ROUTES.login)} fullWidth>
             Se connecter
