@@ -8,7 +8,7 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: devUrl
     ? { url: devUrl, cleartext: true, androidScheme: 'http' }
-    : { androidScheme: 'https' },
+    : { hostname: 'localhost', androidScheme: 'http' },
   plugins: {
     CapacitorHttp: {
       enabled: true,
