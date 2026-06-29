@@ -22,6 +22,7 @@ const fetchWithTimeout = async (url, options = {}) => {
 }
 
 const getAuthHeader = async () => {
+  if (!auth) return {}
   const user = auth.currentUser
   if (!user) return {}
   try {
