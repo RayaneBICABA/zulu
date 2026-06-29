@@ -6,6 +6,7 @@ import Button from '../../../components/ui/Button'
 import Input from '../../../components/ui/Input'
 import Card from '../../../components/ui/Card'
 import PageWrapper from '../../../components/layout/PageWrapper'
+import apiClient from '../../../services/apiClient'
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('')
@@ -22,11 +23,10 @@ const ForgotPasswordPage = () => {
     setError(null)
     setLoading(true)
     try {
-      const { auth, sendPasswordResetEmail } = await import('../../../firebase')
-      await sendPasswordResetEmail(auth, email)
+      await apiClient.post('/auth/forgot-password', { email })
       setSent(true)
     } catch (err) {
-      setError('Email non trouve ou erreur technique.')
+      setSent(true)
     } finally {
       setLoading(false)
     }

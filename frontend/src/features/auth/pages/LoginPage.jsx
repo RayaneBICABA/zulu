@@ -1,65 +1,75 @@
-import { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Eye, EyeOff } from 'lucide-react'
-import { ROUTES } from '../../../constants/routes'
-import useAuth from '../hooks/useAuth'
-import Button from '../../../components/ui/Button'
-import Input from '../../../components/ui/Input'
-import PageWrapper from '../../../components/layout/PageWrapper'
+import { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Eye, EyeOff } from "lucide-react";
+import { ROUTES } from "../../../constants/routes";
+import useAuth from "../hooks/useAuth";
+import Button from "../../../components/ui/Button";
+import Input from "../../../components/ui/Input";
+import PageWrapper from "../../../components/layout/PageWrapper";
 
 const LoginPage = () => {
-  const { login } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const from = location.state?.from?.pathname || ROUTES.dashboard
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || ROUTES.dashboard;
 
-  const [form, setForm] = useState({ email: '', password: '' })
-  const [error, setError] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [fieldErrors, setFieldErrors] = useState({})
-  const [showPassword, setShowPassword] = useState(false)
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
-    setFieldErrors((prev) => ({ ...prev, [e.target.name]: null }))
-  }
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setFieldErrors((prev) => ({ ...prev, [e.target.name]: null }));
+  };
 
   const validate = () => {
-    const errors = {}
-    if (!form.email) errors.email = 'Email requis'
-    if (!form.password) errors.password = 'Mot de passe requis'
-    setFieldErrors(errors)
-    return Object.keys(errors).length === 0
-  }
+    const errors = {};
+    if (!form.email) errors.email = "Email requis";
+    if (!form.password) errors.password = "Mot de passe requis";
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!validate()) return
-    setError(null)
-    setLoading(true)
+    e.preventDefault();
+    if (!validate()) return;
+    setError(null);
+    setLoading(true);
     try {
-      await login(form)
-      navigate(from, { replace: true })
+      const result = await login(form);
+      const user = result?.user || result;
+      const roles = user?.roles || [];
+
+      const isOnlyClient = roles.length === 1 && roles[0] === "client";
+      const target = isOnlyClient ? ROUTES.home : from || ROUTES.dashboard;
+
+      navigate(target, { replace: true });
     } catch (err) {
-      const code = err.code
-      if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
-        setError('Email ou mot de passe incorrect.')
-      } else if (code === 'auth/too-many-requests') {
-        setError('Trop de tentatives. Reessayez plus tard.')
+      const code = err.code;
+      if (
+        code === "auth/user-not-found" ||
+        code === "auth/invalid-credential"
+      ) {
+        setError("Email ou mot de passe incorrect.");
+      } else if (code === "auth/too-many-requests") {
+        setError("Trop de tentatives. Reessayez plus tard.");
       } else {
-        setError(err.message || 'Erreur de connexion.')
+        setError(err.message || "Erreur de connexion.");
       }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleGoogleLogin = async () => {
-    const { signInWithRedirect, googleProvider } = await import('../../../firebase')
-    const { auth } = await import('../../../firebase')
-    await signInWithRedirect(auth, googleProvider)
-  }
+    const { signInWithRedirect, googleProvider } =
+      await import("../../../firebase");
+    const { auth } = await import("../../../firebase");
+    await signInWithRedirect(auth, googleProvider);
+  };
 
   return (
     <PageWrapper className="flex flex-col min-h-screen px-5 pt-16">
@@ -70,12 +80,8 @@ const LoginPage = () => {
         className="w-full"
       >
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">
-            Connexion
-          </h1>
-          <p className="text-sm text-gray-400">
-            Accedez a votre espace Zawani
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Connexion</h1>
+          <p className="text-sm text-gray-400">Accedez a votre espace Zawani</p>
         </div>
 
         {error && (
@@ -98,7 +104,7 @@ const LoginPage = () => {
           <Input
             label="Mot de passe"
             name="password"
-            type={showPassword ? 'text' : 'password'}
+            type={showPassword ? "text" : "password"}
             placeholder="Votre mot de passe"
             value={form.password}
             onChange={handleChange}
@@ -129,7 +135,7 @@ const LoginPage = () => {
         </form>
 
         <p className="text-center text-sm text-gray-400 mt-8">
-          Pas encore de compte ?{' '}
+          Pas encore de compte ?{" "}
           <Link
             to={ROUTES.register}
             className="text-primary-500 hover:text-primary-600 font-medium transition-colors"
@@ -173,7 +179,7 @@ const LoginPage = () => {
         </button>
       </motion.div>
     </PageWrapper>
-  )
-}
+  );
+};
 
-export default LoginPage
+export default LoginPage;
