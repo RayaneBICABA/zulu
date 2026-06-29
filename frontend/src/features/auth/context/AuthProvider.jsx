@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
 
     ;(async () => {
       try {
-        const { getRedirectResult, googleProvider } = await import('../../../firebase')
+        const { getRedirectResult } = await import('../../../firebase')
         const result = await getRedirectResult(auth)
         if (result?.user) {
           await syncUserWithBackend(result.user)

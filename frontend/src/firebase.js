@@ -9,6 +9,7 @@ import {
   signInWithRedirect,
   getRedirectResult,
   signInWithCredential,
+  sendPasswordResetEmail,
 } from "firebase/auth"
 
 const firebaseConfig = {
@@ -34,5 +35,6 @@ export {
   signInWithRedirect,
   getRedirectResult,
   signInWithCredential,
+  sendPasswordResetEmail,
 }
 export default app

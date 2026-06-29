@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { auth, signInWithRedirect, googleProvider } from '../../../firebase'
+import { API_URL } from '../../../constants/api'
 import Button from '../../../components/ui/Button'
 
 const isCapacitor = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform()
@@ -12,8 +13,7 @@ const SocialLoginButton = ({ provider = 'google' }) => {
     if (isCapacitor) {
       try {
         const { Browser } = await import('@capacitor/browser')
-        const baseUrl = import.meta.env.VITE_API_URL || 'https://zawani-api.onrender.com'
-        await Browser.open({ url: `${baseUrl}/api/auth/google/mobile` })
+        await Browser.open({ url: `${API_URL}/auth/google/mobile` })
       } catch (err) {
         setError('Erreur technique. Reessayez.')
       }
