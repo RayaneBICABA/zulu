@@ -45,7 +45,6 @@ export const AuthProvider = ({ children }) => {
     initialised.current = true
 
     ;(async () => {
-      // Sur web uniquement : getRedirectResult pour le flow signInWithRedirect web
       if (!window.Capacitor?.isNativePlatform?.()) {
         try {
           const { getRedirectResult } = await import('../../../firebase')
@@ -62,7 +61,6 @@ export const AuthProvider = ({ children }) => {
         App.addListener('appUrlOpen', async (data) => {
           if (!data.url.startsWith('zawani://auth')) return
 
-          // FIX : fermer le Chrome Custom Tab
           try {
             const { Browser } = await import('@capacitor/browser')
             await Browser.close()
@@ -75,8 +73,11 @@ export const AuthProvider = ({ children }) => {
             const { signInWithCredential, GoogleAuthProvider } = await import('../../../firebase')
             const credential = GoogleAuthProvider.credential(idToken)
             await signInWithCredential(auth, credential)
-            // onAuthStateChanged va déclencher syncUserWithBackend
-          } catch { }
+            // FIX : naviguer vers l'accueil après auth par deep link
+            window.location.href = '/accueil'
+          } catch (err) {
+            console.error('Deep link auth failed:', err)
+          }
         })
       })
     }

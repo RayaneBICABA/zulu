@@ -72,9 +72,16 @@ const RegisterPage = () => {
     }
   }
 
-  const handleGoogleLogin = async () => {
-    const { signInWithRedirect, googleProvider, auth } = await import('../../../firebase')
-    await signInWithRedirect(auth, googleProvider)
+   const handleGoogleLogin = async () => {
+    if (window.Capacitor?.isNativePlatform?.()) {
+      const { Browser } = await import("@capacitor/browser");
+      const { API_URL } = await import("../../../constants/api");
+      await Browser.open({ url: `${API_URL}/auth/google/mobile` });
+    } else {
+      const { signInWithRedirect, googleProvider, auth } =
+        await import("../../../firebase");
+      await signInWithRedirect(auth, googleProvider);
+    }
   }
 
   if (success) {
