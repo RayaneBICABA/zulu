@@ -8,12 +8,14 @@ import useAuth from "../hooks/useAuth";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import PageWrapper from "../../../components/layout/PageWrapper";
+import { useOnlineStatus } from "../../../hooks/useOnlineStatus";
 
 const LoginPage = () => {
   const { login, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || ROUTES.home;
+  const isOnline = useOnlineStatus();
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState(null);
@@ -44,6 +46,10 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
+    if (!isOnline) {
+      setError("Vous semblez hors ligne. Veuillez vérifier votre connexion internet.");
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
@@ -55,6 +61,8 @@ const LoginPage = () => {
         setError("Email ou mot de passe incorrect.");
       } else if (code === "auth/too-many-requests") {
         setError("Trop de tentatives. Reessayez plus tard.");
+      } else if (code === "auth/network-request-failed") {
+        setError("Impossible de contacter le serveur. Verifiez votre connexion internet.");
       } else {
         setError(err.message || "Erreur de connexion.");
       }
@@ -64,9 +72,11 @@ const LoginPage = () => {
   };
 
   const handleGoogleLogin = async () => {
-    try {
-      await fetch(`${API_URL}/health`, { method: "GET" });
-    } catch {}
+    if (!isOnline) {
+      setError("Vous semblez hors ligne. Veuillez vérifier votre connexion internet.");
+      return;
+    }
+    fetch(`${API_URL}/health`, { method: "GET" }).catch(() => {});
 
     if (window.Capacitor?.isNativePlatform?.()) {
       const { Browser } = await import("@capacitor/browser");

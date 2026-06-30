@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ROUTES } from '../../../constants/routes'
 import Button from '../../../components/ui/Button'
@@ -7,11 +7,12 @@ import Input from '../../../components/ui/Input'
 import Card from '../../../components/ui/Card'
 import PageWrapper from '../../../components/layout/PageWrapper'
 import apiClient from '../../../services/apiClient'
+import { useOnlineStatus } from '../../../hooks/useOnlineStatus'
 
 const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
   const token = searchParams.get('token')
+  const isOnline = useOnlineStatus()
 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -35,6 +36,10 @@ const ResetPasswordPage = () => {
       return
     }
 
+    if (!isOnline) {
+      setError('Vous semblez hors ligne. Veuillez vérifier votre connexion internet.')
+      return
+    }
     setError(null)
     setLoading(true)
     try {

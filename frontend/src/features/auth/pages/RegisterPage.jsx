@@ -8,10 +8,12 @@ import useAuth from '../hooks/useAuth'
 import Button from '../../../components/ui/Button'
 import Input from '../../../components/ui/Input'
 import PageWrapper from '../../../components/layout/PageWrapper'
+import { useOnlineStatus } from '../../../hooks/useOnlineStatus'
 
 const RegisterPage = () => {
   const { register } = useAuth()
   const navigate = useNavigate()
+  const isOnline = useOnlineStatus()
 
   const [form, setForm] = useState({
     email: '',
@@ -47,6 +49,10 @@ const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!validate()) return
+    if (!isOnline) {
+      setError('Vous semblez hors ligne. Veuillez vérifier votre connexion internet.')
+      return
+    }
     setError(null)
     setLoading(true)
     try {
@@ -65,6 +71,8 @@ const RegisterPage = () => {
         setError('Le mot de passe est trop faible.')
       } else if (code === 'auth/invalid-email') {
         setError('Email invalide.')
+      } else if (code === 'auth/network-request-failed') {
+        setError('Impossible de contacter le serveur. Verifiez votre connexion internet.')
       } else {
         setError(err.message || "Erreur lors de l'inscription.")
       }
@@ -74,10 +82,12 @@ const RegisterPage = () => {
   }
 
    const handleGoogleLogin = async () => {
+    if (!isOnline) {
+      setError('Vous semblez hors ligne. Veuillez vérifier votre connexion internet.')
+      return
+    }
     // Wake up Render si en veille (cold start = 30-60s sur free tier)
-    try {
-      await fetch(`${API_URL}/health`, { method: 'GET' })
-    } catch {}
+    fetch(`${API_URL}/health`, { method: 'GET' }).catch(() => {})
 
     if (window.Capacitor?.isNativePlatform?.()) {
       const { Browser } = await import("@capacitor/browser");

@@ -8,17 +8,23 @@ import Input from '../../../components/ui/Input'
 import Card from '../../../components/ui/Card'
 import PageWrapper from '../../../components/layout/PageWrapper'
 import apiClient from '../../../services/apiClient'
+import { useOnlineStatus } from '../../../hooks/useOnlineStatus'
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('')
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
+  const isOnline = useOnlineStatus()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!email) {
       setError('Veuillez entrer votre email')
+      return
+    }
+    if (!isOnline) {
+      setError('Vous semblez hors ligne. Veuillez vérifier votre connexion internet.')
       return
     }
     setError(null)
@@ -29,7 +35,7 @@ const ForgotPasswordPage = () => {
       await apiClient.post('/auth/forgot-password', { email })
       setSent(true)
     } catch (err) {
-      setSent(true)
+      setError(err.message || 'Erreur lors de l\'envoi. Reessayez plus tard.')
     } finally {
       setLoading(false)
     }

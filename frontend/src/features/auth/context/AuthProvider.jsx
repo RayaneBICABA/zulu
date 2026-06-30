@@ -42,6 +42,9 @@ export const AuthProvider = ({ children }) => {
         return data.user
       } catch (e) {
         console.error('Failed to sync user with backend:', e)
+        if (e.message === 'Failed to fetch' || e instanceof TypeError) {
+          console.warn('Network error during sync — user may be offline')
+        }
         setUser(null)
         return null
       } finally {
@@ -84,7 +87,9 @@ export const AuthProvider = ({ children }) => {
           try {
             const { Browser } = await import('@capacitor/browser')
             await Browser.close()
-          } catch {}
+          } catch {
+            // Pas de navigation en cours — rien à fermer
+          }
 
           console.log('[DEEPLINK] Received URL:', data.url.substring(0, 80) + '...')
           const params = new URLSearchParams(data.url.split('?')[1] || '')
@@ -97,22 +102,13 @@ export const AuthProvider = ({ children }) => {
 
           deepLinkRef.current = true
           try {
-            const res = await fetch(`${API_URL}/auth/firebase-login`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ token: idToken }),
-            })
-            if (!res.ok) {
-              const err = await res.json().catch(() => ({}))
-              throw new Error(err.error || `HTTP ${res.status}`)
-            }
-            const data = await res.json()
-            console.log('[DEEPLINK] Sync reussi, user:', data.user?.email)
-            setUser(data.user)
+            const { signInWithCustomToken } = await import('../../../firebase')
+            await signInWithCustomToken(auth, idToken)
+            // onAuthStateChanged va trigger -> syncUserWithBackend(firebaseUser)
+            // -> getIdToken() (vrai Firebase ID token) -> POST /auth/firebase-login -> OK
           } catch (err) {
-            console.error('[DEEPLINK] Sync echoue:', err)
+            console.error('[DEEPLINK] signInWithCustomToken echoue:', err)
             deepLinkRef.current = false
-          } finally {
             setLoading(false)
           }
         })
@@ -137,11 +133,15 @@ export const AuthProvider = ({ children }) => {
     const { createUserWithEmailAndPassword } = await import('../../../firebase')
     const cred = await createUserWithEmailAndPassword(auth, email, password)
     const token = await cred.user.getIdToken()
-    await fetch(`${API_URL}/auth/firebase-login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, first_name, last_name }),
-    })
+    try {
+      await fetch(`${API_URL}/auth/firebase-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, first_name, last_name }),
+      })
+    } catch (e) {
+      console.warn('Backend sync after register failed:', e)
+    }
     return await syncUserWithBackend(cred.user)
   }, [syncUserWithBackend])
 
@@ -158,16 +158,19 @@ export const AuthProvider = ({ children }) => {
       setUser(null)
       return
     }
-    // Forcer un nouveau token (refresh) puis re-sync
-    const token = await currentUser.getIdToken(true)
-    const res = await fetch(`${API_URL}/auth/firebase-login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
-    })
-    if (res.ok) {
-      const data = await res.json()
-      setUser(data.user)
+    try {
+      const token = await currentUser.getIdToken(true)
+      const res = await fetch(`${API_URL}/auth/firebase-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setUser(data.user)
+      }
+    } catch (e) {
+      console.error('refreshUser failed:', e)
     }
   }, [])
 

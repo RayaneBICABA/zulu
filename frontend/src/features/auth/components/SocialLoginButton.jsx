@@ -2,19 +2,25 @@ import { useState } from 'react'
 import { auth, signInWithRedirect, googleProvider } from '../../../firebase'
 import { API_URL } from '../../../constants/api'
 import Button from '../../../components/ui/Button'
+import { useOnlineStatus } from '../../../hooks/useOnlineStatus'
 
 const isCapacitor = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform()
 
 const SocialLoginButton = ({ provider = 'google' }) => {
   const [error, setError] = useState(null)
+  const isOnline = useOnlineStatus()
 
   const handleClick = async () => {
     setError(null)
+    if (!isOnline) {
+      setError('Vous semblez hors ligne. Veuillez vérifier votre connexion internet.')
+      return
+    }
     if (isCapacitor) {
       try {
         const { Browser } = await import('@capacitor/browser')
         await Browser.open({ url: `${API_URL}/auth/google/mobile` })
-      } catch (err) {
+      } catch {
         setError('Erreur technique. Reessayez.')
       }
     } else {
