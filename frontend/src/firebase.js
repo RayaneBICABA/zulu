@@ -37,5 +37,6 @@ export {
   onAuthStateChanged,
   signInWithCredential,
   sendPasswordResetEmail,
+  GoogleAuthProvider,
 }
 export default app
