@@ -10,4 +10,5 @@ export const ROUTES = {
   commerceDetail:     '/commerce/:id',
   commerceCreate:     '/commerce/nouveau',
   notFound:           '*',
+  resetPassword: '/reinitialiser-mot-de-passe',
 }

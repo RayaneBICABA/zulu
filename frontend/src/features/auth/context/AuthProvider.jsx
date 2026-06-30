@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
     if (!firebaseUser) {
       setUser(null)
       setLoading(false)
-      return
+      return null
     }
 
     try {
@@ -30,9 +30,11 @@ export const AuthProvider = ({ children }) => {
       }
       const data = await res.json()
       setUser(data.user)
+      return data.user
     } catch (e) {
       console.error('Failed to sync user with backend:', e)
       setUser(null)
+      return null
     } finally {
       setLoading(false)
     }
@@ -77,8 +79,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback(async ({ email, password }) => {
     const { signInWithEmailAndPassword } = await import('../../../firebase')
-    await signInWithEmailAndPassword(auth, email, password)
-  }, [])
+    const cred = await signInWithEmailAndPassword(auth, email, password)
+    return await syncUserWithBackend(cred.user)
+  }, [syncUserWithBackend])
 
   const register = useCallback(async ({ email, password, first_name, last_name }) => {
     const { createUserWithEmailAndPassword } = await import('../../../firebase')
@@ -89,7 +92,8 @@ export const AuthProvider = ({ children }) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, first_name, last_name }),
     })
-  }, [])
+    return await syncUserWithBackend(cred.user)
+  }, [syncUserWithBackend])
 
   const logout = useCallback(async () => {
     await fbSignOut(auth)

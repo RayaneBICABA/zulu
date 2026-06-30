@@ -17,6 +17,7 @@ import ClientProfilePage from './pages/ClientProfilePage'
 import CommerceDetailPage from './pages/CommerceDetailPage'
 import CommerceCreatePage from './pages/CommerceCreatePage'
 import ClientLayout from './components/layout/ClientLayout'
+import ResetPasswordPage from './features/auth/pages/ResetPasswordPage'
 
 const AnimatedRoutes = () => {
   const location = useLocation()
@@ -28,6 +29,7 @@ const AnimatedRoutes = () => {
         <Route path={ROUTES.login}         element={<LoginPage />} />
         <Route path={ROUTES.register}      element={<RegisterPage />} />
         <Route path={ROUTES.forgotPassword} element={<ForgotPasswordPage />} />
+        <Route path={ROUTES.resetPassword} element={<ResetPasswordPage />} />
 
         <Route element={<ProtectedRoute><ClientLayout /></ProtectedRoute>}>
           <Route path={ROUTES.home}           element={<ClientHomePage />} />
