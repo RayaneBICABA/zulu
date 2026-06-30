@@ -9,11 +9,14 @@ export const AuthProvider = ({ children }) => {
   const [sessionExpired, setSessionExpired] = useState(false)
   const initialised = useRef(false)
   const syncPromiseRef = useRef(null)
+  const deepLinkRef = useRef(false)
 
   const syncUserWithBackend = useCallback(async (firebaseUser) => {
     if (!firebaseUser) {
-      setUser(null)
-      setLoading(false)
+      if (!deepLinkRef.current) {
+        setUser(null)
+        setLoading(false)
+      }
       return null
     }
 
@@ -83,16 +86,34 @@ export const AuthProvider = ({ children }) => {
             await Browser.close()
           } catch {}
 
+          console.log('[DEEPLINK] Received URL:', data.url.substring(0, 80) + '...')
           const params = new URLSearchParams(data.url.split('?')[1] || '')
           const idToken = params.get('token')
-          if (!idToken) return
+          if (!idToken || idToken.length < 10) {
+            console.log('[DEEPLINK] Token invalide, ignoré')
+            return
+          }
+          console.log('[DEEPLINK] Token extrait, longueur:', idToken.length)
 
+          deepLinkRef.current = true
           try {
-            const { signInWithCustomToken } = await import('../../../firebase')
-            const result = await signInWithCustomToken(auth, idToken)
-            await syncUserWithBackend(result.user)
+            const res = await fetch(`${API_URL}/auth/firebase-login`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token: idToken }),
+            })
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}))
+              throw new Error(err.error || `HTTP ${res.status}`)
+            }
+            const data = await res.json()
+            console.log('[DEEPLINK] Sync reussi, user:', data.user?.email)
+            setUser(data.user)
           } catch (err) {
-            console.error('Deep link auth failed:', err)
+            console.error('[DEEPLINK] Sync echoue:', err)
+            deepLinkRef.current = false
+          } finally {
+            setLoading(false)
           }
         })
       })
@@ -125,6 +146,7 @@ export const AuthProvider = ({ children }) => {
   }, [syncUserWithBackend])
 
   const logout = useCallback(async () => {
+    deepLinkRef.current = false
     await fbSignOut(auth)
     setUser(null)
     setSessionExpired(false)
