@@ -6,8 +6,6 @@ import {
   signOut,
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
   signInWithCredential,
   sendPasswordResetEmail,
 } from "firebase/auth"
@@ -37,8 +35,6 @@ export {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  signInWithRedirect,
-  getRedirectResult,
   signInWithCredential,
   sendPasswordResetEmail,
 }

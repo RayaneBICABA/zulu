@@ -51,20 +51,30 @@ firebase.initializeApp(config);
 var auth = firebase.auth();
 auth.languageCode = 'fr';
 
+// On vérifie si on revient d'une redirection Firebase
+auth.getRedirectResult().then(function(result) {
+  if (result.user) {
+    document.getElementById('googleBtn').style.display = 'none';
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('loading').textContent = 'Authentification reussie, retour a l\\'application...';
+    return result.user.getIdToken().then(function(idToken) {
+      window.location.href = 'zawani://auth?token=' + encodeURIComponent(idToken);
+    });
+  }
+  // Pas de résultat de redirect = premier chargement, on attend le clic
+}).catch(function(err) {
+  if (err.code !== 'auth/popup-closed-by-user') {
+    document.getElementById('error').textContent = 'Erreur: ' + err.message;
+    document.getElementById('error').style.display = 'block';
+  }
+});
+
 document.getElementById('googleBtn').onclick = function() {
   document.getElementById('googleBtn').style.display = 'none';
   document.getElementById('loading').style.display = 'block';
   var provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).then(function(result) {
-    return result.user.getIdToken().then(function(idToken) {
-      window.location.href = 'zawani://auth?token=' + encodeURIComponent(idToken);
-    });
-  }).catch(function(err) {
-    document.getElementById('googleBtn').style.display = 'flex';
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('error').textContent = 'Erreur de connexion: ' + err.message;
-    document.getElementById('error').style.display = 'block';
-  });
+  // signInWithRedirect (pas popup) — reste dans le Chrome Custom Tab
+  auth.signInWithRedirect(provider);
 };
 </script>
 </body>

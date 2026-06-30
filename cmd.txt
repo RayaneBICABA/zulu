@@ -1,8 +1,6 @@
-rayane@pop-os:~/D3sktop/zulu/frontend/android$ cp app/build/outputs/apk/debug/app-debug.apk ~/Desktop/zawani-v2.apk
-rayane@pop-os:~/D3sktop/zulu/frontend/android$ adb install ~/Desktop/zawani-v2.apk
-Performing Streamed Install
-Success
-rayane@pop-os:~/D3sktop/zulu/frontend/android$ adb logcat | grep -E "zawani|chromium|FATAL|AndroidRuntime"
+cp app/build/outputs/apk/debug/app-debug.apk ~/Desktop/zawani-v2.apk
+adb install ~/Desktop/zawani-v2.apk
+adb logcat | grep -E "zawani|chromium|FATAL|AndroidRuntime"
 
 
 

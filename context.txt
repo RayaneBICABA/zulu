@@ -1,0 +1,1186 @@
+========== frontend/src/features/auth/context/AuthProvider.jsx ==========
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { AuthContext } from './AuthContext'
+import { auth, onAuthStateChanged, signOut as fbSignOut } from '../../../firebase'
+import apiClient from '../../../services/apiClient'
+import { API_URL } from '../../../constants/api'
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [sessionExpired, setSessionExpired] = useState(false)
+  const initialised = useRef(false)
+
+  const syncUserWithBackend = useCallback(async (firebaseUser) => {
+    if (!firebaseUser) {
+      setUser(null)
+      setLoading(false)
+      return null
+    }
+
+    try {
+      const token = await firebaseUser.getIdToken()
+      const res = await fetch(`${API_URL}/auth/firebase-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Sync failed')
+      }
+      const data = await res.json()
+      setUser(data.user)
+      return data.user
+    } catch (e) {
+      console.error('Failed to sync user with backend:', e)
+      setUser(null)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (initialised.current) return
+    initialised.current = true
+
+    ;(async () => {
+      try {
+        const { getRedirectResult } = await import('../../../firebase')
+        const result = await getRedirectResult(auth)
+        if (result?.user) {
+          await syncUserWithBackend(result.user)
+        }
+      } catch { }
+    })()
+
+    if (window.Capacitor?.isNativePlatform?.()) {
+      import('@capacitor/app').then(({ App }) => {
+        App.addListener('appUrlOpen', async (data) => {
+          if (!data.url.startsWith('zawani://auth')) return
+          const params = new URLSearchParams(data.url.split('?')[1] || '')
+          const idToken = params.get('token')
+          if (!idToken) return
+          try {
+            const { signInWithCredential, GoogleAuthProvider } = await import('../../../firebase')
+            const credential = GoogleAuthProvider.credential(idToken)
+            await signInWithCredential(auth, credential)
+          } catch { }
+        })
+      })
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      syncUserWithBackend(firebaseUser)
+    })
+
+    return () => unsubscribe()
+  }, [syncUserWithBackend])
+
+  const login = useCallback(async ({ email, password }) => {
+    const { signInWithEmailAndPassword } = await import('../../../firebase')
+    const cred = await signInWithEmailAndPassword(auth, email, password)
+    return await syncUserWithBackend(cred.user)
+  }, [syncUserWithBackend])
+
+  const register = useCallback(async ({ email, password, first_name, last_name }) => {
+    const { createUserWithEmailAndPassword } = await import('../../../firebase')
+    const cred = await createUserWithEmailAndPassword(auth, email, password)
+    const token = await cred.user.getIdToken()
+    await fetch(`${API_URL}/auth/firebase-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, first_name, last_name }),
+    })
+    return await syncUserWithBackend(cred.user)
+  }, [syncUserWithBackend])
+
+  const logout = useCallback(async () => {
+    await fbSignOut(auth)
+    setUser(null)
+    setSessionExpired(false)
+  }, [])
+
+  const refreshUser = useCallback(async () => {
+    const currentUser = auth.currentUser
+    if (!currentUser) {
+      setUser(null)
+      return
+    }
+    const token = await currentUser.getIdToken(true)
+    const res = await fetch(`${API_URL}/auth/firebase-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setUser(data.user)
+    }
+  }, [])
+
+  const hasRole = useCallback((role) => {
+    if (!user || !user.roles) return false
+    return user.roles.some((r) => r.name === role || r === role)
+  }, [user])
+
+  const hasPermission = useCallback((permission) => {
+    if (!user || !user.roles) return false
+    return user.roles.some((role) => {
+      if (role.permissions) return role.permissions.some((p) => p.codename === permission || p === permission)
+      return false
+    })
+  }, [user])
+
+  const value = {
+    user,
+    setUser,
+    loading,
+    sessionExpired,
+    setSessionExpired,
+    clearSessionExpired: () => setSessionExpired(false),
+    login,
+    register,
+    logout,
+    refreshUser,
+    hasRole,
+    hasPermission,
+    isAuthenticated: !!user,
+    getFirebaseToken: () => {
+      const u = auth.currentUser
+      return u ? u.getIdToken() : null
+    },
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+========== frontend/src/features/auth/pages/LoginPage.jsx ==========
+import { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Eye, EyeOff } from "lucide-react";
+import { ROUTES } from "../../../constants/routes";
+import useAuth from "../hooks/useAuth";
+import Button from "../../../components/ui/Button";
+import Input from "../../../components/ui/Input";
+import PageWrapper from "../../../components/layout/PageWrapper";
+
+const LoginPage = () => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || ROUTES.dashboard;
+
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleChange = (e) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setFieldErrors((prev) => ({ ...prev, [e.target.name]: null }));
+  };
+
+  const validate = () => {
+    const errors = {};
+    if (!form.email) errors.email = "Email requis";
+    if (!form.password) errors.password = "Mot de passe requis";
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const result = await login(form);
+      const user = result?.user || result;
+      const roles = user?.roles || [];
+
+      const isOnlyClient = roles.length === 1 && roles[0] === "client";
+      const target = isOnlyClient ? ROUTES.home : from || ROUTES.dashboard;
+
+      navigate(target, { replace: true });
+    } catch (err) {
+      const code = err.code;
+      if (
+        code === "auth/user-not-found" ||
+        code === "auth/invalid-credential"
+      ) {
+        setError("Email ou mot de passe incorrect.");
+      } else if (code === "auth/too-many-requests") {
+        setError("Trop de tentatives. Reessayez plus tard.");
+      } else {
+        setError(err.message || "Erreur de connexion.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    const { signInWithRedirect, googleProvider } =
+      await import("../../../firebase");
+    const { auth } = await import("../../../firebase");
+    await signInWithRedirect(auth, googleProvider);
+  };
+
+  return (
+    <PageWrapper className="flex flex-col min-h-screen px-5 pt-16">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="w-full"
+      >
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Connexion</h1>
+          <p className="text-sm text-gray-400">Accedez a votre espace Zawani</p>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 rounded-lg bg-errorLight text-error text-sm">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label="Email"
+            name="email"
+            type="email"
+            placeholder="vous@exemple.com"
+            value={form.email}
+            onChange={handleChange}
+            error={fieldErrors.email}
+            required
+          />
+          <Input
+            label="Mot de passe"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="Votre mot de passe"
+            value={form.password}
+            onChange={handleChange}
+            error={fieldErrors.password}
+            required
+            rightElement={
+              <button
+                type="button"
+                onClick={() => setShowPassword((p) => !p)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            }
+          />
+          <div className="flex justify-end">
+            <Link
+              to={ROUTES.forgotPassword}
+              className="text-sm text-primary-500 hover:text-primary-600 transition-colors"
+            >
+              Mot de passe oublie ?
+            </Link>
+          </div>
+          <Button type="submit" fullWidth loading={loading}>
+            Se connecter
+          </Button>
+        </form>
+
+        <p className="text-center text-sm text-gray-400 mt-8">
+          Pas encore de compte ?{" "}
+          <Link
+            to={ROUTES.register}
+            className="text-primary-500 hover:text-primary-600 font-medium transition-colors"
+          >
+            S'inscrire
+          </Link>
+        </p>
+
+        <div className="relative my-8">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="px-3 bg-white text-gray-400">ou</span>
+          </div>
+        </div>
+
+        <button
+          onClick={handleGoogleLogin}
+          className="flex items-center justify-center w-full h-12 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+        >
+          <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+            <path
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
+              fill="#4285F4"
+            />
+            <path
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              fill="#34A853"
+            />
+            <path
+              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+              fill="#FBBC05"
+            />
+            <path
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+              fill="#EA4335"
+            />
+          </svg>
+          Continuer avec Google
+        </button>
+      </motion.div>
+    </PageWrapper>
+  );
+};
+
+export default LoginPage;
+========== frontend/src/features/auth/pages/ForgotPasswordPage.jsx ==========
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { ROUTES } from '../../../constants/routes'
+import Button from '../../../components/ui/Button'
+import Input from '../../../components/ui/Input'
+import Card from '../../../components/ui/Card'
+import PageWrapper from '../../../components/layout/PageWrapper'
+import apiClient from '../../../services/apiClient'
+
+const ForgotPasswordPage = () => {
+  const [email, setEmail] = useState('')
+  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [sent, setSent] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!email) {
+      setError('Veuillez entrer votre email')
+      return
+    }
+    setError(null)
+    setLoading(true)
+    try {
+      await apiClient.post('/auth/forgot-password', { email })
+      setSent(true)
+    } catch (err) {
+      setSent(true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <PageWrapper className="flex items-center justify-center min-h-screen px-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="w-full max-w-md"
+      >
+        <Card padding="lg">
+          {sent ? (
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-full bg-successLight flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h1 className="text-xl font-bold text-secondary-500 mb-2">
+                Email envoye
+              </h1>
+              <p className="text-sm text-gray-400 mb-6">
+                Si un compte existe avec cette adresse, vous recevrez un lien de reinitialisation.
+              </p>
+              <Link to={ROUTES.login}>
+                <Button>Retour a la connexion</Button>
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="text-center mb-6">
+                <h1 className="text-2xl font-bold text-secondary-500 mb-1">
+                  Mot de passe oublie
+                </h1>
+                <p className="text-sm text-gray-400">
+                  Saisissez votre email et recevez un lien de reinitialisation
+                </p>
+              </div>
+
+              {error && (
+                <div className="mb-4 p-3 rounded-lg bg-errorLight text-error text-sm">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <Input
+                  label="Email"
+                  name="email"
+                  type="email"
+                  placeholder="vous@exemple.com"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setError(null) }}
+                  required
+                />
+                <Button type="submit" fullWidth loading={loading}>
+                  Envoyer le lien
+                </Button>
+              </form>
+
+              <p className="text-center text-sm text-gray-400 mt-6">
+                <Link
+                  to={ROUTES.login}
+                  className="text-primary-500 hover:text-primary-600 font-medium transition-colors"
+                >
+                  Retour a la connexion
+                </Link>
+              </p>
+            </>
+          )}
+        </Card>
+      </motion.div>
+    </PageWrapper>
+  )
+}
+
+export default ForgotPasswordPage
+========== frontend/src/features/auth/pages/ResetPasswordPage.jsx ==========
+import { useState } from 'react'
+import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { ROUTES } from '../../../constants/routes'
+import Button from '../../../components/ui/Button'
+import Input from '../../../components/ui/Input'
+import Card from '../../../components/ui/Card'
+import PageWrapper from '../../../components/layout/PageWrapper'
+import apiClient from '../../../services/apiClient'
+
+const ResetPasswordPage = () => {
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const token = searchParams.get('token')
+
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    
+    if (!token) {
+      setError('Lien invalide ou expire.')
+      return
+    }
+    if (password.length < 8) {
+      setError('Le mot de passe doit contenir au moins 8 caracteres.')
+      return
+    }
+    if (password !== confirmPassword) {
+      setError('Les mots de passe ne correspondent pas.')
+      return
+    }
+
+    setError(null)
+    setLoading(true)
+    try {
+      await apiClient.post('/auth/reset-password', { token, password })
+      setSuccess(true)
+    } catch (err) {
+      setError(err.message || 'Erreur lors de la reinitialisation.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (success) {
+    return (
+      <PageWrapper className="flex items-center justify-center min-h-screen px-4">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full max-w-md">
+          <Card padding="lg">
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-full bg-successLight flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h1 className="text-xl font-bold text-secondary-500 mb-2">
+                Mot de passe reinitialise
+              </h1>
+              <p className="text-sm text-gray-400 mb-6">
+                Votre mot de passe a ete modifie avec succes.
+              </p>
+              <Link to={ROUTES.login}>
+                <Button>Se connecter</Button>
+              </Link>
+            </div>
+          </Card>
+        </motion.div>
+      </PageWrapper>
+    )
+  }
+
+  return (
+    <PageWrapper className="flex items-center justify-center min-h-screen px-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="w-full max-w-md"
+      >
+        <Card padding="lg">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-secondary-500 mb-1">
+              Reinitialiser le mot de passe
+            </h1>
+            <p className="text-sm text-gray-400">
+              Choisissez un nouveau mot de passe securise
+            </p>
+          </div>
+
+          {!token && (
+            <div className="mb-4 p-3 rounded-lg bg-errorLight text-error text-sm">
+              Lien invalide ou expire. <Link to={ROUTES.forgotPassword} className="underline">Demander un nouveau lien</Link>
+            </div>
+          )}
+
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-errorLight text-error text-sm">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Nouveau mot de passe"
+              name="password"
+              type="password"
+              placeholder="Minimum 8 caracteres"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setError(null) }}
+              required
+            />
+            <Input
+              label="Confirmer le mot de passe"
+              name="confirm_password"
+              type="password"
+              placeholder="Repeter le mot de passe"
+              value={confirmPassword}
+              onChange={(e) => { setConfirmPassword(e.target.value); setError(null) }}
+              required
+            />
+            <Button type="submit" fullWidth loading={loading} disabled={!token}>
+              Reinitialiser le mot de passe
+            </Button>
+          </form>
+
+          <p className="text-center text-sm text-gray-400 mt-6">
+            <Link
+              to={ROUTES.login}
+              className="text-primary-500 hover:text-primary-600 font-medium transition-colors"
+            >
+              Retour a la connexion
+            </Link>
+          </p>
+        </Card>
+      </motion.div>
+    </PageWrapper>
+  )
+}
+
+export default ResetPasswordPage
+========== frontend/src/features/auth/components/ProtectedRoute.jsx ==========
+import { Navigate, useLocation } from 'react-router-dom'
+import { ROUTES } from '../../../constants/routes'
+import Spinner from '../../../components/ui/Spinner'
+import useAuth from '../hooks/useAuth'
+
+const ProtectedRoute = ({ children, role, permission }) => {
+  const { user, loading, hasRole, hasPermission } = useAuth()
+  const location = useLocation()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Spinner size="lg" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Navigate to={ROUTES.login} state={{ from: location }} replace />
+  }
+
+  if (role && !hasRole(role)) {
+    return <Navigate to={ROUTES.home} replace />
+  }
+
+  if (permission && !hasPermission(permission)) {
+    return <Navigate to={ROUTES.home} replace />
+  }
+
+  return children
+}
+
+export default ProtectedRoute
+
+========== frontend/src/constants/routes.js ==========
+export const ROUTES = {
+  splash:             '/',
+  home:               '/accueil',
+  login:              '/login',
+  register:           '/register',
+  forgotPassword:     '/mot-de-passe-oublie',
+  favoris:            '/favoris',
+  profile:            '/profil',
+  dashboard:          '/dashboard',
+  commerceDetail:     '/commerce/:id',
+  commerceCreate:     '/commerce/nouveau',
+  notFound:           '*',
+  resetPassword: '/reinitialiser-mot-de-passe',
+}
+
+========== backend/app/routes/auth_mobile.py ==========
+from flask import Blueprint, jsonify
+import os
+import json
+
+auth_mobile_bp = Blueprint('auth_mobile', __name__)
+
+PAGE = os.path.join(os.path.dirname(__file__), '..', 'templates', 'google_mobile_signin.html')
+
+@auth_mobile_bp.route('/auth/google/mobile')
+def google_mobile_signin():
+    firebase_config = {
+        'apiKey': os.environ.get('FIREBASE_API_KEY', 'AIzaSyBbeyWpC0nEEuZIuK5eONt0LDGYuKm038Q'),
+        'authDomain': os.environ.get('FIREBASE_AUTH_DOMAIN', 'zawani-aeba8.firebaseapp.com'),
+        'projectId': os.environ.get('FIREBASE_PROJECT_ID', 'zawani-aeba8'),
+        'appId': os.environ.get('FIREBASE_APP_ID', '1:720010119224:web:5ec800f4f49883bbb43ecd'),
+    }
+    html = '''<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connexion ZAWANI</title>
+<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f5f5f5; }
+.card { background: white; border-radius: 16px; padding: 32px; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.08); width: 320px; }
+h1 { font-size: 20px; margin-bottom: 8px; color: #1a1a2e; }
+p { font-size: 14px; color: #666; margin-bottom: 24px; }
+button { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px 20px; border: 1px solid #ddd; border-radius: 8px; background: white; font-size: 15px; cursor: pointer; }
+button:hover { background: #f9f9f9; }
+.loading { display: none; margin-top: 20px; color: #666; font-size: 14px; }
+.error { display: none; margin-top: 16px; color: #e74c3c; font-size: 13px; padding: 10px; background: #fdf0ef; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>ZAWANI</h1>
+  <p>Connectez-vous avec Google</p>
+  <button id="googleBtn">
+    <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+    Se connecter avec Google
+  </button>
+  <div class="loading" id="loading">Connexion en cours...</div>
+  <div class="error" id="error"></div>
+</div>
+<script>
+var config = ''' + json.dumps(firebase_config) + ''';
+firebase.initializeApp(config);
+var auth = firebase.auth();
+auth.languageCode = 'fr';
+
+document.getElementById('googleBtn').onclick = function() {
+  document.getElementById('googleBtn').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+  var provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).then(function(result) {
+    return result.user.getIdToken().then(function(idToken) {
+      window.location.href = 'zawani://auth?token=' + encodeURIComponent(idToken);
+    });
+  }).catch(function(err) {
+    document.getElementById('googleBtn').style.display = 'flex';
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').textContent = 'Erreur de connexion: ' + err.message;
+    document.getElementById('error').style.display = 'block';
+  });
+};
+</script>
+</body>
+</html>'''
+    return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
+
+========== backend/app/routes/oauth.py ==========
+import logging
+from flask import Blueprint, request, jsonify, redirect, current_app
+from ..services.oauth_service import oauth, OAuthService
+from ..extensions import limiter
+
+logger = logging.getLogger(__name__)
+
+oauth_bp = Blueprint("oauth", __name__)
+oauth_service = OAuthService()
+
+
+def _is_google_configured():
+    return bool(current_app.config.get("GOOGLE_CLIENT_ID") and current_app.config.get("GOOGLE_CLIENT_SECRET"))
+
+
+@oauth_bp.route("/auth/google/login", methods=["GET"])
+def google_login():
+    """
+    Rediriger vers Google pour l'authentification.
+    ---
+    tags:
+      - OAuth
+    parameters:
+      - in: query
+        name: mobile
+        type: boolean
+        description: Si true, redirige vers le deep link zawani://
+    responses:
+      302:
+        description: Redirection vers Google
+    """
+    if not _is_google_configured():
+        return jsonify({"error": "Google OAuth non configure."}), 501
+
+    redirect_uri = current_app.config.get("GOOGLE_REDIRECT_URI")
+    if not redirect_uri:
+        redirect_uri = f"{request.url_root.rstrip('/')}/api/auth/google/callback"
+
+    is_mobile = request.args.get("mobile") == "1"
+    if is_mobile:
+        return oauth.google.authorize_redirect(redirect_uri, state="mobile")
+    return oauth.google.authorize_redirect(redirect_uri)
+
+
+@oauth_bp.route("/auth/google/callback", methods=["GET"])
+@limiter.limit("5 per minute")
+def google_callback():
+    """
+    Callback apres authentification Google.
+    ---
+    tags:
+      - OAuth
+    responses:
+      200:
+        description: Authentification reussie
+      401:
+        description: Erreur d'authentification
+    """
+    if not _is_google_configured():
+        return jsonify({"error": "Google OAuth non configure."}), 501
+
+    frontend_url = current_app.config.get("FRONTEND_URL", "http://localhost:5173")
+
+    try:
+        token = oauth.google.authorize_access_token()
+        userinfo = oauth.google.parse_id_token(token)
+        result = oauth_service.google_login(userinfo)
+
+        is_mobile = request.args.get("state") == "mobile"
+        if is_mobile:
+            deep_link = (
+                f"zawani://auth"
+                f"?access_token={result['access_token']}"
+                f"&refresh_token={result['refresh_token']}"
+            )
+            return _deep_link_page(deep_link, frontend_url, result)
+
+        redirect_url = (
+            f"{frontend_url}/auth/google/callback"
+            f"?access_token={result['access_token']}"
+            f"&refresh_token={result['refresh_token']}"
+        )
+        return redirect(redirect_url)
+    except Exception as e:
+        logger.exception(f"Google auth callback failed: {e}")
+        return redirect(f"{frontend_url}/login?error=google_auth_failed")
+
+
+def _deep_link_page(deep_link, fallback_url, result):
+    access_token = result["access_token"]
+    refresh_token = result["refresh_token"]
+    html = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Zawani Auth</title></head>
+<body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;background:#fff;">
+<script>
+(function() {{
+  var dl = '{deep_link}';
+  var fb = '{fallback_url}/auth/google/callback?access_token={access_token}&refresh_token={refresh_token}';
+  window.location.href = dl;
+  setTimeout(function() {{ window.location.href = fb; }}, 3000);
+}})();
+</script>
+<p style="color:#666;">Authentification en cours...</p>
+</body></html>"""
+    from flask import make_response
+    resp = make_response(html)
+    resp.headers["Content-Type"] = "text/html"
+    return resp
+
+========== backend/app/services/oauth_service.py ==========
+from flask import current_app
+from authlib.integrations.flask_client import OAuth
+from ..extensions import db
+from ..models.user import User
+from ..models.role import Role
+from flask_jwt_extended import create_access_token, create_refresh_token
+from datetime import timedelta
+
+oauth = OAuth()
+
+
+def init_oauth(app):
+    oauth.init_app(app)
+    google_client_id = app.config.get("GOOGLE_CLIENT_ID")
+    google_client_secret = app.config.get("GOOGLE_CLIENT_SECRET")
+    if google_client_id and google_client_secret:
+        oauth.register(
+            name="google",
+            client_id=google_client_id,
+            client_secret=google_client_secret,
+            server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+            client_kwargs={"scope": "openid email profile"},
+        )
+
+
+class OAuthService:
+    def google_login(self, userinfo):
+        email = userinfo.get("email")
+        if not email:
+            raise ValueError("Email non fourni par Google.")
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            user = User(
+                email=email,
+                first_name=userinfo.get("given_name"),
+                last_name=userinfo.get("family_name"),
+                is_verified=True,
+            )
+            user.set_password(email)
+            user.save()
+
+            client_role = Role.query.filter_by(name="client").first()
+            if client_role:
+                user.roles.append(client_role)
+                user.save()
+        elif not user.is_verified:
+            user.is_verified = True
+            user.save()
+
+        if not user.is_active:
+            raise ValueError("Ce compte est desactive.")
+
+        access_token = create_access_token(
+            identity=str(user.id),
+            additional_claims={
+                "email": user.email,
+                "is_verified": user.is_verified,
+                "roles": [r.name for r in user.roles],
+            },
+            expires_delta=timedelta(minutes=15),
+        )
+        refresh_token = create_refresh_token(
+            identity=str(user.id),
+            expires_delta=timedelta(days=7),
+        )
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "user": user.to_dict(),
+        }
+
+========== backend/app/services/auth_service.py ==========
+from ..extensions import db, jwt
+from ..models.user import User
+from ..models.role import Role
+from flask_jwt_extended import create_access_token, create_refresh_token
+from datetime import timedelta
+from .email_service import (
+    generate_verification_token,
+    confirm_verification_token,
+    generate_reset_token,
+    confirm_reset_token,
+    send_verification_email,
+    send_reset_password_email,
+)
+from flask import current_app
+
+
+class AuthService:
+    def register(self, email, password, first_name=None, last_name=None):
+        if User.query.filter_by(email=email).first():
+            raise ValueError("Un compte avec cet email existe deja.")
+
+        user = User(
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+        )
+        user.set_password(password)
+        user.save()
+
+        client_role = Role.query.filter_by(name="client").first()
+        if client_role:
+            user.roles.append(client_role)
+            user.save()
+
+        try:
+            token = generate_verification_token(email)
+            send_verification_email(email, token)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Email verification failed for {email}: {e}")
+        user.is_verified = True
+        user.save()
+        return user
+
+    def verify_email(self, token):
+        email = confirm_verification_token(token)
+        if not email:
+            raise ValueError("Token invalide ou expire.")
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            raise ValueError("Utilisateur introuvable.")
+
+        if user.is_verified:
+            raise ValueError("Email deja verifie.")
+
+        user.is_verified = True
+        user.save()
+        return user
+
+    def login(self, email, password):
+        user = User.query.filter_by(email=email).first()
+        if not user or not user.check_password(password):
+            raise ValueError("Email ou mot de passe incorrect.")
+
+        if not user.is_active:
+            raise ValueError("Ce compte est desactive.")
+
+        if not user.is_verified:
+            raise ValueError("Email non verifie. Verifiez votre boite de reception.")
+
+        access_token = create_access_token(
+            identity=str(user.id),
+            additional_claims={
+                "email": user.email,
+                "is_verified": user.is_verified,
+                "roles": [r.name for r in user.roles],
+            },
+            expires_delta=timedelta(minutes=15),
+        )
+        refresh_token = create_refresh_token(
+            identity=str(user.id),
+            expires_delta=timedelta(days=7),
+        )
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "user": user.to_dict(),
+        }
+
+    def refresh(self, identity):
+        user = User.query.get(int(identity))
+        if not user or not user.is_active:
+            raise ValueError("Utilisateur introuvable ou desactive.")
+
+        access_token = create_access_token(
+            identity=str(user.id),
+            additional_claims={
+                "email": user.email,
+                "is_verified": user.is_verified,
+                "roles": [r.name for r in user.roles],
+            },
+            expires_delta=timedelta(minutes=15),
+        )
+        return {"access_token": access_token}
+
+    def me(self, user_id):
+        user = User.query.get(user_id)
+        if not user:
+            raise ValueError("Utilisateur introuvable.")
+        return user.to_dict()
+
+    def forgot_password(self, email):
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            return
+
+        try:
+            token = generate_reset_token(email)
+            send_reset_password_email(email, token)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Reset password email failed for {email}: {e}")
+
+    def reset_password(self, token, new_password):
+        email = confirm_reset_token(token)
+        if not email:
+            raise ValueError("Token invalide ou expire.")
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            raise ValueError("Utilisateur introuvable.")
+
+        user.set_password(new_password)
+        user.save()
+        return user
+
+========== backend/app/__init__.py ==========
+import os
+from flask import Flask, jsonify
+from flask_cors import CORS
+from .config import config
+from .extensions import db, migrate, jwt, cors, swagger, limiter
+from flask_jwt_extended.exceptions import NoAuthorizationError
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+
+
+def create_app(env=None):
+    if env is None:
+        env = os.getenv("FLASK_ENV", "production")
+        if env not in config:
+            env = "production"
+    app = Flask(__name__)
+    app.config.from_object(config[env])
+
+    db.init_app(app)
+    migrate.init_app(app, db)
+    jwt.init_app(app)
+    cors_origins = [
+        app.config.get("FRONTEND_URL", "http://localhost:5173"),
+        "http://localhost:5173",
+        "http://localhost:4173",
+        "http://localhost:8100",
+        "capacitor://localhost",
+        "https://localhost",
+        "https://localhost:8100",
+        "ionic://localhost",
+        "https://zawani.app",
+        "https://www.zawani.app",
+        r"https://.*\.vercel\.app",
+        r"https://.*\.onrender\.com",
+    ]
+    cors.init_app(app, resources={r"/api/*": {"origins": cors_origins, "supports_credentials": True}})
+    limiter.init_app(app)
+
+    import cloudinary
+    cloudinary.config(
+        cloud_name=app.config["CLOUDINARY_CLOUD_NAME"],
+        api_key=app.config["CLOUDINARY_API_KEY"],
+        api_secret=app.config["CLOUDINARY_API_SECRET"],
+    )
+
+    if not app.config.get("TESTING"):
+        app.config["SWAGGER"] = {
+            "title": "Zulu API",
+            "description": "API pour la plateforme Zulu — annuaire d'artisans",
+            "version": "1.0.0",
+            "securityDefinitions": {
+                "Bearer": {
+                    "type": "apiKey",
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "JWT token. Format: Bearer <token>",
+                }
+            },
+            "security": [{"Bearer": []}],
+        }
+        swagger.init_app(app)
+
+    @jwt.expired_token_loader
+    def expired_token_callback(jwt_header, jwt_payload):
+        return jsonify({"error": "Token expire."}), 401
+
+    @jwt.invalid_token_loader
+    def invalid_token_callback(error):
+        return jsonify({"error": "Token invalide."}), 401
+
+    @jwt.unauthorized_loader
+    def missing_token_callback(error):
+        return jsonify({"error": "Token manquant."}), 401
+
+    @app.errorhandler(429)
+    def ratelimit_handler(error):
+        return jsonify({"error": "Trop de tentatives. Reessayez dans une minute."}), 429
+
+    from .routes import register_routes
+    register_routes(app)
+
+    from .commands import seed_roles, clear_users
+    app.cli.add_command(seed_roles)
+    app.cli.add_command(clear_users)
+
+    from .services.oauth_service import init_oauth
+    init_oauth(app)
+
+    from .services.firebase_auth import init_firebase
+    init_firebase(app)
+
+    return app
+
+========== frontend/android/app/src/main/AndroidManifest.xml ==========
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        android:networkSecurityConfig="@xml/network_security_config">
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="zawani" android:host="auth" />
+            </intent-filter>
+
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+    </application>
+
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>

@@ -45,19 +45,29 @@ export const AuthProvider = ({ children }) => {
     initialised.current = true
 
     ;(async () => {
-      try {
-        const { getRedirectResult } = await import('../../../firebase')
-        const result = await getRedirectResult(auth)
-        if (result?.user) {
-          await syncUserWithBackend(result.user)
-        }
-      } catch { }
+      // Sur web uniquement : getRedirectResult pour le flow signInWithRedirect web
+      if (!window.Capacitor?.isNativePlatform?.()) {
+        try {
+          const { getRedirectResult } = await import('../../../firebase')
+          const result = await getRedirectResult(auth)
+          if (result?.user) {
+            await syncUserWithBackend(result.user)
+          }
+        } catch { }
+      }
     })()
 
     if (window.Capacitor?.isNativePlatform?.()) {
       import('@capacitor/app').then(({ App }) => {
         App.addListener('appUrlOpen', async (data) => {
           if (!data.url.startsWith('zawani://auth')) return
+
+          // FIX : fermer le Chrome Custom Tab
+          try {
+            const { Browser } = await import('@capacitor/browser')
+            await Browser.close()
+          } catch { }
+
           const params = new URLSearchParams(data.url.split('?')[1] || '')
           const idToken = params.get('token')
           if (!idToken) return
@@ -65,6 +75,7 @@ export const AuthProvider = ({ children }) => {
             const { signInWithCredential, GoogleAuthProvider } = await import('../../../firebase')
             const credential = GoogleAuthProvider.credential(idToken)
             await signInWithCredential(auth, credential)
+            // onAuthStateChanged va déclencher syncUserWithBackend
           } catch { }
         })
       })

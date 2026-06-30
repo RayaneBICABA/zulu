@@ -12,7 +12,8 @@ const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from?.pathname || ROUTES.dashboard;
+  // FIX : fallback par défaut = /accueil, pas /dashboard
+  const from = location.state?.from?.pathname || ROUTES.home;
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState(null);
@@ -40,13 +41,8 @@ const LoginPage = () => {
     setLoading(true);
     try {
       const result = await login(form);
-      const user = result?.user || result;
-      const roles = user?.roles || [];
-
-      const isOnlyClient = roles.length === 1 && roles[0] === "client";
-      const target = isOnlyClient ? ROUTES.home : from || ROUTES.dashboard;
-
-      navigate(target, { replace: true });
+      // FIX : plus de logique de rôle ici — le fallback est déjà /accueil
+      navigate(from, { replace: true });
     } catch (err) {
       const code = err.code;
       if (
@@ -64,11 +60,18 @@ const LoginPage = () => {
     }
   };
 
+  // FIX : sur mobile, utiliser Browser.open vers le backend au lieu de signInWithRedirect
   const handleGoogleLogin = async () => {
-    const { signInWithRedirect, googleProvider } =
-      await import("../../../firebase");
-    const { auth } = await import("../../../firebase");
-    await signInWithRedirect(auth, googleProvider);
+    if (window.Capacitor?.isNativePlatform?.()) {
+      const { Browser } = await import("@capacitor/browser");
+      const { API_URL } = await import("../../../constants/api");
+      await Browser.open({ url: `${API_URL}/auth/google/mobile` });
+    } else {
+      // Web : signInWithRedirect fonctionne normalement
+      const { signInWithRedirect, googleProvider, auth } =
+        await import("../../../firebase");
+      await signInWithRedirect(auth, googleProvider);
+    }
   };
 
   return (
