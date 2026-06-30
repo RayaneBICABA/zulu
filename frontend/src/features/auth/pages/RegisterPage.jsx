@@ -73,9 +73,13 @@ const RegisterPage = () => {
   }
 
    const handleGoogleLogin = async () => {
+    // Wake up Render si en veille (cold start = 30-60s sur free tier)
+    try {
+      await fetch(`${API_URL}/health`, { method: 'GET' })
+    } catch {}
+
     if (window.Capacitor?.isNativePlatform?.()) {
       const { Browser } = await import("@capacitor/browser");
-      const { API_URL } = await import("../../../constants/api");
       await Browser.open({ url: `${API_URL}/auth/google/mobile` });
     } else {
       const { signInWithRedirect, googleProvider, auth } =

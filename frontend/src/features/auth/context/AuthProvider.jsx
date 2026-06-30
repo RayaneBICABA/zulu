@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { AuthContext } from './AuthContext'
 import { auth, onAuthStateChanged, signOut as fbSignOut } from '../../../firebase'
-import apiClient from '../../../services/apiClient'
 import { API_URL } from '../../../constants/api'
 
 export const AuthProvider = ({ children }) => {
@@ -9,6 +8,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
   const [sessionExpired, setSessionExpired] = useState(false)
   const initialised = useRef(false)
+  const syncPromiseRef = useRef(null)
 
   const syncUserWithBackend = useCallback(async (firebaseUser) => {
     if (!firebaseUser) {
@@ -17,45 +17,62 @@ export const AuthProvider = ({ children }) => {
       return null
     }
 
-    try {
-      const token = await firebaseUser.getIdToken()
-      const res = await fetch(`${API_URL}/auth/firebase-login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Sync failed')
-      }
-      const data = await res.json()
-      setUser(data.user)
-      return data.user
-    } catch (e) {
-      console.error('Failed to sync user with backend:', e)
-      setUser(null)
-      return null
-    } finally {
-      setLoading(false)
+    // Éviter les appels parallèles
+    if (syncPromiseRef.current) {
+      return syncPromiseRef.current
     }
+
+    syncPromiseRef.current = (async () => {
+      try {
+        const token = await firebaseUser.getIdToken()
+        const res = await fetch(`${API_URL}/auth/firebase-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        })
+        if (!res.ok) {
+          const err = await res.json()
+          throw new Error(err.error || 'Sync failed')
+        }
+        const data = await res.json()
+        setUser(data.user)
+        return data.user
+      } catch (e) {
+        console.error('Failed to sync user with backend:', e)
+        setUser(null)
+        return null
+      } finally {
+        syncPromiseRef.current = null
+        setLoading(false)
+      }
+    })()
+
+    return syncPromiseRef.current
   }, [])
 
   useEffect(() => {
     if (initialised.current) return
     initialised.current = true
 
-    ;(async () => {
-      if (!window.Capacitor?.isNativePlatform?.()) {
+    // Web : traiter le résultat de signInWithRedirect
+    if (!window.Capacitor?.isNativePlatform?.()) {
+      ;(async () => {
         try {
           const { getRedirectResult } = await import('../../../firebase')
           const result = await getRedirectResult(auth)
           if (result?.user) {
+            // syncUserWithBackend va aussi être appelé par onAuthStateChanged
+            // (déduplié par syncPromiseRef). Pas besoin de naviguer ici,
+            // le useEffect de LoginPage s'en charge.
             await syncUserWithBackend(result.user)
           }
-        } catch { }
-      }
-    })()
+        } catch (e) {
+          console.error('getRedirectResult error:', e)
+        }
+      })()
+    }
 
+    // Mobile : écouter le deep link zawani://auth?token=xxx
     if (window.Capacitor?.isNativePlatform?.()) {
       import('@capacitor/app').then(({ App }) => {
         App.addListener('appUrlOpen', async (data) => {
@@ -64,17 +81,19 @@ export const AuthProvider = ({ children }) => {
           try {
             const { Browser } = await import('@capacitor/browser')
             await Browser.close()
-          } catch { }
+          } catch {}
 
           const params = new URLSearchParams(data.url.split('?')[1] || '')
           const idToken = params.get('token')
           if (!idToken) return
+
           try {
             const { signInWithCredential, GoogleAuthProvider } = await import('../../../firebase')
             const credential = GoogleAuthProvider.credential(idToken)
-            await signInWithCredential(auth, credential)
-            // FIX : naviguer vers l'accueil après auth par deep link
-            window.location.href = '/accueil'
+            const result = await signInWithCredential(auth, credential)
+            await syncUserWithBackend(result.user)
+            // Navigation après sync réussi — le useEffect de LoginPage
+            // détectera isAuthenticated=true et naviguera
           } catch (err) {
             console.error('Deep link auth failed:', err)
           }
@@ -82,6 +101,7 @@ export const AuthProvider = ({ children }) => {
       })
     }
 
+    // Écouter les changements d'état Firebase (toujours actif)
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       syncUserWithBackend(firebaseUser)
     })
@@ -119,6 +139,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null)
       return
     }
+    // Forcer un nouveau token (refresh) puis re-sync
     const token = await currentUser.getIdToken(true)
     const res = await fetch(`${API_URL}/auth/firebase-login`, {
       method: 'POST',
