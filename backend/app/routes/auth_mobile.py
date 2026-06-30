@@ -4,8 +4,6 @@ import json
 
 auth_mobile_bp = Blueprint('auth_mobile', __name__)
 
-PAGE = os.path.join(os.path.dirname(__file__), '..', 'templates', 'google_mobile_signin.html')
-
 @auth_mobile_bp.route('/auth/google/mobile')
 def google_mobile_signin():
     firebase_config = {
@@ -31,7 +29,8 @@ p { font-size: 14px; color: #666; margin-bottom: 24px; }
 button { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px 20px; border: 1px solid #ddd; border-radius: 8px; background: white; font-size: 15px; cursor: pointer; }
 button:hover { background: #f9f9f9; }
 .loading { display: none; margin-top: 20px; color: #666; font-size: 14px; }
-.error { display: none; margin-top: 16px; color: #e74c3c; font-size: 13px; padding: 10px; background: #fdf0ef; border-radius: 8px; }
+.error { display: none; margin-top: 16px; color: #e74c3c; font-size: 12px; padding: 10px; background: #fdf0ef; border-radius: 8px; word-break: break-word; text-align: left; }
+.debug { display: none; margin-top: 12px; color: #888; font-size: 11px; text-align: left; word-break: break-all; }
 </style>
 </head>
 <body>
@@ -44,37 +43,61 @@ button:hover { background: #f9f9f9; }
   </button>
   <div class="loading" id="loading">Connexion en cours...</div>
   <div class="error" id="error"></div>
+  <div class="debug" id="debug"></div>
 </div>
 <script>
+function showDebug(msg) {
+  var d = document.getElementById('debug');
+  d.textContent += msg + '\\n';
+  d.style.display = 'block';
+}
+function showError(msg) {
+  document.getElementById('error').textContent = msg;
+  document.getElementById('error').style.display = 'block';
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('googleBtn').style.display = 'flex';
+}
+
 var config = ''' + json.dumps(firebase_config) + ''';
 firebase.initializeApp(config);
 var auth = firebase.auth();
 auth.languageCode = 'fr';
 
-// On vérifie si on revient d'une redirection Firebase
+showDebug('Page chargee sur: ' + window.location.href);
+showDebug('Firebase authDomain: ' + config.authDomain);
+
+// Verifier si on revient d\\'un redirect Firebase
 auth.getRedirectResult().then(function(result) {
+  showDebug('getRedirectResult: user=' + (result.user ? result.user.email : 'null'));
   if (result.user) {
     document.getElementById('googleBtn').style.display = 'none';
     document.getElementById('loading').style.display = 'block';
     document.getElementById('loading').textContent = 'Authentification reussie, retour a l\\'application...';
     return result.user.getIdToken().then(function(idToken) {
+      showDebug('Token obtenu, redirect vers zawani://');
       window.location.href = 'zawani://auth?token=' + encodeURIComponent(idToken);
     });
   }
-  // Pas de résultat de redirect = premier chargement, on attend le clic
+  // Pas de redirect = premier chargement, on attend le clic
 }).catch(function(err) {
-  if (err.code !== 'auth/popup-closed-by-user') {
-    document.getElementById('error').textContent = 'Erreur: ' + err.message;
-    document.getElementById('error').style.display = 'block';
+  showDebug('getRedirectResult ERROR: ' + err.code + ' - ' + err.message);
+  // auth/popup-closed-by-user peut arriver si un redirect precedent a ete annule
+  if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+    // Silencieux, on attend le clic
+    return;
   }
+  showError('Erreur: ' + err.code + ' - ' + err.message);
 });
 
 document.getElementById('googleBtn').onclick = function() {
   document.getElementById('googleBtn').style.display = 'none';
   document.getElementById('loading').style.display = 'block';
+  showDebug('Appel signInWithRedirect...');
   var provider = new firebase.auth.GoogleAuthProvider();
-  // signInWithRedirect (pas popup) — reste dans le Chrome Custom Tab
-  auth.signInWithRedirect(provider);
+  auth.signInWithRedirect(provider).catch(function(err) {
+    showDebug('signInWithRedirect ERROR: ' + err.code + ' - ' + err.message);
+    showError('Erreur: ' + err.code + ' - ' + err.message);
+  });
 };
 </script>
 </body>
