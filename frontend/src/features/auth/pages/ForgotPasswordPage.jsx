@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ROUTES } from '../../../constants/routes'
+import { API_URL } from '../../../constants/api'
 import Button from '../../../components/ui/Button'
 import Input from '../../../components/ui/Input'
 import Card from '../../../components/ui/Card'
@@ -23,6 +24,8 @@ const ForgotPasswordPage = () => {
     setError(null)
     setLoading(true)
     try {
+      // Wake up Render si en veille
+      await fetch(`${API_URL}/health`, { method: 'GET' }).catch(() => {})
       await apiClient.post('/auth/forgot-password', { email })
       setSent(true)
     } catch (err) {

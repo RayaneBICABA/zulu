@@ -43,3 +43,13 @@ def get_user_by_firebase_uid(firebase_uid):
     except Exception as e:
         logger.error(f"Firebase get_user failed: {e}")
         return None
+
+def create_custom_token(uid):
+    if not _firebase_app:
+        logger.error("Firebase Admin not initialized — cannot create custom token")
+        return None
+    try:
+        return auth.create_custom_token(uid).decode()
+    except Exception as e:
+        logger.error(f"Firebase create_custom_token failed: {e}")
+        return None

@@ -4,6 +4,8 @@ import json
 import urllib.parse
 import urllib.request
 
+from ..services.firebase_auth import verify_token, create_custom_token
+
 auth_mobile_bp = Blueprint('auth_mobile', __name__)
 
 
@@ -74,8 +76,21 @@ def google_mobile_callback():
     if not id_token:
         return _error_page("ID token manquant dans la réponse Google.")
 
-    # Redirect vers le deep link de l'app
-    deep_link = "zawani://auth?token=" + urllib.parse.quote(id_token)
+    # Vérifier le token avec Firebase Admin et créer un custom token
+    decoded = verify_token(id_token)
+    if not decoded:
+        return _error_page("Token Google invalide ou non autorisé par Firebase.")
+
+    firebase_uid = decoded.get('uid')
+    if not firebase_uid:
+        return _error_page("UID Firebase manquant dans le token.")
+
+    custom_token = create_custom_token(firebase_uid)
+    if not custom_token:
+        return _error_page("Impossible de créer le token d'authentification.")
+
+    # Redirect vers le deep link de l'app avec le custom token Firebase
+    deep_link = "zawani://auth?token=" + urllib.parse.quote(custom_token)
     return redirect(deep_link)
 
 

@@ -88,12 +88,9 @@ export const AuthProvider = ({ children }) => {
           if (!idToken) return
 
           try {
-            const { signInWithCredential, GoogleAuthProvider } = await import('../../../firebase')
-            const credential = GoogleAuthProvider.credential(idToken)
-            const result = await signInWithCredential(auth, credential)
+            const { signInWithCustomToken } = await import('../../../firebase')
+            const result = await signInWithCustomToken(auth, idToken)
             await syncUserWithBackend(result.user)
-            // Navigation après sync réussi — le useEffect de LoginPage
-            // détectera isAuthenticated=true et naviguera
           } catch (err) {
             console.error('Deep link auth failed:', err)
           }
