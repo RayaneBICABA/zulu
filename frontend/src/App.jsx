@@ -24,6 +24,7 @@ const App = () => (
       <MobileOnly>
         <AnimatePresence mode="wait">
           <Routes>
+            <Route path={ROUTES.landing} element={<HomePage />} />
             <Route path={ROUTES.splash}  element={<SplashScreen />} />
             <Route path={ROUTES.login}         element={<LoginPage />} />
             <Route path={ROUTES.register}      element={<RegisterPage />} />
