@@ -288,13 +288,17 @@ class CommerceService:
             "nb_commerces_actifs": sum(1 for c in commerces if c.is_active),
         }
 
-    def get_artisan_home(self, user_id):
+    def get_artisan_home(self, user_id, commerce_id=None):
         user = User.query.get(user_id)
         if not user:
             raise ValueError("Utilisateur introuvable.")
 
         commerce = None
-        if user.active_commerce_id:
+        if commerce_id:
+            commerce = Commerce.query.get(commerce_id)
+            if not commerce or commerce.user_id != user_id:
+                raise ValueError("Commerce introuvable.")
+        elif user.active_commerce_id:
             commerce = Commerce.query.get(user.active_commerce_id)
             if not commerce or commerce.user_id != user_id:
                 commerce = None
@@ -306,7 +310,7 @@ class CommerceService:
                 user.save()
 
         if not commerce:
-            raise ValueError("Aucun commerce trouve pour cet artisan.")
+            raise ValueError("Aucun commerce trouve.")
 
         stats = CommerceStats.query.filter_by(commerce_id=commerce.id).first()
         if not stats:
@@ -585,6 +589,33 @@ class CommerceService:
             "message": f"Commerce '{commerce.nom_commercial}' active.",
             "active_commerce_id": commerce.id,
         }
+
+    def list_my_commerces(self, user_id):
+        user = User.query.get(user_id)
+        if not user:
+            raise ValueError("Utilisateur introuvable.")
+
+        commerces = Commerce.query.filter_by(user_id=user_id).all()
+
+        results = []
+        for c in commerces:
+            photo = CommercePhoto.query.filter_by(
+                commerce_id=c.id, is_principale=True
+            ).first()
+            if not photo:
+                photo = CommercePhoto.query.filter_by(
+                    commerce_id=c.id
+                ).order_by(CommercePhoto.ordre.asc()).first()
+
+            results.append({
+                "id": c.id,
+                "nom_commercial": c.nom_commercial,
+                "description": (c.description or "")[:80],
+                "first_image_url": photo.url if photo else None,
+                "is_active": c.is_active,
+            })
+
+        return {"commerces": results}
 
     def get_commerces_cards(self, user_id):
         user = User.query.get(user_id)

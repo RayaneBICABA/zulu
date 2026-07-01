@@ -445,7 +445,8 @@ def artisan_home():
     """
     try:
         user_id = int(get_jwt_identity())
-        result = commerce_service.get_artisan_home(user_id)
+        commerce_id = request.args.get("commerce_id", type=int)
+        result = commerce_service.get_artisan_home(user_id, commerce_id)
         return jsonify(result), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
@@ -521,6 +522,17 @@ def switch_commerce():
         if "Acces refuse" in error_msg:
             return jsonify({"error": error_msg}), 403
         return jsonify({"error": error_msg}), 404
+
+
+@commerce_bp.route("/artisan/commerces", methods=["GET"])
+@jwt_required()
+def list_my_commerces():
+    try:
+        user_id = int(get_jwt_identity())
+        result = commerce_service.list_my_commerces(user_id)
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
 
 @commerce_bp.route("/artisan/commerces/cards", methods=["GET"])

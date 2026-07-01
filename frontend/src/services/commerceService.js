@@ -59,8 +59,11 @@ const commerceService = {
   recordView: (commerceId) =>
     apiClient.post(`${ENDPOINTS.commerces}/${commerceId}/vues`, {}),
 
-  artisanHome: () =>
-    apiClient.get('/artisan/home'),
+  listMyCommerces: () =>
+    apiClient.get('/artisan/commerces'),
+
+  artisanHome: (commerceId) =>
+    apiClient.get(`/artisan/home${commerceId ? `?commerce_id=${commerceId}` : ''}`),
 
   artisanProfile: () =>
     apiClient.get('/artisan/profile'),

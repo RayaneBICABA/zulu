@@ -1,13 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Store, Eye, Heart, MessageCircle, Star, MapPin, Share2, Edit3, ExternalLink, Clock } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Store, Eye, Heart, MessageCircle, Star, Share2 } from 'lucide-react'
 import commerceService from '../services/commerceService'
 import PageWrapper from '../components/layout/PageWrapper'
 
-const StatCard = ({ icon: Icon, label, value, color }) => (
+const PRIMARY_VARIANTS = [
+  { bg: 'bg-primary-500', light: 'bg-primary-50' },
+  { bg: 'bg-primary-600', light: 'bg-primary-100' },
+  { bg: 'bg-primary-400', light: 'bg-primary-50' },
+  { bg: 'bg-primary-700', light: 'bg-primary-100' },
+]
+
+const StatCard = ({ icon: Icon, label, value, variant }) => (
   <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
-    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color}`}>
+    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${variant.bg}`}>
       <Icon size={18} className="text-white" />
     </div>
     <div>
@@ -17,17 +24,125 @@ const StatCard = ({ icon: Icon, label, value, color }) => (
   </div>
 )
 
+const CommerceListItem = ({ item, isSelected, onSelect, data, loadingStats }) => {
+  const s = data?.commerce?.stats
+  const whatsapp = data?.commerce?.whatsapp_numero
+  const statItems = [
+    { icon: Eye, label: 'Vues', value: s?.nb_vues_profile ?? '—' },
+    { icon: Heart, label: 'Favoris', value: s?.nb_favoris ?? '—' },
+    { icon: MessageCircle, label: 'Avis', value: s?.rating_count ?? '—' },
+    { icon: Star, label: 'Note', value: s?.average_rating ? `${s.average_rating}/5` : '—' },
+  ]
+
+  return (
+    <div>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        onClick={onSelect}
+        className={`bg-white rounded-2xl border overflow-hidden cursor-pointer active:scale-[0.98] transition-all ${
+          isSelected ? 'border-primary-500 shadow-md' : 'border-gray-100 shadow-sm'
+        }`}
+      >
+        <div className="flex gap-3 p-3">
+          {item.first_image_url ? (
+            <div className="w-20 h-20 rounded-xl overflow-hidden flex-none bg-gray-100">
+              <img src={item.first_image_url} alt={item.nom_commercial} className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-20 h-20 rounded-xl bg-primary-50 flex items-center justify-center flex-none">
+              <Store size={24} className="text-primary-300" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-sm text-gray-900 truncate">{item.nom_commercial}</h3>
+              <span className={`w-2 h-2 rounded-full flex-none ${item.is_active ? 'bg-green-500' : 'bg-gray-300'}`} />
+            </div>
+            {item.description && (
+              <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{item.description}</p>
+            )}
+          </div>
+        </div>
+      </motion.div>
+
+      <AnimatePresence>
+        {isSelected && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="pt-3 pb-2 px-0.5">
+              {loadingStats ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {statItems.map((s, i) => (
+                      <StatCard key={s.label} {...s} variant={PRIMARY_VARIANTS[i % PRIMARY_VARIANTS.length]} />
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        if (whatsapp) window.open(`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}`, '_blank')
+                      }}
+                      className="flex-1 h-10 bg-green-500 text-white rounded-xl flex items-center justify-center gap-1.5 text-xs font-medium hover:bg-green-600 transition-colors"
+                    >
+                      <Share2 size={14} />
+                      WhatsApp
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 const ArtisanDashboardPage = () => {
   const navigate = useNavigate()
-  const [data, setData] = useState(null)
+  const [commerces, setCommerces] = useState([])
   const [loading, setLoading] = useState(true)
+  const [selectedId, setSelectedId] = useState(null)
+  const [selectedStats, setSelectedStats] = useState(null)
+  const [loadingStats, setLoadingStats] = useState(false)
 
   useEffect(() => {
-    commerceService.artisanHome()
-      .then(setData)
-      .catch(() => setData(null))
+    commerceService.listMyCommerces()
+      .then((data) => setCommerces(data.commerces || []))
+      .catch(() => setCommerces([]))
       .finally(() => setLoading(false))
   }, [])
+
+  const handleSelect = async (id) => {
+    if (selectedId === id) {
+      setSelectedId(null)
+      setSelectedStats(null)
+      return
+    }
+    setSelectedId(id)
+    setSelectedStats(null)
+    setLoadingStats(true)
+    try {
+      const data = await commerceService.artisanHome(id)
+      setSelectedStats(data)
+    } catch {
+      setSelectedStats(null)
+    } finally {
+      setLoadingStats(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -41,129 +156,55 @@ const ArtisanDashboardPage = () => {
     )
   }
 
-  if (!data) {
-    return (
-      <PageWrapper>
-        <div className="px-5 pt-14">
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Mes commerces</h1>
-          <p className="text-gray-400 text-sm mb-6">Vous n'avez pas encore de commerce.</p>
-          <button
-            onClick={() => navigate('/commerce/nouveau')}
-            className="w-full py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-colors"
-          >
-            Creer mon commerce
-          </button>
-        </div>
-      </PageWrapper>
-    )
-  }
-
-  const { commerce, stats, message } = data
-  const statItems = [
-    { icon: Eye, label: 'Vues', value: stats?.nb_vues_profile || 0, color: 'bg-blue-500' },
-    { icon: Heart, label: 'Favoris', value: stats?.nb_favoris || 0, color: 'bg-red-500' },
-    { icon: MessageCircle, label: 'Avis', value: stats?.rating_count || 0, color: 'bg-green-500' },
-    { icon: Star, label: 'Note', value: stats?.average_rating ? `${stats.average_rating}/5` : '—', color: 'bg-yellow-500' },
-  ]
-
   return (
     <PageWrapper className="pb-24">
       <div className="px-5 pt-14">
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <p className="text-sm text-gray-400">Tableau de bord</p>
-              <h1 className="text-xl font-bold text-gray-900">{commerce.nom_commercial}</h1>
-            </div>
-            <div className="flex items-center gap-1 text-xs">
-              <span className={`w-2 h-2 rounded-full ${commerce.is_active ? 'bg-green-500' : 'bg-gray-300'}`} />
-              <span className="text-gray-400">{commerce.is_active ? 'Publie' : 'Brouillon'}</span>
-            </div>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <p className="text-sm text-gray-400">Mes commerces</p>
+            <h1 className="text-xl font-bold text-gray-900">
+              {commerces.length} commerce{commerces.length > 1 ? 's' : ''}
+            </h1>
           </div>
-        </motion.div>
-
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          {statItems.map((s, i) => (
-            <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-              <StatCard {...s} />
-            </motion.div>
-          ))}
+          <button
+            onClick={() => navigate('/commerce/nouveau')}
+            className="h-9 px-4 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 transition-colors"
+          >
+            + Nouveau
+          </button>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">Informations</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-400">Categorie</span>
-              <span className="text-gray-700 font-medium">{data.commerce.categorie?.nom || '—'}</span>
-            </div>
-            {commerce.description && (
-              <div className="flex justify-between">
-                <span className="text-gray-400">Description</span>
-                <span className="text-gray-700 text-right max-w-[200px]">{commerce.description}</span>
-              </div>
-            )}
-            {commerce.adresse_complete && (
-              <div className="flex justify-between">
-                <span className="text-gray-400">Adresse</span>
-                <span className="text-gray-700 text-right max-w-[200px]">{commerce.adresse_complete}</span>
-              </div>
-            )}
-            {commerce.whatsapp_numero && (
-              <div className="flex justify-between">
-                <span className="text-gray-400">WhatsApp</span>
-                <span className="text-gray-700">{commerce.whatsapp_numero}</span>
-              </div>
-            )}
-            {commerce.contact_telephonique && (
-              <div className="flex justify-between">
-                <span className="text-gray-400">Telephone</span>
-                <span className="text-gray-700">{commerce.contact_telephonique}</span>
-              </div>
-            )}
+        {commerces.length === 0 ? (
+          <div className="text-center py-16">
+            <Store size={48} className="mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-400 text-sm mb-6">Vous n'avez pas encore de commerce.</p>
+            <button
+              onClick={() => navigate('/commerce/nouveau')}
+              className="py-3 px-6 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-colors"
+            >
+              Creer mon commerce
+            </button>
           </div>
-        </div>
-
-        {commerce.horaires?.length > 0 && (
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Clock size={14} className="text-gray-400" />
-              <h3 className="text-sm font-semibold text-gray-900">Horaires</h3>
-            </div>
-            <div className="space-y-1">
-              {commerce.horaires.map((h) => (
-                <div key={h.jour} className="flex justify-between text-sm">
-                  <span className="text-gray-600 capitalize w-24">{h.jour}</span>
-                  {h.est_ferme ? (
-                    <span className="text-gray-400">Ferme</span>
-                  ) : (
-                    <span className="text-gray-700">{h.heure_ouverture} - {h.heure_fermeture}</span>
-                  )}
-                </div>
-              ))}
-            </div>
+        ) : (
+          <div className="space-y-3">
+            {commerces.map((item, i) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+              >
+                <CommerceListItem
+                  item={item}
+                  isSelected={selectedId === item.id}
+                  onSelect={() => handleSelect(item.id)}
+                  data={selectedId === item.id ? selectedStats : null}
+                  loadingStats={selectedId === item.id && loadingStats}
+                />
+              </motion.div>
+            ))}
           </div>
         )}
-
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={() => navigate(`/commerce/${commerce.id}`)}
-            className="flex items-center justify-center gap-2 w-full py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-colors"
-          >
-            <ExternalLink size={16} />
-            Voir la fiche publique
-          </button>
-          <button
-            onClick={() => {
-              const url = `https://wa.me/${commerce.whatsapp_numero}`
-              window.open(url, '_blank')
-            }}
-            className="flex items-center justify-center gap-2 w-full py-3 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-colors"
-          >
-            <Share2 size={16} />
-            Partager sur WhatsApp
-          </button>
-        </div>
       </div>
     </PageWrapper>
   )
