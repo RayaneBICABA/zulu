@@ -14,8 +14,8 @@ const ClientProfilePage = () => {
   const [upgrading, setUpgrading] = useState(false)
   const [upgraded, setUpgraded] = useState(false)
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate(ROUTES.login, { replace: true })
   }
 
