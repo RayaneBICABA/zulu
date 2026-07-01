@@ -37,7 +37,10 @@ const getAuthHeader = async () => {
 const handleResponse = async (res) => {
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    const message = data?.message || data?.error || `Erreur ${res.status}`
+    let message = data?.message || data?.error || `Erreur ${res.status}`
+    if (typeof message === 'object') {
+      try { message = Object.values(message).flat().join(', ') || JSON.stringify(message) } catch { message = JSON.stringify(message) }
+    }
     const error = new Error(message)
     error.status = res.status
     throw error

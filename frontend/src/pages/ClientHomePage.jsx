@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Search, MapPin, SlidersHorizontal } from 'lucide-react'
 import useAuth from '../features/auth/hooks/useAuth'
+import useUserLocation from '../hooks/useUserLocation'
 import commerceService from '../services/commerceService'
 import CommerceCard from '../components/ui/CommerceCard'
 import PageWrapper from '../components/layout/PageWrapper'
@@ -19,6 +20,7 @@ const SkeletonCard = () => (
 
 const ClientHomePage = () => {
   const { user } = useAuth()
+  const userLocation = useUserLocation()
   const [search, setSearch] = useState('')
   const [categories, setCategories] = useState([])
   const [selectedCategory, setSelectedCategory] = useState(null)
@@ -73,10 +75,21 @@ const ClientHomePage = () => {
     <PageWrapper className="pb-24">
       <div className="px-5 pt-14">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <p className="text-sm text-gray-400">Bienvenue,</p>
-          <h1 className="text-xl font-bold text-gray-900 mb-4">
-            {user?.first_name || 'Client'}
-          </h1>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm text-gray-400">Bienvenue,</p>
+              <h1 className="text-xl font-bold text-gray-900">
+                {user?.first_name || 'Client'}
+              </h1>
+            </div>
+            {userLocation?.ville && (
+              <div className="flex items-center gap-1 text-xs text-gray-400">
+                <MapPin size={12} />
+                <span>{userLocation.ville}</span>
+                {userLocation.quartier && <span className="text-gray-300">· {userLocation.quartier}</span>}
+              </div>
+            )}
+          </div>
         </motion.div>
 
         <div className="relative mb-4">
