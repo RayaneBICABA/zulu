@@ -30,7 +30,9 @@ def firebase_login():
 
     firebase_uid = decoded.get('uid')
     email = decoded.get('email')
-    name = decoded.get('name') or ''
+    name = decoded.get('name') or data.get('name') or ''
+    first_name_req = data.get('first_name') or ''
+    last_name_req = data.get('last_name') or ''
 
     # 2. Chercher l'utilisateur par firebase_uid
     user = User.query.filter_by(firebase_uid=firebase_uid).first()
@@ -47,12 +49,13 @@ def firebase_login():
             user.firebase_uid = firebase_uid
         else:
             # 4. Créer un nouvel utilisateur
-            name_parts = name.split(' ', 1)
+            fn = first_name_req or name.split(' ', 1)[0] if name else ''
+            ln = last_name_req or (name.split(' ', 1)[1] if name and ' ' in name else '')
             user = User(
                 email=email,
                 firebase_uid=firebase_uid,
-                first_name=name_parts[0] if name_parts else '',
-                last_name=name_parts[1] if len(name_parts) > 1 else '',
+                first_name=fn,
+                last_name=ln,
                 is_verified=True,  # Google vérifie l'email
             )
             # Assigner le rôle client par défaut
