@@ -119,10 +119,10 @@ const CommerceDetailPage = () => {
             <MapPin size={50} />
           </div>
         )}
-        <button onClick={() => navigate(-1)} className="absolute top-4 left-4 w-9 h-9 bg-white/90 rounded-full flex items-center justify-center shadow">
+        <button onClick={() => navigate(-1)} className="absolute top-14 left-4 w-9 h-9 bg-white/90 rounded-full flex items-center justify-center shadow">
           <ArrowLeft size={18} />
         </button>
-        <div className="absolute top-4 right-4 flex gap-2">
+        <div className="absolute top-14 right-4 flex gap-2">
           {!isOwnCommerce && (
             <button onClick={handleToggleFavori} className="w-9 h-9 bg-white/90 rounded-full flex items-center justify-center shadow">
               <Heart size={18} className={isFavorited ? 'fill-red-500 text-red-500' : 'text-gray-600'} />
