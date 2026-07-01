@@ -220,8 +220,8 @@ class CommerceService:
         commerce = Commerce.query.get(commerce_id)
         if not commerce:
             raise ValueError("Commerce introuvable.")
-        if commerce.user_id != user_id:
-            raise ValueError("Acces refuse.")
+        if commerce.user_id != user_id and not commerce.is_active:
+            raise ValueError("Commerce introuvable.")
 
         result = commerce.to_dict()
         result["step"] = _get_step(commerce)
