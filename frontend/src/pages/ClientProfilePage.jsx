@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { User, Mail, LogOut, ChevronRight, Shield, Store, Hammer, Check } from 'lucide-react'
+import { User, Mail, LogOut, ChevronRight, Store, Hammer, Check } from 'lucide-react'
 import useAuth from '../features/auth/hooks/useAuth'
 import authService from '../services/authService'
 import { ROUTES } from '../constants/routes'
@@ -34,7 +34,7 @@ const ClientProfilePage = () => {
 
   return (
     <PageWrapper className="pb-24">
-      <div className="px-5 pt-4">
+      <div className="px-5 pt-14">
         <h1 className="text-xl font-bold text-gray-900 mb-6">Mon profil</h1>
 
         <motion.div
@@ -114,24 +114,33 @@ const ClientProfilePage = () => {
                 </span>
               </div>
             )}
-
-            <button className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <Shield size={18} className="text-gray-400" />
-                <span className="text-sm text-gray-700">Mes informations</span>
-              </div>
-              <ChevronRight size={16} className="text-gray-300" />
-            </button>
-
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 w-full p-4 hover:bg-gray-50 transition-colors"
-            >
-              <LogOut size={18} className="text-red-500" />
-              <span className="text-sm text-red-500 font-medium">Se deconnecter</span>
-            </button>
           </div>
         </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl p-5 mb-6"
+        >
+          <p className="text-white text-sm font-medium mb-3">
+            Inscrivez votre commerce et recevez de nouveaux clients gratuitement
+          </p>
+          <button
+            onClick={() => navigate(ROUTES.commerceCreate)}
+            className="bg-white text-primary-600 font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-gray-50 transition-colors"
+          >
+            Commencer &gt;
+          </button>
+        </motion.div>
+
+        <button
+          onClick={handleLogout}
+          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-red-200 text-red-500 font-medium text-sm hover:bg-red-50 transition-colors"
+        >
+          <LogOut size={18} />
+          Se deconnecter
+        </button>
       </div>
     </PageWrapper>
   )
