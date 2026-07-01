@@ -852,13 +852,21 @@ def get_commerce_rating(commerce_id):
         description: Commerce introuvable
     """
     from app.models.commerce import Commerce, CommerceStats
-    from app.services.ai_service import compute_etoiles
+    from app.models.commentaire import Commentaire
+    from app.services.ai_service import compute_etoiles, analyze_and_update_rating
 
     commerce = Commerce.query.get(commerce_id)
     if not commerce:
         return jsonify({"error": "Commerce introuvable."}), 404
 
     stats = CommerceStats.query.filter_by(commerce_id=commerce_id).first()
+    actual_count = Commentaire.query.filter_by(commerce_id=commerce_id, is_visible=True).count()
+    cached_count = stats.rating_count if stats else 0
+
+    if actual_count > 0 and cached_count != actual_count:
+        analyze_and_update_rating(commerce_id)
+        stats = CommerceStats.query.filter_by(commerce_id=commerce_id).first()
+
     average_rating = float(stats.average_rating) if stats and stats.average_rating else 0.0
     rating_count = stats.rating_count if stats else 0
 

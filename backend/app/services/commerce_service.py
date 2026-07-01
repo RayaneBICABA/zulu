@@ -55,6 +55,13 @@ class CommerceService:
             if not photo and c.photos:
                 photo = c.photos[0].url
             stats = c.stats
+            if stats and stats.rating_count == 0 and c.commentaires:
+                from app.services.ai_service import analyze_and_update_rating
+                try:
+                    analyze_and_update_rating(c.id)
+                    stats = c.stats
+                except Exception:
+                    pass
             results.append({
                 "id": c.id,
                 "nom_commercial": c.nom_commercial,
