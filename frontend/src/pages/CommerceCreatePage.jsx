@@ -12,7 +12,7 @@ const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dim
 
 const CommerceCreatePage = () => {
   const navigate = useNavigate()
-  const userLocation = useUserLocation()
+  const { location: userLocation } = useUserLocation()
   const [step, setStep] = useState(1)
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)

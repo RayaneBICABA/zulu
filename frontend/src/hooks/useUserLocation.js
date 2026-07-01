@@ -9,9 +9,10 @@ const useUserLocation = () => {
       return stored ? JSON.parse(stored) : null
     } catch { return null }
   })
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!navigator.geolocation) return
+    if (!navigator.geolocation) { setLoading(false); return }
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
@@ -31,13 +32,14 @@ const useUserLocation = () => {
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(loc))
         setLocation(loc)
+        setLoading(false)
       },
-      () => {},
+      () => { setLoading(false) },
       { enableHighAccuracy: true, timeout: 10000 }
     )
   }, [])
 
-  return location
+  return { location, loading }
 }
 
 export default useUserLocation

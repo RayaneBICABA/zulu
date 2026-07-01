@@ -20,7 +20,7 @@ const SkeletonCard = () => (
 
 const ClientHomePage = () => {
   const { user } = useAuth()
-  const userLocation = useUserLocation()
+  const { location: userLocation, loading: locLoading } = useUserLocation()
   const [search, setSearch] = useState('')
   const [categories, setCategories] = useState([])
   const [selectedCategory, setSelectedCategory] = useState(null)
@@ -82,13 +82,15 @@ const ClientHomePage = () => {
                 {user?.first_name || 'Client'}
               </h1>
             </div>
-            {userLocation?.ville && (
+            {locLoading ? (
+              <div className="h-3 w-20 bg-gray-200 rounded animate-pulse" />
+            ) : userLocation?.ville ? (
               <div className="flex items-center gap-1 text-xs text-gray-400">
                 <MapPin size={12} />
                 <span>{userLocation.ville}</span>
                 {userLocation.quartier && <span className="text-gray-300">· {userLocation.quartier}</span>}
               </div>
-            )}
+            ) : null}
           </div>
         </motion.div>
 
