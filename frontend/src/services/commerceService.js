@@ -30,6 +30,12 @@ const commerceService = {
   publish: (commerceId) =>
     apiClient.patch(`${ENDPOINTS.commerces}/${commerceId}/publish`),
 
+  deleteCommerce: (commerceId) =>
+    apiClient.delete(`${ENDPOINTS.commerces}/${commerceId}`),
+
+  toggleDraft: (commerceId) =>
+    apiClient.patch(`${ENDPOINTS.commerces}/${commerceId}/draft`),
+
   getRating: (commerceId) =>
     apiClient.get(`${ENDPOINTS.commerces}/${commerceId}/rating`),
 

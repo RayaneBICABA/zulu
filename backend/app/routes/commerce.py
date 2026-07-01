@@ -331,6 +331,28 @@ def get_commerce(commerce_id):
         return jsonify({"error": str(e)}), 400
 
 
+@commerce_bp.route("/commerces/<int:commerce_id>", methods=["DELETE"])
+@jwt_required()
+def delete_commerce(commerce_id):
+    try:
+        user_id = int(get_jwt_identity())
+        commerce_service.delete_commerce(commerce_id, user_id)
+        return jsonify({"message": "Commerce supprime."}), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@commerce_bp.route("/commerces/<int:commerce_id>/draft", methods=["PATCH"])
+@jwt_required()
+def toggle_draft(commerce_id):
+    try:
+        user_id = int(get_jwt_identity())
+        result = commerce_service.toggle_draft(commerce_id, user_id)
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
 @commerce_bp.route("/categories", methods=["GET"])
 def list_categories():
     """

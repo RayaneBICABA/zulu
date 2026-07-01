@@ -24,7 +24,7 @@ const StatCard = ({ icon: Icon, label, value, variant }) => (
   </div>
 )
 
-const CommerceListItem = ({ item, isSelected, onSelect, data, loadingStats }) => {
+const CommerceListItem = ({ item, isSelected, onSelect, data, loadingStats, onDelete, onDraft }) => {
   const s = data?.commerce?.stats
   const whatsapp = data?.commerce?.whatsapp_numero
   const statItems = [
@@ -33,6 +33,12 @@ const CommerceListItem = ({ item, isSelected, onSelect, data, loadingStats }) =>
     { icon: MessageCircle, label: 'Avis', value: s?.rating_count ?? '—' },
     { icon: Star, label: 'Note', value: s?.average_rating ? `${s.average_rating}/5` : '—' },
   ]
+
+  const handleDelete = () => {
+    if (window.confirm(`Supprimer "${item.nom_commercial}" ? Cette action est irreversible.`)) {
+      onDelete(item.id)
+    }
+  }
 
   return (
     <div>
@@ -99,6 +105,20 @@ const CommerceListItem = ({ item, isSelected, onSelect, data, loadingStats }) =>
                       <Share2 size={14} />
                       WhatsApp
                     </button>
+                    {item.is_active && (
+                      <button
+                        onClick={() => onDraft(item.id)}
+                        className="h-10 px-4 bg-primary-100 text-primary-600 rounded-xl text-xs font-medium hover:bg-primary-200 transition-colors"
+                      >
+                        Brouillon
+                      </button>
+                    )}
+                    <button
+                      onClick={handleDelete}
+                      className="h-10 px-4 bg-red-50 text-red-500 rounded-xl text-xs font-medium hover:bg-red-100 transition-colors"
+                    >
+                      Supprimer
+                    </button>
                   </div>
                 </>
               )}
@@ -124,6 +144,24 @@ const ArtisanDashboardPage = () => {
       .catch(() => setCommerces([]))
       .finally(() => setLoading(false))
   }, [])
+
+  const handleDelete = async (id) => {
+    try {
+      await commerceService.deleteCommerce(id)
+      setCommerces((prev) => prev.filter((c) => c.id !== id))
+      if (selectedId === id) {
+        setSelectedId(null)
+        setSelectedStats(null)
+      }
+    } catch {}
+  }
+
+  const handleDraft = async (id) => {
+    try {
+      await commerceService.toggleDraft(id)
+      setCommerces((prev) => prev.map((c) => c.id === id ? { ...c, is_active: false } : c))
+    } catch {}
+  }
 
   const handleSelect = async (id) => {
     if (selectedId === id) {
@@ -200,6 +238,8 @@ const ArtisanDashboardPage = () => {
                   onSelect={() => handleSelect(item.id)}
                   data={selectedId === item.id ? selectedStats : null}
                   loadingStats={selectedId === item.id && loadingStats}
+                  onDelete={handleDelete}
+                  onDraft={handleDraft}
                 />
               </motion.div>
             ))}

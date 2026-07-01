@@ -198,6 +198,27 @@ class CommerceService:
         photo.delete()
         return {"message": "Photo supprimee."}
 
+    def delete_commerce(self, commerce_id, user_id):
+        commerce = Commerce.query.get(commerce_id)
+        if not commerce:
+            raise ValueError("Commerce introuvable.")
+        if commerce.user_id != user_id:
+            raise ValueError("Acces refuse.")
+
+        commerce.delete()
+        return {"message": "Commerce supprime."}
+
+    def toggle_draft(self, commerce_id, user_id):
+        commerce = Commerce.query.get(commerce_id)
+        if not commerce:
+            raise ValueError("Commerce introuvable.")
+        if commerce.user_id != user_id:
+            raise ValueError("Acces refuse.")
+
+        commerce.is_active = False
+        commerce.save()
+        return {"message": "Commerce mis en brouillon.", "is_active": False}
+
     def publish(self, commerce_id, user_id):
         commerce = Commerce.query.get(commerce_id)
         if not commerce:
