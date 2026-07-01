@@ -1,10 +1,21 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { Search, MapPin } from 'lucide-react'
+import { Search, MapPin, SlidersHorizontal } from 'lucide-react'
 import useAuth from '../features/auth/hooks/useAuth'
 import commerceService from '../services/commerceService'
 import CommerceCard from '../components/ui/CommerceCard'
 import PageWrapper from '../components/layout/PageWrapper'
+
+const SkeletonCard = () => (
+  <div className="animate-pulse bg-white rounded-xl p-4 flex gap-3">
+    <div className="w-20 h-20 bg-gray-200 rounded-lg flex-none" />
+    <div className="flex-1 space-y-2">
+      <div className="h-4 bg-gray-200 rounded w-3/4" />
+      <div className="h-3 bg-gray-200 rounded w-1/2" />
+      <div className="h-3 bg-gray-200 rounded w-2/3" />
+    </div>
+  </div>
+)
 
 const ClientHomePage = () => {
   const { user } = useAuth()
@@ -14,6 +25,7 @@ const ClientHomePage = () => {
   const [commerces, setCommerces] = useState([])
   const [loading, setLoading] = useState(true)
   const [favorites, setFavorites] = useState(new Set())
+  const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
     commerceService.listCategories().then(setCategories).catch(() => {})
@@ -59,7 +71,7 @@ const ClientHomePage = () => {
 
   return (
     <PageWrapper className="pb-24">
-      <div className="px-5 pt-4">
+      <div className="px-5 pt-14">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <p className="text-sm text-gray-400">Bienvenue,</p>
           <h1 className="text-xl font-bold text-gray-900 mb-4">
@@ -74,41 +86,61 @@ const ClientHomePage = () => {
             placeholder="Rechercher un metier ou commerce..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-11 pl-10 pr-4 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:outline-none focus:border-primary-500 transition-colors"
+            className="w-full h-11 pl-10 pr-12 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:outline-none focus:border-primary-500 transition-colors"
           />
-        </div>
-
-        <div className="flex gap-2 overflow-x-auto pb-3 -mx-5 px-5" style={{ scrollbarWidth: 'none' }}>
           <button
-            onClick={() => setSelectedCategory(null)}
-            className={`flex-none px-4 py-2 rounded-full text-xs font-medium border transition-colors ${
-              !selectedCategory
-                ? 'bg-primary-500 text-white border-primary-500'
-                : 'bg-white text-gray-600 border-gray-200'
+            onClick={() => setShowFilters((p) => !p)}
+            className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors ${
+              showFilters || selectedCategory
+                ? 'bg-primary-100 text-primary-600'
+                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
             }`}
           >
-            Tout
+            <SlidersHorizontal size={18} />
           </button>
-          {categories.map((cat) => (
+        </div>
+
+        {showFilters && (
+          <div className="flex gap-2 overflow-x-auto pb-3 -mx-5 px-5 mb-3" style={{ scrollbarWidth: 'none' }}>
             <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id === selectedCategory ? null : cat.id)}
+              onClick={() => setSelectedCategory(null)}
               className={`flex-none px-4 py-2 rounded-full text-xs font-medium border transition-colors ${
-                selectedCategory === cat.id
+                !selectedCategory
                   ? 'bg-primary-500 text-white border-primary-500'
                   : 'bg-white text-gray-600 border-gray-200'
               }`}
             >
-              {cat.nom}
+              Tout
             </button>
-          ))}
-        </div>
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id === selectedCategory ? null : cat.id)}
+                className={`flex-none px-4 py-2 rounded-full text-xs font-medium border transition-colors ${
+                  selectedCategory === cat.id
+                    ? 'bg-primary-500 text-white border-primary-500'
+                    : 'bg-white text-gray-600 border-gray-200'
+                }`}
+              >
+                {cat.nom}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <img
+          src="/ZAWANI_CARD_CLIENT.png"
+          alt="Zawani"
+          className="w-full rounded-xl mb-4"
+        />
       </div>
 
       <div className="px-5">
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+          <div className="space-y-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
           </div>
         ) : commerces.length === 0 ? (
           <div className="text-center py-12">
