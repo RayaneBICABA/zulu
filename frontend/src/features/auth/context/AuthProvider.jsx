@@ -7,6 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [sessionExpired, setSessionExpired] = useState(false)
+  const [jwt, setJwt] = useState(null)
   const initialised = useRef(false)
   const syncPromiseRef = useRef(null)
   const deepLinkRef = useRef(false)
@@ -39,6 +40,11 @@ export const AuthProvider = ({ children }) => {
         }
         const data = await res.json()
         setUser(data.user)
+        if (data.access_token) {
+          setJwt(data.access_token)
+          localStorage.setItem('zawani_jwt', data.access_token)
+          if (data.refresh_token) localStorage.setItem('zawani_refresh_token', data.refresh_token)
+        }
         return data.user
       } catch (e) {
         console.error('Failed to sync user with backend:', e)
@@ -135,11 +141,19 @@ export const AuthProvider = ({ children }) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password)
     const token = await cred.user.getIdToken()
     try {
-      await fetch(`${API_URL}/auth/firebase-login`, {
+      const res = await fetch(`${API_URL}/auth/firebase-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, first_name, last_name }),
       })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.access_token) {
+          setJwt(data.access_token)
+          localStorage.setItem('zawani_jwt', data.access_token)
+          if (data.refresh_token) localStorage.setItem('zawani_refresh_token', data.refresh_token)
+        }
+      }
     } catch (e) {
       console.warn('Backend sync after register failed:', e)
     }
@@ -150,13 +164,19 @@ export const AuthProvider = ({ children }) => {
     deepLinkRef.current = false
     await fbSignOut(auth)
     setUser(null)
+    setJwt(null)
     setSessionExpired(false)
+    localStorage.removeItem('zawani_jwt')
+    localStorage.removeItem('zawani_refresh_token')
   }, [])
 
   const refreshUser = useCallback(async () => {
     const currentUser = auth.currentUser
     if (!currentUser) {
       setUser(null)
+      setJwt(null)
+      localStorage.removeItem('zawani_jwt')
+      localStorage.removeItem('zawani_refresh_token')
       return
     }
     try {
@@ -169,6 +189,11 @@ export const AuthProvider = ({ children }) => {
       if (res.ok) {
         const data = await res.json()
         setUser(data.user)
+        if (data.access_token) {
+          setJwt(data.access_token)
+          localStorage.setItem('zawani_jwt', data.access_token)
+          if (data.refresh_token) localStorage.setItem('zawani_refresh_token', data.refresh_token)
+        }
       }
     } catch (e) {
       console.error('refreshUser failed:', e)
@@ -202,6 +227,7 @@ export const AuthProvider = ({ children }) => {
     hasRole,
     hasPermission,
     isAuthenticated: !!user,
+    jwt,
     getFirebaseToken: () => {
       const u = auth.currentUser
       return u ? u.getIdToken() : null

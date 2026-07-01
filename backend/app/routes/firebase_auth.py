@@ -1,4 +1,6 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import create_access_token, create_refresh_token
+from datetime import timedelta
 from ..extensions import db
 from ..models.user import User
 from ..models.role import Role
@@ -66,4 +68,22 @@ def firebase_login():
         db.session.rollback()
         return jsonify({"error": f"Erreur base de données: {str(e)}"}), 500
 
-    return jsonify({"user": user.to_dict()}), 200
+    access_token = create_access_token(
+        identity=str(user.id),
+        additional_claims={
+            "email": user.email,
+            "is_verified": user.is_verified,
+            "roles": [r.name for r in user.roles],
+        },
+        expires_delta=timedelta(minutes=15),
+    )
+    refresh_token = create_refresh_token(
+        identity=str(user.id),
+        expires_delta=timedelta(days=7),
+    )
+
+    return jsonify({
+        "user": user.to_dict(),
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+    }), 200
