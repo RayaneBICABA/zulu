@@ -11,7 +11,7 @@ import PageWrapper from "../../../components/layout/PageWrapper";
 import { useOnlineStatus } from "../../../hooks/useOnlineStatus";
 
 const LoginPage = () => {
-  const { login, isAuthenticated, loading: authLoading } = useAuth();
+  const { login, user, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || ROUTES.home;
@@ -23,12 +23,12 @@ const LoginPage = () => {
   const [fieldErrors, setFieldErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
-  // ✅ Si déjà authentifié (Google redirect, deep link, refresh) → accueil
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      navigate(from, { replace: true });
+    if (!authLoading && isAuthenticated && user) {
+      const isArtisan = user.roles?.some((r) => r === 'artisan' || r?.name === 'artisan');
+      navigate(isArtisan ? ROUTES.dashboard : from, { replace: true });
     }
-  }, [authLoading, isAuthenticated, navigate, from]);
+  }, [authLoading, isAuthenticated, user, navigate, from]);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -53,8 +53,9 @@ const LoginPage = () => {
     setError(null);
     setLoading(true);
     try {
-      await login(form);
-      navigate(from, { replace: true });
+      const userData = await login(form);
+      const isArtisan = userData?.roles?.some((r) => r === 'artisan' || r?.name === 'artisan');
+      navigate(isArtisan ? ROUTES.dashboard : from, { replace: true });
     } catch (err) {
       const code = err.code;
       if (code === "auth/user-not-found" || code === "auth/invalid-credential") {

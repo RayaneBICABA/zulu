@@ -10,7 +10,7 @@ import NotFoundPage from './pages/NotFoundPage'
 import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
 import ForgotPasswordPage from './features/auth/pages/ForgotPasswordPage'
-import DashboardPage from './pages/DashboardPage'
+import ArtisanDashboardPage from './pages/ArtisanDashboardPage'
 import ClientHomePage from './pages/ClientHomePage'
 import FavorisPage from './pages/FavorisPage'
 import ClientProfilePage from './pages/ClientProfilePage'
@@ -38,17 +38,12 @@ const AnimatedRoutes = () => {
           <Route path={ROUTES.favoris}         element={<FavorisPage />} />
           <Route path={ROUTES.profile}         element={<ClientProfilePage />} />
           <Route path={ROUTES.commerceCreate}  element={<CommerceCreatePage />} />
+          <Route path={ROUTES.dashboard}       element={<ArtisanDashboardPage />} />
         </Route>
 
         <Route path={ROUTES.commerceDetail} element={
           <ProtectedRoute>
             <CommerceDetailPage />
-          </ProtectedRoute>
-        } />
-
-        <Route path={ROUTES.dashboard}     element={
-          <ProtectedRoute>
-            <DashboardPage />
           </ProtectedRoute>
         } />
         <Route path={ROUTES.notFound}      element={<NotFoundPage />} />

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Check, Upload, MapPin, Clock } from 'lucide-react'
 import commerceService from '../services/commerceService'
+import authService from '../services/authService'
 import useUserLocation from '../hooks/useUserLocation'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
@@ -113,6 +114,7 @@ const CommerceCreatePage = () => {
         await commerceService.uploadPhotos(commerceId, photos)
       }
       await commerceService.publish(commerceId)
+      authService.becomeArtisan().catch(() => {})
       navigate('/dashboard', { replace: true })
     } catch (err) {
       setError(err.message)

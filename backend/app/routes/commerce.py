@@ -9,7 +9,7 @@ from ..schemas.commerce_schema import (
 from ..schemas.categorie_schema import CategorieCreateSchema
 from ..schemas.commentaire_schema import CommentaireCreateSchema
 from ..services import commerce_service
-from ..services.role_service import role_required
+from ..services.role_service import role_required, RoleService
 
 commerce_bp = Blueprint("commerce", __name__)
 step1_schema = CommerceStep1Schema()
@@ -285,7 +285,17 @@ def publish_commerce(commerce_id):
     try:
         user_id = int(get_jwt_identity())
         result = commerce_service.publish(commerce_id, user_id)
-        return jsonify(result), 200
+
+        from ..models.role import Role
+        from ..models.user import User
+
+        user = User.query.get(user_id)
+        artisan_role = Role.query.filter_by(name="artisan").first()
+        if user and artisan_role and artisan_role not in user.roles:
+            user.roles.append(artisan_role)
+            user.save()
+
+        return jsonify({**result, "artisan_role_assigned": True}), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
