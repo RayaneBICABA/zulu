@@ -1,20 +1,20 @@
 <p align="center">
-  <img src="ZULU.png" alt="Zulu Starter" width="180">
+  <img src="ZULU.png" alt="ZULU" width="180">
 </p>
 
-<h1 align="center">Zulu Starter</h1>
+<h1 align="center">ZAWANI</h1>
 
 <p align="center">
-  Base solide pour hackathons et projets full-stack.
+  Application mobile d'annuaire intelligent pour commerces locaux.
   <br>
-  Flask 3.1 &middot; React 19 &middot; PostgreSQL 15 &middot; Docker
+  Developpee par la team <strong>ZULU</strong>.
 </p>
 
 ## A propos
 
-Zulu Starter est un template de projet full-stack pret a l'emploi, concu pour demarrer un hackathon ou un projet sans perdre de temps sur la configuration initiale.
+ZAWANI est une application mobile de mise en relation entre clients et commerces de proximite. Elle permet la decouverte, la recherche geolocalisee et la gestion de commerces locaux avec des fonctionnalites de notation intelligente, de favoris et de partage.
 
-Le projet suit les principes de **Clean Architecture** avec une separation stricte des responsabilites, des conventions de code claires, et une documentation complete pour le travail en equipe.
+L'application se distingue par son modele utilisateur unifie : tout utilisateur peut naviguer, commenter, favoriser et creer ses propres commerces sans distinction de role artificiel.
 
 ## Stack technique
 
@@ -22,15 +22,15 @@ Le projet suit les principes de **Clean Architecture** avec une separation stric
 
 | Technologie | Role |
 |---|---|
-| Python 3.11 + Flask 3.1 | Framework web |
+| Python 3.11 + Flask 3.1 | Framework web REST |
 | SQLAlchemy | ORM |
 | Flask-Migrate (Alembic) | Migrations de base de donnees |
 | Flask-JWT-Extended | Authentification par tokens JWT |
 | Flask-Cors | Gestion du CORS |
-| Marshmallow | Validation et serialisation des donnees |
+| Marshmallow | Validation et serialisation |
 | PostgreSQL 15 | Base de donnees relationnelle |
 | Flasgger (Swagger) | Documentation interactive des API |
-| Pytest | Tests unitaires et d'integration |
+| Google Generative AI | Analyse automatique des avis (fallback keyword) |
 
 ### Frontend
 
@@ -42,77 +42,81 @@ Le projet suit les principes de **Clean Architecture** avec une separation stric
 | Tailwind CSS v4 | Styling utilitaire |
 | Framer Motion 12 | Animations |
 | Lucide React | Icones |
-| Capacitor 7 | Pont natif pour Android |
-| ESLint 10 | Linting et conventions |
+| Capacitor 7 | Pont natif pour Android (APK) |
+| Firebase JS SDK | Authentification (Google, email) |
 
 ### Infrastructure
 
 | Outil | Role |
 |---|---|
-| Docker + Docker Compose | Conteneurisation de la DB et du backend |
-| Vercel | Deploiement frontend |
+| Docker + Docker Compose | Conteneurisation DB et backend |
+| Vercel | Deploiement frontend (PWA) |
 | Render | Deploiement backend |
+| Firebase Auth | Fournisseur d'identite |
+
+## Fonctionnalites
+
+- Authentification Firebase (Google, email, anonyme)
+- Geolocalisation des commerces avec tri par distance
+- Recherche et filtre par categorie
+- Fiche commerce detaillee avec photos, horaires, contact
+- Notation automatique des commentaires par analyse semantique
+- Favoris avec synchronisation compte
+- Creation et gestion de commerces (brouillon / publication)
+- Dashboard de statistiques (vues, favoris, avis, note)
+- Partage localisation via WhatsApp
+- Mode hors-ligne partiel grace au stockage local
 
 ## Structure du projet
 
 ```
-zulu-starter/
-├── backend/              Application Flask (API)
-│   ├── app/
-│   │   ├── models/       Modeles SQLAlchemy
-│   │   ├── routes/       Points d'entree HTTP (blueprints)
-│   │   ├── schemas/      Validation Marshmallow
-│   │   └── services/     Logique metier
-│   ├── tests/            Tests unitaires et d'integration
-│   └── requirements.txt  Dependances Python
-├── frontend/             Application React (SPA + mobile)
-│   ├── android/          Projet natif Android (Capacitor)
-│   ├── src/
-│   │   ├── components/   Composants UI et layout
-│   │   ├── constants/    Configuration centralisee
-│   │   ├── hooks/        Hooks reutilisables
-│   │   ├── pages/        Ecrans de l'application
-│   │   └── services/     Appels API
-│   ├── capacitor.config.ts
-│   └── package.json
-├── docs/                 Documentation
-│   ├── BACKEND.md
-│   ├── FRONTEND.md
-│   ├── COMMANDS.md
-│   ├── FRONTEND_COMMANDS.md
-│   └── api-convention-designer.md   ← Template de contrat API frontend/backend
-├── tools/                Outils autonomes (HTML, sans build)
-│   ├── zulu-taskboard.html          ← Gestion de taches equipe
-│   └── api-contract-designer.html   ← Editeur de contrat API interactif
-├── docker-compose.yml    Services Docker (PostgreSQL + backend)
-└── ZULU.png              Logo du projet
+zawani/
+  +-- backend/              Application Flask (API REST)
+  |   +-- app/
+  |   |   +-- models/       Modeles SQLAlchemy
+  |   |   +-- routes/       Points d'entree HTTP (blueprints)
+  |   |   +-- schemas/      Validation Marshmallow
+  |   |   +-- services/     Logique metier
+  |   +-- tests/            Tests unitaires
+  |   +-- requirements.txt
+  +-- frontend/             Application React (SPA + Capacitor)
+  |   +-- android/          Projet natif Android
+  |   +-- src/
+  |   |   +-- components/   Composants UI
+  |   |   +-- constants/    Configuration
+  |   |   +-- features/     Modules fonctionnels (auth)
+  |   |   +-- hooks/        Hooks reutilisables
+  |   |   +-- pages/        Ecrans de l'application
+  |   |   +-- services/     Appels API
+  |   +-- capacitor.config.ts
+  |   +-- package.json
+  +-- docs/                 Documentation
+  +-- tools/                Outils autonomes
+  +-- docker-compose.yml
 ```
-
-## Prerequisites
-
-- Docker et Docker Compose installes (pour la base de donnees et le backend)
-- Node.js >= 18 (pour le frontend)
-- Python 3.11+ (pour le backend si lance sans Docker)
-- Android Studio (optionnel -- requis pour compiler et lancer l'application mobile)
 
 ## Demarrage rapide
 
-### 1. Cloner le depot
+### Prerequis
+
+- Docker et Docker Compose
+- Node.js >= 18
+- Python 3.11+
+- Android Studio (optionnel, pour build APK)
+
+### Backend
 
 ```bash
 git clone <url-du-depot>
-cd zulu-starter
-```
+cd zawani
 
-### 2. Lancer la base de donnees et le backend avec Docker
-
-```bash
+# Lancer la base de donnees et le backend
 docker compose up -d
+
+# Le backend est accessible sur http://localhost:5000
 ```
 
-Le backend est accessible sur `http://localhost:5000`.
-
-### 3. Lancer le frontend
+### Frontend
 
 ```bash
 cd frontend
@@ -122,87 +126,50 @@ npm run dev
 
 Le frontend est accessible sur `http://localhost:5173`.
 
-### 4. Ouvrir l'application
-
-Rendez-vous sur `http://localhost:5173` dans votre navigateur.
-
-## Commandes principales
-
-### Backend (avec Docker)
-
-```bash
-docker compose up -d        # Demarrer les services
-docker compose down         # Arreter les services
-docker compose logs -f      # Voir les logs
-```
-
-### Backend (sans Docker)
-
-```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-flask run --host=0.0.0.0 --port=5000 --reload
-```
-
-### Frontend
+### Application mobile (Android)
 
 ```bash
 cd frontend
-npm install
-npm run dev                 # Serveur local
-npm run dev:network         # Serveur accessible sur le reseau
-npm run build               # Build de production
-npm run lint                # Verification du code
-npm run cap:build           # Build web + sync Android
-npm run cap:open:android    # Ouvrir dans Android Studio
+npm run build
+npx cap sync android
+cd android
+./gradlew assembleDebug
+adb install app/build/outputs/apk/debug/app-debug.apk
 ```
-
-## Documentation
-
-| Document | Contenu |
-|---|---|
-| `docs/BACKEND.md` | Architecture backend, conventions, guide d'ajout de ressources, tests |
-| `docs/FRONTEND.md` | Architecture frontend, roles des couches, conventions, travail en equipe |
-| `docs/COMMANDS.md` | Commandes Docker, Python, migrations, tests, Git workflow |
-| `docs/FRONTEND_COMMANDS.md` | Commandes frontend (dev, build, lint, preview, deploiement) |
-| `docs/api-convention-designer.md` | Template de contrat API — conventions, formats, workflow frontend/backend |
-| `tools/zulu-taskboard.html` | Tableau de gestion de taches (ouvrir dans le navigateur) |
-| `tools/api-contract-designer.html` | Editeur interactif de contrat API (ouvrir dans le navigateur) |
 
 ## Variables d'environnement
 
 ### Backend
 
-Copier `backend/.env.example` vers `backend/.env` et renseigner :
+Copier `backend/.env.example` vers `backend/.env`.
 
 ```
-SECRET_KEY=une-chaine-aleatoire-longue
-JWT_SECRET_KEY=une-autre-chaine-aleatoire
+SECRET_KEY=
+JWT_SECRET_KEY=
 DATABASE_URL=postgresql://zulu_user:zulu_pass@localhost:5432/zulu_db
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=zulu_db
-DB_USER=zulu_user
-DB_PASSWORD=zulu_pass
 FLASK_APP=run.py
 FLASK_ENV=development
+GEMINI_API_KEY=              # Optionnel, pour analyse IA des avis
+FIREBASE_PROJECT_ID=
+FIREBASE_PRIVATE_KEY=
+FIREBASE_CLIENT_EMAIL=
 ```
 
 ### Frontend
 
-Copier `frontend/.env.example` vers `frontend/.env` :
+Copier `frontend/.env.example` vers `frontend/.env`.
 
-```env
+```
 VITE_API_URL=http://localhost:5000/api
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
 ```
 
 ## Equipe et contributions
 
+Projet realise par la team **ZULU**. ZAWANI est construit sur le template full-stack ZULU qui fournit l'architecture, les conventions et les outils de productivite.
+
 - Une branche par fonctionnalite, jamais directement sur `main`
-- Lancer `npm run lint` et `pytest` avant de pousser
-- Consulter la documentation dans `docs/` pour les conventions de code
-- Les couleurs du theme sont definies dans `frontend/src/constants/colors.js` et `frontend/src/index.css`
-- Tout nouvel endpoint backend doit etre ajoute a `frontend/src/constants/api.js`
+- Lancer `npm run lint` et les tests avant de pousser
+- La documentation de reference se trouve dans `docs/`
