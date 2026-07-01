@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="ZAWANI.png" alt="ZAWANI" width="180">
+  <img src="ZAWANI.png" alt="ZAWANI" width="180" style="margin-right: 60px;">
   <img src="ZULU.png" alt="ZULU" width="180">
 </p>
 
