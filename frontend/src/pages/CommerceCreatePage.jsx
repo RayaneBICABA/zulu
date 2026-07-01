@@ -130,7 +130,7 @@ const CommerceCreatePage = () => {
 
   return (
     <PageWrapper className="min-h-screen bg-white">
-      <div className="px-5 pt-4">
+      <div className="px-5 pt-14">
         <button onClick={() => step > 1 ? setStep(step - 1) : navigate(-1)} className="mb-4">
           <ArrowLeft size={20} className="text-gray-600" />
         </button>

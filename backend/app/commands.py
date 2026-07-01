@@ -47,3 +47,24 @@ def clear_users(yes):
         db.session.delete(user)
     db.session.commit()
     click.echo(f"{count} utilisateur(s) supprime(s).")
+
+
+@click.command("seed-categories")
+@with_appcontext
+def seed_categories():
+    from .models.categorie import Categorie
+
+    defaults = [
+        "Alimentation & Restauration",
+        "Sante & Bien-etre",
+        "Batiment & Construction",
+        "Services & Technologies",
+    ]
+    created = 0
+    for nom in defaults:
+        if not Categorie.query.filter_by(nom=nom).first():
+            cat = Categorie(nom=nom)
+            db.session.add(cat)
+            created += 1
+    db.session.commit()
+    click.echo(f"{created} categorie(s) creee(s).")

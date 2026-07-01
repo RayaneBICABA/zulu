@@ -379,6 +379,28 @@ def create_category():
         return jsonify({"error": str(e)}), 409
 
 
+@commerce_bp.route("/categories/<int:categorie_id>", methods=["PUT", "DELETE"])
+@jwt_required()
+@role_required("admin")
+def manage_category(categorie_id):
+    if request.method == "PUT":
+        try:
+            data = categorie_create_schema.load(request.get_json())
+        except ValidationError as err:
+            return jsonify({"error": err.messages}), 400
+        try:
+            result = commerce_service.update_category(categorie_id, data)
+            return jsonify(result), 200
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    try:
+        result = commerce_service.delete_category(categorie_id)
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+
+
 @commerce_bp.route("/artisan/home", methods=["GET"])
 @jwt_required()
 @role_required("artisan")

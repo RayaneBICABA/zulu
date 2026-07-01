@@ -78,9 +78,10 @@ def create_app(env=None):
     from .routes import register_routes
     register_routes(app)
 
-    from .commands import seed_roles, clear_users
+    from .commands import seed_roles, clear_users, seed_categories
     app.cli.add_command(seed_roles)
     app.cli.add_command(clear_users)
+    app.cli.add_command(seed_categories)
 
     from .services.oauth_service import init_oauth
     init_oauth(app)

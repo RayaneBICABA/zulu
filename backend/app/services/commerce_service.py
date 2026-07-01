@@ -237,6 +237,27 @@ class CommerceService:
         cat.save()
         return cat.to_dict()
 
+    def update_category(self, categorie_id, data):
+        cat = Categorie.query.get(categorie_id)
+        if not cat:
+            raise ValueError("Categorie introuvable.")
+        if "nom" in data and data["nom"] != cat.nom:
+            if Categorie.query.filter_by(nom=data["nom"]).first():
+                raise ValueError("Ce nom de categorie existe deja.")
+            cat.nom = data["nom"]
+        if "is_active" in data:
+            cat.is_active = data["is_active"]
+        cat.save()
+        return cat.to_dict()
+
+    def delete_category(self, categorie_id):
+        cat = Categorie.query.get(categorie_id)
+        if not cat:
+            raise ValueError("Categorie introuvable.")
+        cat.is_active = False
+        cat.save()
+        return {"message": "Categorie desactivee."}
+
     def get_artisan_profile(self, user_id):
         user = User.query.get(user_id)
         if not user:

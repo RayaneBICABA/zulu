@@ -1,35 +1,18 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { User, Mail, LogOut, ChevronRight, Store, Hammer, Check } from 'lucide-react'
+import { User, Mail, LogOut, Store, ChevronRight } from 'lucide-react'
 import useAuth from '../features/auth/hooks/useAuth'
-import authService from '../services/authService'
 import { ROUTES } from '../constants/routes'
 import PageWrapper from '../components/layout/PageWrapper'
 
 const ClientProfilePage = () => {
-  const { user, logout, hasRole, setUser } = useAuth()
+  const { user, logout, hasRole } = useAuth()
   const navigate = useNavigate()
   const isArtisan = hasRole('artisan')
-  const [upgrading, setUpgrading] = useState(false)
-  const [upgraded, setUpgraded] = useState(false)
 
   const handleLogout = async () => {
     await logout()
     navigate(ROUTES.login, { replace: true })
-  }
-
-  const handleBecomeArtisan = async () => {
-    setUpgrading(true)
-    try {
-      const data = await authService.becomeArtisan()
-      if (data.user) setUser(data.user)
-      setUpgraded(true)
-    } catch (err) {
-      // silent
-    } finally {
-      setUpgrading(false)
-    }
   }
 
   return (
@@ -42,7 +25,7 @@ const ClientProfilePage = () => {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4"
         >
-          <div className="flex items-center gap-4 p-5 border-b border-gray-100">
+          <div className="flex items-center gap-4 p-5">
             <div className="w-16 h-16 rounded-full bg-primary-50 flex items-center justify-center">
               <User size={28} className="text-primary-500" />
             </div>
@@ -71,8 +54,8 @@ const ClientProfilePage = () => {
             </div>
           </div>
 
-          <div className="divide-y divide-gray-100">
-            {isArtisan && (
+          {isArtisan && (
+            <div className="border-t border-gray-100">
               <button
                 onClick={() => navigate(ROUTES.dashboard)}
                 className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
@@ -83,38 +66,8 @@ const ClientProfilePage = () => {
                 </div>
                 <ChevronRight size={16} className="text-gray-300" />
               </button>
-            )}
-
-            {!isArtisan && !upgraded && (
-              <button
-                onClick={handleBecomeArtisan}
-                disabled={upgrading}
-                className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Hammer size={18} className="text-primary-500" />
-                  <div className="text-left">
-                    <span className="text-sm text-gray-700 font-medium">Devenir Artisan</span>
-                    <p className="text-xs text-gray-400">Creez votre commerce et recevez des clients</p>
-                  </div>
-                </div>
-                {upgrading ? (
-                  <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <ChevronRight size={16} className="text-gray-300" />
-                )}
-              </button>
-            )}
-
-            {upgraded && (
-              <div className="flex items-center gap-3 p-4 bg-green-50">
-                <Check size={18} className="text-green-600" />
-                <span className="text-sm text-green-700 font-medium">
-                  Vous etes maintenant artisan ! Creez votre commerce.
-                </span>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </motion.div>
 
         <motion.div
