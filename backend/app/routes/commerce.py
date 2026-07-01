@@ -55,12 +55,16 @@ def list_public_commerces():
     categorie_id = req.args.get("categorie_id", type=int)
     page = req.args.get("page", 1, type=int)
     per_page = req.args.get("per_page", 20, type=int)
+    lat = req.args.get("lat", type=float)
+    lng = req.args.get("lng", type=float)
 
     result = commerce_service.list_public_commerces(
         search=search,
         categorie_id=categorie_id,
         page=page,
         per_page=per_page,
+        lat=lat,
+        lng=lng,
     )
     return jsonify(result), 200
 

@@ -39,6 +39,10 @@ const ClientHomePage = () => {
       const params = { per_page: 50 }
       if (search) params.q = search
       if (selectedCategory) params.categorie_id = selectedCategory
+      if (userLocation?.latitude && userLocation?.longitude) {
+        params.lat = userLocation.latitude
+        params.lng = userLocation.longitude
+      }
       const data = await commerceService.listPublic(params)
       setCommerces(data.commerces || [])
     } catch {
@@ -46,7 +50,7 @@ const ClientHomePage = () => {
     } finally {
       setLoading(false)
     }
-  }, [search, selectedCategory])
+  }, [search, selectedCategory, userLocation])
 
   useEffect(() => {
     const timer = setTimeout(fetchCommerces, search ? 400 : 0)
