@@ -5,6 +5,7 @@ import StarRating from './StarRating'
 
 const CommerceCard = ({ commerce, isFavorited, onToggleFavori, index = 0 }) => {
   const navigate = useNavigate()
+  const imageUrl = commerce.photo_principale || commerce.photos?.[0]?.url
 
   return (
     <motion.div
@@ -15,8 +16,8 @@ const CommerceCard = ({ commerce, isFavorited, onToggleFavori, index = 0 }) => {
       onClick={() => navigate(`/commerce/${commerce.id}`)}
     >
       <div className="relative h-44 bg-gray-100">
-        {commerce.photo_principale ? (
-          <img src={commerce.photo_principale} alt={commerce.nom_commercial} className="w-full h-full object-cover" />
+        {imageUrl ? (
+          <img src={imageUrl} alt={commerce.nom_commercial} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-300">
             <MapPin size={40} />

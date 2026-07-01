@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import useAuth from '../features/auth/hooks/useAuth'
+import { ROUTES } from '../constants/routes'
 import { ArrowLeft, ArrowRight, Check, Upload, MapPin, Clock } from 'lucide-react'
 import commerceService from '../services/commerceService'
 import authService from '../services/authService'
@@ -13,6 +15,7 @@ const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dim
 
 const CommerceCreatePage = () => {
   const navigate = useNavigate()
+  const { refreshUser } = useAuth()
   const { location: userLocation } = useUserLocation()
   const [step, setStep] = useState(1)
   const [categories, setCategories] = useState([])
@@ -114,8 +117,9 @@ const CommerceCreatePage = () => {
         await commerceService.uploadPhotos(commerceId, photos)
       }
       await commerceService.publish(commerceId)
-      authService.becomeArtisan().catch(() => {})
-      navigate('/dashboard', { replace: true })
+      await authService.becomeArtisan()
+      await refreshUser()
+      navigate(ROUTES.dashboard, { replace: true })
     } catch (err) {
       setError(err.message)
     } finally {

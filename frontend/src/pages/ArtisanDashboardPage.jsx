@@ -23,8 +23,10 @@ const ArtisanDashboardPage = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    commerceService.artisanHome().then(setData).catch(() => {})
-    setLoading(false)
+    commerceService.artisanHome()
+      .then(setData)
+      .catch(() => setData(null))
+      .finally(() => setLoading(false))
   }, [])
 
   if (loading) {
