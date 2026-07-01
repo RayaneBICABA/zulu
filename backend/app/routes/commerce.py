@@ -332,6 +332,20 @@ def list_categories():
       200:
         description: Liste des categories
     """
+    from ..models.categorie import Categorie
+    from ..extensions import db
+
+    if Categorie.query.count() == 0:
+        defaults = [
+            "Alimentation & Restauration",
+            "Sante & Bien-etre",
+            "Batiment & Construction",
+            "Services & Technologies",
+        ]
+        for nom in defaults:
+            db.session.add(Categorie(nom=nom))
+        db.session.commit()
+
     categories = commerce_service.list_categories()
     return jsonify([c.to_dict() for c in categories]), 200
 
