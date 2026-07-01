@@ -24,7 +24,7 @@ const StatCard = ({ icon: Icon, label, value, variant }) => (
   </div>
 )
 
-const CommerceListItem = ({ item, isSelected, onSelect, data, loadingStats, onDelete, onDraft }) => {
+const CommerceListItem = ({ item, isSelected, onSelect, data, loadingStats, onDelete, onDraft, onPublish }) => {
   const s = data?.commerce?.stats
   const whatsapp = data?.commerce?.whatsapp_numero
   const statItems = [
@@ -105,12 +105,19 @@ const CommerceListItem = ({ item, isSelected, onSelect, data, loadingStats, onDe
                       <Share2 size={14} />
                       WhatsApp
                     </button>
-                    {item.is_active && (
+                    {item.is_active ? (
                       <button
                         onClick={() => onDraft(item.id)}
                         className="h-10 px-4 bg-primary-100 text-primary-600 rounded-xl text-xs font-medium hover:bg-primary-200 transition-colors"
                       >
                         Brouillon
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => onPublish(item.id)}
+                        className="h-10 px-4 bg-green-100 text-green-600 rounded-xl text-xs font-medium hover:bg-green-200 transition-colors"
+                      >
+                        Publier
                       </button>
                     )}
                     <button
@@ -161,6 +168,15 @@ const ArtisanDashboardPage = () => {
       await commerceService.toggleDraft(id)
       setCommerces((prev) => prev.map((c) => c.id === id ? { ...c, is_active: false } : c))
     } catch {}
+  }
+
+  const handlePublish = async (id) => {
+    try {
+      await commerceService.publish(id)
+      setCommerces((prev) => prev.map((c) => c.id === id ? { ...c, is_active: true } : c))
+    } catch (err) {
+      alert(err?.response?.data?.error || "Impossible de publier. Verifie que toutes les etapes sont completes.")
+    }
   }
 
   const handleSelect = async (id) => {
@@ -240,6 +256,7 @@ const ArtisanDashboardPage = () => {
                   loadingStats={selectedId === item.id && loadingStats}
                   onDelete={handleDelete}
                   onDraft={handleDraft}
+                  onPublish={handlePublish}
                 />
               </motion.div>
             ))}
