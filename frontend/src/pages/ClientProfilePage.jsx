@@ -1,14 +1,22 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { User, Mail, LogOut, Store, ChevronRight } from 'lucide-react'
 import useAuth from '../features/auth/hooks/useAuth'
+import commerceService from '../services/commerceService'
 import { ROUTES } from '../constants/routes'
 import PageWrapper from '../components/layout/PageWrapper'
 
 const ClientProfilePage = () => {
-  const { user, logout, hasRole } = useAuth()
+  const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const isArtisan = hasRole('artisan')
+  const [commerceCount, setCommerceCount] = useState(null)
+
+  useEffect(() => {
+    commerceService.artisanProfile()
+      .then((data) => setCommerceCount(data.commerces?.length ?? data.nb_commerces ?? 0))
+      .catch(() => setCommerceCount(0))
+  }, [])
 
   const handleLogout = async () => {
     await logout()
@@ -37,37 +45,26 @@ const ClientProfilePage = () => {
                 <Mail size={12} />
                 {user?.email}
               </p>
-              <div className="flex gap-1 mt-1">
-                {(user?.roles || []).map((role) => (
-                  <span
-                    key={role}
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                      role === 'artisan'
-                        ? 'bg-primary-50 text-primary-600'
-                        : 'bg-gray-100 text-gray-500'
-                    }`}
-                  >
-                    {role}
-                  </span>
-                ))}
-              </div>
+              {commerceCount !== null && (
+                <p className="text-xs text-gray-400 mt-1">
+                  {commerceCount} commerce{commerceCount > 1 ? 's' : ''}
+                </p>
+              )}
             </div>
           </div>
 
-          {isArtisan && (
-            <div className="border-t border-gray-100">
-              <button
-                onClick={() => navigate(ROUTES.dashboard)}
-                className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Store size={18} className="text-primary-500" />
-                  <span className="text-sm text-gray-700">Mon commerce</span>
-                </div>
-                <ChevronRight size={16} className="text-gray-300" />
-              </button>
-            </div>
-          )}
+          <div className="border-t border-gray-100">
+            <button
+              onClick={() => navigate(ROUTES.dashboard)}
+              className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Store size={18} className="text-primary-500" />
+                <span className="text-sm text-gray-700">Mes commerces</span>
+              </div>
+              <ChevronRight size={16} className="text-gray-300" />
+            </button>
+          </div>
         </motion.div>
 
         <motion.div

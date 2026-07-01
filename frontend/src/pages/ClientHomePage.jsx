@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Search, MapPin, SlidersHorizontal } from 'lucide-react'
 import useAuth from '../features/auth/hooks/useAuth'
+import useUserLocation from '../hooks/useUserLocation'
 import commerceService from '../services/commerceService'
 import CommerceCard from '../components/ui/CommerceCard'
 import PageWrapper from '../components/layout/PageWrapper'
@@ -19,6 +20,7 @@ const SkeletonCard = () => (
 
 const ClientHomePage = () => {
   const { user } = useAuth()
+  const { location: userLocation, loading: locLoading } = useUserLocation()
   const [search, setSearch] = useState('')
   const [categories, setCategories] = useState([])
   const [selectedCategory, setSelectedCategory] = useState(null)
@@ -37,6 +39,10 @@ const ClientHomePage = () => {
       const params = { per_page: 50 }
       if (search) params.q = search
       if (selectedCategory) params.categorie_id = selectedCategory
+      if (userLocation?.latitude && userLocation?.longitude) {
+        params.lat = userLocation.latitude
+        params.lng = userLocation.longitude
+      }
       const data = await commerceService.listPublic(params)
       setCommerces(data.commerces || [])
     } catch {
@@ -44,7 +50,7 @@ const ClientHomePage = () => {
     } finally {
       setLoading(false)
     }
-  }, [search, selectedCategory])
+  }, [search, selectedCategory, userLocation])
 
   useEffect(() => {
     const timer = setTimeout(fetchCommerces, search ? 400 : 0)
@@ -73,10 +79,23 @@ const ClientHomePage = () => {
     <PageWrapper className="pb-24">
       <div className="px-5 pt-14">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <p className="text-sm text-gray-400">Bienvenue,</p>
-          <h1 className="text-xl font-bold text-gray-900 mb-4">
-            {user?.first_name || 'Client'}
-          </h1>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm text-gray-400">Bienvenue,</p>
+              <h1 className="text-xl font-bold text-gray-900">
+                {user?.first_name || 'Client'}
+              </h1>
+            </div>
+            {locLoading ? (
+              <div className="h-3 w-20 bg-gray-200 rounded animate-pulse" />
+            ) : userLocation?.ville ? (
+              <div className="flex items-center gap-1 text-xs text-gray-400">
+                <MapPin size={12} />
+                <span>{userLocation.ville}</span>
+                {userLocation.quartier && <span className="text-gray-300">· {userLocation.quartier}</span>}
+              </div>
+            ) : null}
+          </div>
         </motion.div>
 
         <div className="relative mb-4">

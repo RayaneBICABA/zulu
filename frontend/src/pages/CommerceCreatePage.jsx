@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { ROUTES } from '../constants/routes'
 import { ArrowLeft, ArrowRight, Check, Upload, MapPin, Clock } from 'lucide-react'
 import commerceService from '../services/commerceService'
+import useUserLocation from '../hooks/useUserLocation'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import PageWrapper from '../components/layout/PageWrapper'
@@ -11,6 +13,7 @@ const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dim
 
 const CommerceCreatePage = () => {
   const navigate = useNavigate()
+  const { location: userLocation } = useUserLocation()
   const [step, setStep] = useState(1)
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)
@@ -44,11 +47,18 @@ const CommerceCreatePage = () => {
 
   useEffect(() => {
     commerceService.listCategories().then(setCategories).catch(() => {})
-    navigator.geolocation?.getCurrentPosition(
-      (pos) => setStep2((p) => ({ ...p, latitude: pos.coords.latitude, longitude: pos.coords.longitude })),
-      () => {}
-    )
   }, [])
+
+  useEffect(() => {
+    if (userLocation) {
+      setStep2((prev) => ({
+        ...prev,
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+        adresse_complete: prev.adresse_complete || userLocation.adresse || '',
+      }))
+    }
+  }, [userLocation])
 
   const handlePhotoChange = (e) => {
     const files = Array.from(e.target.files).slice(0, 3)
@@ -104,7 +114,7 @@ const CommerceCreatePage = () => {
         await commerceService.uploadPhotos(commerceId, photos)
       }
       await commerceService.publish(commerceId)
-      navigate('/dashboard', { replace: true })
+      navigate(ROUTES.home, { replace: true })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -170,7 +180,7 @@ const CommerceCreatePage = () => {
 
           {step === 2 && (
             <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-              <Input label="Adresse" value={step2.adresse_complete} onChange={(e) => setStep2({ ...step2, adresse_complete: e.target.value })} placeholder="Quartier, rue, repere..." required />
+              <Input label="Adresse complete" value={step2.adresse_complete} onChange={(e) => setStep2({ ...step2, adresse_complete: e.target.value })} placeholder="Quartier, rue, repere..." required />
 
               {step2.latitude && (
                 <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 p-3 rounded-xl">

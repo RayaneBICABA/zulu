@@ -1,4 +1,3 @@
-import { auth } from '../firebase'
 import { API_URL } from '../constants/api'
 
 const REQUEST_TIMEOUT_MS = 90000
@@ -22,10 +21,12 @@ const fetchWithTimeout = async (url, options = {}) => {
 }
 
 const getAuthHeader = async () => {
-  if (!auth) return {}
-  const user = auth.currentUser
-  if (!user) return {}
+  const jwt = localStorage.getItem('zawani_jwt')
+  if (jwt) return { Authorization: `Bearer ${jwt}` }
   try {
+    const { auth } = await import('../firebase')
+    const user = auth.currentUser
+    if (!user) return {}
     const token = await user.getIdToken()
     return { Authorization: `Bearer ${token}` }
   } catch {
@@ -36,7 +37,10 @@ const getAuthHeader = async () => {
 const handleResponse = async (res) => {
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    const message = data?.message || data?.error || `Erreur ${res.status}`
+    let message = data?.message || data?.error || `Erreur ${res.status}`
+    if (typeof message === 'object') {
+      try { message = Object.values(message).flat().join(', ') || JSON.stringify(message) } catch { message = JSON.stringify(message) }
+    }
     const error = new Error(message)
     error.status = res.status
     throw error
@@ -44,10 +48,43 @@ const handleResponse = async (res) => {
   return data
 }
 
+const tryRefresh = async () => {
+  const refreshToken = localStorage.getItem('zawani_refresh_token')
+  if (!refreshToken) return null
+  try {
+    const res = await fetch(`${API_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${refreshToken}` },
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    if (data.access_token) {
+      localStorage.setItem('zawani_jwt', data.access_token)
+      return data.access_token
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+let refreshPromise = null
+
 const authFetch = async (endpoint, options = {}) => {
   const url = `${API_URL}${endpoint}`
   const headers = { ...options.headers, ...(await getAuthHeader()) }
-  const res = await fetchWithTimeout(url, { ...options, headers })
+  let res = await fetchWithTimeout(url, { ...options, headers })
+
+  if (res.status === 401) {
+    const newToken = refreshPromise || tryRefresh()
+    refreshPromise = newToken
+    const token = await newToken
+    refreshPromise = null
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+      res = await fetchWithTimeout(url, { ...options, headers })
+    }
+  }
 
   if (res.status === 401) {
     window.dispatchEvent(new CustomEvent('auth:logout'))

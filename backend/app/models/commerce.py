@@ -47,6 +47,7 @@ class Commerce(BaseModel):
             "whatsapp_numero": self.whatsapp_numero,
             "contact_telephonique": self.contact_telephonique,
             "categorie_id": self.categorie_id,
+            "categorie": self.categorie.to_dict() if self.categorie else None,
             "description": self.description,
             "latitude": float(self.latitude) if self.latitude else None,
             "longitude": float(self.longitude) if self.longitude else None,
@@ -54,6 +55,7 @@ class Commerce(BaseModel):
             "is_vendeur_produits": self.is_vendeur_produits,
             "is_verified": self.is_verified,
             "is_active": self.is_active,
+            "photos": [p.to_dict() for p in self.photos],
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

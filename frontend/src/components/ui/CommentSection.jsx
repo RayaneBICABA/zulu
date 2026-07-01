@@ -4,17 +4,22 @@ import { Send, Trash2, MessageCircle } from 'lucide-react'
 import useAuth from '../../features/auth/hooks/useAuth'
 import commerceService from '../../services/commerceService'
 
-const CommentSection = ({ commerceId }) => {
+const CommentSection = ({ commerceId, commerceUserId }) => {
   const { user } = useAuth()
+  const isOwner = user && commerceUserId && user.id === commerceUserId
   const [comments, setComments] = useState([])
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
 
   useEffect(() => {
     commerceService.listComments(commerceId)
       .then((data) => setComments(data.commentaires || []))
-      .catch(() => setComments([]))
+      .catch((err) => {
+        console.error('Erreur chargement commentaires:', err)
+        setComments([])
+      })
       .finally(() => setLoading(false))
   }, [commerceId])
 
@@ -22,11 +27,14 @@ const CommentSection = ({ commerceId }) => {
     e.preventDefault()
     if (!text.trim() || sending) return
     setSending(true)
+    setSubmitError(null)
     try {
       const result = await commerceService.addComment(commerceId, text.trim())
       setComments((prev) => [result, ...prev])
       setText('')
-    } catch {}
+    } catch (err) {
+      setSubmitError(err?.message || 'Erreur lors de l\'envoi du commentaire.')
+    }
     finally { setSending(false) }
   }
 
@@ -34,7 +42,10 @@ const CommentSection = ({ commerceId }) => {
     try {
       await commerceService.deleteComment(commerceId, commentId)
       setComments((prev) => prev.filter((c) => c.id !== commentId))
-    } catch {}
+    } catch (err) {
+      console.error('Erreur suppression commentaire:', err)
+      setSubmitError('Impossible de supprimer le commentaire.')
+    }
   }
 
   return (
@@ -46,7 +57,11 @@ const CommentSection = ({ commerceId }) => {
         </h3>
       </div>
 
-      {user && (
+      {isOwner && (
+        <p className="text-xs text-gray-400 mb-4 italic">Vous ne pouvez pas commenter votre propre commerce.</p>
+      )}
+
+      {user && !isOwner && (
         <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
           <input
             type="text"
@@ -63,6 +78,10 @@ const CommentSection = ({ commerceId }) => {
             <Send size={16} />
           </button>
         </form>
+      )}
+
+      {submitError && (
+        <p className="text-xs text-red-500 mb-3">{submitError}</p>
       )}
 
       {loading ? (

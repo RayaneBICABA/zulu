@@ -8,6 +8,8 @@ const commerceService = {
     if (params.categorie_id) query.set('categorie_id', params.categorie_id)
     if (params.page) query.set('page', params.page)
     if (params.per_page) query.set('per_page', params.per_page)
+    if (params.lat) query.set('lat', params.lat)
+    if (params.lng) query.set('lng', params.lng)
     const qs = query.toString()
     return apiClient.get(`${ENDPOINTS.commerces}${qs ? `?${qs}` : ''}`)
   },
@@ -29,6 +31,12 @@ const commerceService = {
 
   publish: (commerceId) =>
     apiClient.patch(`${ENDPOINTS.commerces}/${commerceId}/publish`),
+
+  deleteCommerce: (commerceId) =>
+    apiClient.delete(`${ENDPOINTS.commerces}/${commerceId}`),
+
+  toggleDraft: (commerceId) =>
+    apiClient.patch(`${ENDPOINTS.commerces}/${commerceId}/draft`),
 
   getRating: (commerceId) =>
     apiClient.get(`${ENDPOINTS.commerces}/${commerceId}/rating`),
@@ -59,8 +67,11 @@ const commerceService = {
   recordView: (commerceId) =>
     apiClient.post(`${ENDPOINTS.commerces}/${commerceId}/vues`, {}),
 
-  artisanHome: () =>
-    apiClient.get('/artisan/home'),
+  listMyCommerces: () =>
+    apiClient.get('/artisan/commerces'),
+
+  artisanHome: (commerceId) =>
+    apiClient.get(`/artisan/home${commerceId ? `?commerce_id=${commerceId}` : ''}`),
 
   artisanProfile: () =>
     apiClient.get('/artisan/profile'),

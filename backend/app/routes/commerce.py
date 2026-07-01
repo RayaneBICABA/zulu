@@ -55,12 +55,16 @@ def list_public_commerces():
     categorie_id = req.args.get("categorie_id", type=int)
     page = req.args.get("page", 1, type=int)
     per_page = req.args.get("per_page", 20, type=int)
+    lat = req.args.get("lat", type=float)
+    lng = req.args.get("lng", type=float)
 
     result = commerce_service.list_public_commerces(
         search=search,
         categorie_id=categorie_id,
         page=page,
         per_page=per_page,
+        lat=lat,
+        lng=lng,
     )
     return jsonify(result), 200
 
@@ -285,7 +289,17 @@ def publish_commerce(commerce_id):
     try:
         user_id = int(get_jwt_identity())
         result = commerce_service.publish(commerce_id, user_id)
-        return jsonify(result), 200
+
+        from ..models.role import Role
+        from ..models.user import User
+
+        user = User.query.get(user_id)
+        artisan_role = Role.query.filter_by(name="artisan").first()
+        if user and artisan_role and artisan_role not in user.roles:
+            user.roles.append(artisan_role)
+            user.save()
+
+        return jsonify({**result, "artisan_role_assigned": True}), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
@@ -316,6 +330,28 @@ def get_commerce(commerce_id):
     try:
         user_id = int(get_jwt_identity())
         result = commerce_service.get_commerce(commerce_id, user_id)
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@commerce_bp.route("/commerces/<int:commerce_id>", methods=["DELETE"])
+@jwt_required()
+def delete_commerce(commerce_id):
+    try:
+        user_id = int(get_jwt_identity())
+        commerce_service.delete_commerce(commerce_id, user_id)
+        return jsonify({"message": "Commerce supprime."}), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@commerce_bp.route("/commerces/<int:commerce_id>/draft", methods=["PATCH"])
+@jwt_required()
+def toggle_draft(commerce_id):
+    try:
+        user_id = int(get_jwt_identity())
+        result = commerce_service.toggle_draft(commerce_id, user_id)
         return jsonify(result), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
@@ -417,7 +453,6 @@ def manage_category(categorie_id):
 
 @commerce_bp.route("/artisan/home", methods=["GET"])
 @jwt_required()
-@role_required("artisan")
 def artisan_home():
     """
     Dashboard artisan — Bienvenue + stats + commerce complet.
@@ -436,7 +471,8 @@ def artisan_home():
     """
     try:
         user_id = int(get_jwt_identity())
-        result = commerce_service.get_artisan_home(user_id)
+        commerce_id = request.args.get("commerce_id", type=int)
+        result = commerce_service.get_artisan_home(user_id, commerce_id)
         return jsonify(result), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
@@ -444,7 +480,6 @@ def artisan_home():
 
 @commerce_bp.route("/artisan/profile", methods=["GET"])
 @jwt_required()
-@role_required("artisan")
 def artisan_profile():
     """
     Profil artisan — infos user + liste commerces + nb_commerces.
@@ -469,7 +504,6 @@ def artisan_profile():
 
 @commerce_bp.route("/artisan/active-commerce", methods=["PATCH"])
 @jwt_required()
-@role_required("artisan")
 def switch_commerce():
     """
     Changer le commerce actif de l'artisan.
@@ -516,9 +550,19 @@ def switch_commerce():
         return jsonify({"error": error_msg}), 404
 
 
+@commerce_bp.route("/artisan/commerces", methods=["GET"])
+@jwt_required()
+def list_my_commerces():
+    try:
+        user_id = int(get_jwt_identity())
+        result = commerce_service.list_my_commerces(user_id)
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+
+
 @commerce_bp.route("/artisan/commerces/cards", methods=["GET"])
 @jwt_required()
-@role_required("artisan")
 def get_commerces_cards():
     """
     Lister les commerces de l'artisan sous forme de cards.
@@ -812,13 +856,21 @@ def get_commerce_rating(commerce_id):
         description: Commerce introuvable
     """
     from app.models.commerce import Commerce, CommerceStats
-    from app.services.ai_service import compute_etoiles
+    from app.models.commentaire import Commentaire
+    from app.services.ai_service import compute_etoiles, analyze_and_update_rating
 
     commerce = Commerce.query.get(commerce_id)
     if not commerce:
         return jsonify({"error": "Commerce introuvable."}), 404
 
     stats = CommerceStats.query.filter_by(commerce_id=commerce_id).first()
+    actual_count = Commentaire.query.filter_by(commerce_id=commerce_id, is_visible=True).count()
+    cached_count = stats.rating_count if stats else 0
+
+    if actual_count > 0 and cached_count != actual_count:
+        analyze_and_update_rating(commerce_id)
+        stats = CommerceStats.query.filter_by(commerce_id=commerce_id).first()
+
     average_rating = float(stats.average_rating) if stats and stats.average_rating else 0.0
     rating_count = stats.rating_count if stats else 0
 
