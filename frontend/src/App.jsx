@@ -19,6 +19,7 @@ import CommerceCreatePage from './pages/CommerceCreatePage'
 import ClientLayout from './components/layout/ClientLayout'
 import ResetPasswordPage from './features/auth/pages/ResetPasswordPage'
 import AdminCategoriesPage from './pages/AdminCategoriesPage'
+import LandingPage from './pages/LandingPage'
 
 const AnimatedRoutes = () => {
   const location = useLocation()
@@ -60,6 +61,9 @@ const App = () => (
   <BrowserRouter>
     <ErrorBoundary>
       <AuthProvider>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+        </Routes>
         <MobileOnly>
           <AnimatedRoutes />
         </MobileOnly>
