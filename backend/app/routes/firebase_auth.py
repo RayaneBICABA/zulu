@@ -30,13 +30,13 @@ def firebase_login():
     email = decoded.get('email')
     name = decoded.get('name') or ''
 
-    if not email:
-        return jsonify({"error": "Email non disponible dans le token."}), 400
-
     # 2. Chercher l'utilisateur par firebase_uid
     user = User.query.filter_by(firebase_uid=firebase_uid).first()
 
     if not user:
+        if not email:
+            return jsonify({"error": "Email non disponible dans le token."}), 400
+
         # 3. Pas trouvé par firebase_uid → chercher par email (compte existant)
         user = User.query.filter_by(email=email).first()
 

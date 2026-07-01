@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Check } from 'lucide-react'
@@ -11,7 +11,7 @@ import PageWrapper from '../../../components/layout/PageWrapper'
 import { useOnlineStatus } from '../../../hooks/useOnlineStatus'
 
 const RegisterPage = () => {
-  const { register } = useAuth()
+  const { register, isAuthenticated, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const isOnline = useOnlineStatus()
 
@@ -28,6 +28,12 @@ const RegisterPage = () => {
   const [success, setSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate(ROUTES.home, { replace: true })
+    }
+  }, [authLoading, isAuthenticated, navigate])
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))

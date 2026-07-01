@@ -104,6 +104,7 @@ export const AuthProvider = ({ children }) => {
           try {
             const { signInWithCustomToken } = await import('../../../firebase')
             await signInWithCustomToken(auth, idToken)
+            deepLinkRef.current = false
             // onAuthStateChanged va trigger -> syncUserWithBackend(firebaseUser)
             // -> getIdToken() (vrai Firebase ID token) -> POST /auth/firebase-login -> OK
           } catch (err) {

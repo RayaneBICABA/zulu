@@ -4,6 +4,9 @@ import json
 import urllib.parse
 import urllib.request
 
+from ..extensions import db
+from ..models.user import User
+from ..models.role import Role
 from ..services.firebase_auth import verify_token, create_custom_token
 
 auth_mobile_bp = Blueprint('auth_mobile', __name__)
@@ -84,6 +87,34 @@ def google_mobile_callback():
     firebase_uid = decoded.get('uid')
     if not firebase_uid:
         return _error_page("UID Firebase manquant dans le token.")
+
+    email = decoded.get('email')
+    name = decoded.get('name') or ''
+
+    user = User.query.filter_by(firebase_uid=firebase_uid).first()
+    if not user:
+        user = User.query.filter_by(email=email).first() if email else None
+        if user:
+            user.firebase_uid = firebase_uid
+        elif email:
+            name_parts = name.split(' ', 1)
+            user = User(
+                email=email,
+                firebase_uid=firebase_uid,
+                first_name=name_parts[0] or '',
+                last_name=name_parts[1] if len(name_parts) > 1 else '',
+                is_verified=True,
+            )
+            client_role = Role.query.filter_by(name='client').first()
+            if client_role and client_role not in user.roles:
+                user.roles.append(client_role)
+            db.session.add(user)
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erreur creation utilisateur dans callback mobile: {e}")
 
     custom_token = create_custom_token(firebase_uid)
     if not custom_token:
