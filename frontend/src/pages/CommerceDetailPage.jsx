@@ -39,8 +39,11 @@ const CommerceDetailPage = () => {
     }).catch(() => {})
   }, [user, commerce])
 
+  const isOwnCommerce = user && commerce?.user_id === user.id
+
   const handleToggleFavori = async () => {
     if (!user) return navigate('/login')
+    if (isOwnCommerce) return
     try {
       await commerceService.toggleFavori(commerce.id, isFavorited)
       setIsFavorited((p) => !p)
@@ -120,9 +123,11 @@ const CommerceDetailPage = () => {
           <ArrowLeft size={18} />
         </button>
         <div className="absolute top-4 right-4 flex gap-2">
-          <button onClick={handleToggleFavori} className="w-9 h-9 bg-white/90 rounded-full flex items-center justify-center shadow">
-            <Heart size={18} className={isFavorited ? 'fill-red-500 text-red-500' : 'text-gray-600'} />
-          </button>
+          {!isOwnCommerce && (
+            <button onClick={handleToggleFavori} className="w-9 h-9 bg-white/90 rounded-full flex items-center justify-center shadow">
+              <Heart size={18} className={isFavorited ? 'fill-red-500 text-red-500' : 'text-gray-600'} />
+            </button>
+          )}
           <button onClick={handleShare} className="w-9 h-9 bg-white/90 rounded-full flex items-center justify-center shadow">
             <Share2 size={18} className="text-gray-600" />
           </button>
@@ -213,7 +218,7 @@ const CommerceDetailPage = () => {
         </div>
 
         <div className="mt-6">
-          <CommentSection commerceId={commerce.id} />
+          <CommentSection commerceId={commerce.id} commerceUserId={commerce.user_id} />
         </div>
       </div>
     </div>

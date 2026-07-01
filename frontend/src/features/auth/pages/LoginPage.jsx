@@ -25,12 +25,9 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (!authLoading && user) {
-      const hasArtisanRole = Array.isArray(user.roles) && user.roles.some((r) => r === 'artisan' || r?.name === 'artisan');
-      if (from === ROUTES.home || from === ROUTES.login || hasArtisanRole) {
-        navigate(hasArtisanRole ? ROUTES.dashboard : ROUTES.home, { replace: true });
-      }
+      navigate(ROUTES.home, { replace: true });
     }
-  }, [authLoading, user, navigate, from]);
+  }, [authLoading, user, navigate]);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -55,9 +52,8 @@ const LoginPage = () => {
     setError(null);
     setLoading(true);
     try {
-      const userData = await login(form);
-      const hasArtisanRole = Array.isArray(userData?.roles) && userData.roles.some((r) => r === 'artisan' || r?.name === 'artisan');
-      navigate(hasArtisanRole ? ROUTES.dashboard : ROUTES.home, { replace: true });
+      await login(form);
+      navigate(ROUTES.home, { replace: true });
     } catch (err) {
       const code = err.code;
       if (code === "auth/user-not-found" || code === "auth/invalid-credential") {

@@ -1,23 +1,14 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Heart, User, Store } from 'lucide-react'
+import { Home, Heart, Store, User } from 'lucide-react'
 import { ROUTES } from '../../constants/routes'
-import useAuth from '../../features/auth/hooks/useAuth'
 
 const BottomNav = () => {
-  const { hasRole } = useAuth()
-  const isArtisan = hasRole('artisan')
-
-  const links = isArtisan
-    ? [
-        { to: ROUTES.home, icon: Home, label: 'Accueil' },
-        { to: ROUTES.dashboard, icon: Store, label: 'Commerce' },
-        { to: ROUTES.profile, icon: User, label: 'Profil' },
-      ]
-    : [
-        { to: ROUTES.home, icon: Home, label: 'Accueil' },
-        { to: ROUTES.favoris, icon: Heart, label: 'Favoris' },
-        { to: ROUTES.profile, icon: User, label: 'Profil' },
-      ]
+  const links = [
+    { to: ROUTES.home, icon: Home, label: 'Accueil' },
+    { to: ROUTES.favoris, icon: Heart, label: 'Favoris' },
+    { to: ROUTES.dashboard, icon: Store, label: 'Commerce' },
+    { to: ROUTES.profile, icon: User, label: 'Profil' },
+  ]
 
   return (
     <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-gray-200 z-50">

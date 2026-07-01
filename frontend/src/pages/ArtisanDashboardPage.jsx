@@ -45,7 +45,7 @@ const ArtisanDashboardPage = () => {
     return (
       <PageWrapper>
         <div className="px-5 pt-14">
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Mon commerce</h1>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Mes commerces</h1>
           <p className="text-gray-400 text-sm mb-6">Vous n'avez pas encore de commerce.</p>
           <button
             onClick={() => navigate('/commerce/nouveau')}

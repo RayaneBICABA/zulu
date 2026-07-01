@@ -9,7 +9,7 @@ from ..schemas.commerce_schema import (
 from ..schemas.categorie_schema import CategorieCreateSchema
 from ..schemas.commentaire_schema import CommentaireCreateSchema
 from ..services import commerce_service
-from ..services.role_service import role_required, RoleService
+from ..services.role_service import role_required
 
 commerce_bp = Blueprint("commerce", __name__)
 step1_schema = CommerceStep1Schema()
@@ -427,7 +427,6 @@ def manage_category(categorie_id):
 
 @commerce_bp.route("/artisan/home", methods=["GET"])
 @jwt_required()
-@role_required("artisan")
 def artisan_home():
     """
     Dashboard artisan — Bienvenue + stats + commerce complet.
@@ -454,7 +453,6 @@ def artisan_home():
 
 @commerce_bp.route("/artisan/profile", methods=["GET"])
 @jwt_required()
-@role_required("artisan")
 def artisan_profile():
     """
     Profil artisan — infos user + liste commerces + nb_commerces.
@@ -479,7 +477,6 @@ def artisan_profile():
 
 @commerce_bp.route("/artisan/active-commerce", methods=["PATCH"])
 @jwt_required()
-@role_required("artisan")
 def switch_commerce():
     """
     Changer le commerce actif de l'artisan.
@@ -528,7 +525,6 @@ def switch_commerce():
 
 @commerce_bp.route("/artisan/commerces/cards", methods=["GET"])
 @jwt_required()
-@role_required("artisan")
 def get_commerces_cards():
     """
     Lister les commerces de l'artisan sous forme de cards.

@@ -4,8 +4,9 @@ import { Send, Trash2, MessageCircle } from 'lucide-react'
 import useAuth from '../../features/auth/hooks/useAuth'
 import commerceService from '../../services/commerceService'
 
-const CommentSection = ({ commerceId }) => {
+const CommentSection = ({ commerceId, commerceUserId }) => {
   const { user } = useAuth()
+  const isOwner = user && commerceUserId && user.id === commerceUserId
   const [comments, setComments] = useState([])
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(true)
@@ -56,7 +57,11 @@ const CommentSection = ({ commerceId }) => {
         </h3>
       </div>
 
-      {user && (
+      {isOwner && (
+        <p className="text-xs text-gray-400 mb-4 italic">Vous ne pouvez pas commenter votre propre commerce.</p>
+      )}
+
+      {user && !isOwner && (
         <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
           <input
             type="text"
