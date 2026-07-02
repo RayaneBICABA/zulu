@@ -116,14 +116,16 @@ class AuthService:
     def forgot_password(self, email):
         user = User.query.filter_by(email=email).first()
         if not user:
-            return
+            return False
 
         try:
             token = generate_reset_token(email)
             reset_link = f"{current_app.config['FRONTEND_URL']}/reinitialiser-mot-de-passe?token={token}"
             send_reset_password_email_sendgrid(email, reset_link)
+            return True
         except Exception as e:
-            logger.warning(f"Reset password email failed for {email}: {e}")
+            logger.error(f"Reset password email failed for {email}: {e}")
+            raise
 
     def reset_password(self, token, new_password):
         email = confirm_reset_token(token)

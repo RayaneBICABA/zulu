@@ -206,7 +206,11 @@ def forgot_password():
     if not email:
         return jsonify({"error": "Email requis."}), 400
 
-    auth_service.forgot_password(email)
+    try:
+        auth_service.forgot_password(email)
+    except Exception:
+        return jsonify({"error": "Erreur lors de l'envoi de l'email. Reessayez plus tard."}), 500
+
     return jsonify({"message": "Si un compte existe avec cet email, un lien de reinitialisation a ete envoye."}), 200
 
 
