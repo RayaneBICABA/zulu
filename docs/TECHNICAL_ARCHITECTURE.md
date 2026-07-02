@@ -37,7 +37,7 @@
 
 ## 1. Vue d'ensemble
 
-ZAWANI est une application mobile hybride (PWA + Capacitor) de mise en relation entre clients et commerces de proximite. Elle repose sur une architecture full-stack avec un backend REST en Flask (Python) et un frontend en React 19, empaquete pour Android via Capacitor.
+ZAWANI est une application mobile cross-platform native (React + Capacitor) de mise en relation entre clients et commerces de proximite. Elle repose sur une architecture full-stack avec un backend REST en Flask (Python) et un frontend en React 19, empaquete pour Android via Capacitor.
 
 Points clefs de l'architecture :
 
@@ -85,7 +85,7 @@ Points clefs de l'architecture :
 |---|---|
 | Docker + Docker Compose | Conteneurisation backend et base de donnees |
 | Render | Hebergement backend (auto-deploiement depuis GitHub) |
-| Vercel | Hebergement frontend (PWA) |
+| Vercel | Hebergement frontend (Web) |
 | Firebase Auth | Fournisseur d'identite OAuth 2.0 + email/mot de passe |
 
 ---
@@ -395,9 +395,32 @@ Structuration par fonctionnalite (`features/`) et par role technique (`component
 
 ## 8. Capacitor et le deploiement mobile
 
+ZAWANI suit un pipeline de livraison en trois couches distinctes :
+
+```
+Code source (React + Vite)
+    |
+    v
+Application web (SPA) -- accessible via navigateur sur Vercel
+    |
+    v
+Progressive Web App (PWA) -- artefact intermediaire avec manifest.json + service worker
+    |
+    v  Capacitor (bridge)
+Application mobile cross-platform native (APK) -- empaquete, signe, distribuable
+```
+
+Le livrable final est un **APK Android natif** (cross-platform native app), et non une simple PWA. La PWA n'est qu'un artefact de build intermediaire dans le pipeline.
+
 ### 8.1 Role de Capacitor
 
-Capacitor est le pont natif de l'application. C'est lui qui transforme une application web React (SPA) en une application mobile Android native.
+Capacitor est le pont natif (native bridge) qui transforme le build web de production en une application mobile native. Contrairement a une PWA installee via le navigateur, l'APK produite par Capacitor possede :
+
+- Un cycle de vie Android independant (processus, notifications, gestion memoire)
+- Des permissions systemes declarees dans `AndroidManifest.xml`
+- Une signature cryptographique pour la distribution sur Google Play
+- Un acces aux API systemes via les plugins Capacitor (geolocalisation, stockage, deep links)
+- Une integration native avec les services Google (Firebase Auth via Smart Lock / Custom Tabs)
 
 Son role precis :
 
@@ -441,7 +464,9 @@ Son role precis :
 | **Reverse Geocoding** | Conversion de coordonnees geographiques (latitude, longitude) en une adresse textuelle lisible. |
 | **Formule de Haversine** | Formule trigonometrique calculant la distance orthodromique entre deux points sur une sphere (Terre). |
 | **Orthodromie** | Plus court chemin entre deux points a la surface d'une sphere. |
-| **PWA (Progressive Web App)** | Application web pouvant etre installee sur l'ecran d'accueil d'un mobile, avec support offline partiel et notifications. |
+| **PWA (Progressive Web App)** | Artefact de build intermediaire : application web avec manifest.json et service worker, installable sur ecran d'accueil. Dans le pipeline ZAWANI, la PWA est une etape avant l'empaquetage natif final via Capacitor. |
+| **Cross-Platform Native App** | Application mobile compilee pour une plateforme native (Android, iOS) a partir d'une base de code unique (React). Le rendu UI s'effectue dans une WebView mais l'application possede toutes les caracteristiques d'une app native (cycle de vie, permissions, signature, distribution store). |
+| **Capacitor Bridge** | Couche de communication entre le code JavaScript et les API natives Android/iOS. Permet d'invoquer la geolocalisation, le stockage, les deep links et autres fonctionnalites systeme depuis React, sans ecrire de code natif. |
 | **WebView** | Composant natif permettant d'afficher du contenu web (HTML/CSS/JS) dans une application mobile. |
 | **WSGI (Web Server Gateway Interface)** | Protocole standard de communication entre un serveur HTTP (Gunicorn) et une application Python (Flask). |
 | **SPA (Single Page Application)** | Application web qui se charge une seule fois et met a jour dynamiquement le contenu sans rechargement de page. |
