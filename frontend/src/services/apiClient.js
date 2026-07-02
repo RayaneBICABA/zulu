@@ -1,4 +1,4 @@
-import { API_URL } from '../constants/api'
+﻿import { API_URL } from '../constants/api'
 
 const TOKEN_KEY = 'access_token'
 const REFRESH_KEY = 'refresh_token'
@@ -13,7 +13,14 @@ const getAuthHeader = () => {
 const handleResponse = async (res) => {
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    const message = data?.message || `Erreur ${res.status}`
+    let message = data?.message || data?.error || `Erreur ${res.status}`
+    if (typeof message === 'object') {
+      try {
+        message = Object.values(message).flat().join(', ') || JSON.stringify(message)
+      } catch {
+        message = JSON.stringify(message)
+      }
+    }
     const error = new Error(message)
     error.status = res.status
     throw error
@@ -93,10 +100,24 @@ const apiClient = {
       body: JSON.stringify(body),
     }),
 
+  patch: (endpoint, body) =>
+    authFetch(endpoint, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify(body),
+    }),
+
   delete: (endpoint) =>
     authFetch(endpoint, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    }),
+
+  postMultipart: (endpoint, formData) =>
+    authFetch(endpoint, {
+      method: 'POST',
+      headers: { ...getAuthHeader() },
+      body: formData,
     }),
 }
 

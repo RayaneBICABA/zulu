@@ -22,8 +22,8 @@ class CommerceStep1Schema(Schema):
 
 
 class CommerceStep2Schema(Schema):
-    latitude = fields.Float(required=True)
-    longitude = fields.Float(required=True)
+    latitude = fields.Float(allow_none=True)
+    longitude = fields.Float(allow_none=True)
     adresse_complete = fields.Str(required=True, validate=validate.Length(min=1, max=500))
     horaires = fields.List(
         fields.Nested(HoraireInputSchema),

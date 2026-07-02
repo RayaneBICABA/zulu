@@ -1,13 +1,22 @@
+﻿import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { User, Mail, LogOut, ChevronRight, Shield } from 'lucide-react'
+import { User, Mail, LogOut, ChevronRight, Store } from 'lucide-react'
 import useAuth from '../features/auth/hooks/useAuth'
+import commerceService from '../services/commerceService'
 import { ROUTES } from '../constants/routes'
 import PageWrapper from '../components/layout/PageWrapper'
 
 const ClientProfilePage = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [commerceCount, setCommerceCount] = useState(null)
+
+  useEffect(() => {
+    commerceService.artisanProfile()
+      .then((data) => setCommerceCount(data.commerces?.length ?? data.nb_commerces ?? 0))
+      .catch(() => setCommerceCount(0))
+  }, [])
 
   const handleLogout = () => {
     logout()
@@ -36,26 +45,34 @@ const ClientProfilePage = () => {
                 <Mail size={12} />
                 {user?.email}
               </p>
+              {commerceCount !== null && (
+                <p className="text-xs text-gray-400 mt-1">
+                  {commerceCount} commerce{commerceCount > 1 ? 's' : ''}
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="divide-y divide-gray-100">
-            <button className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors">
+          <div className="border-t border-gray-100">
+            <button
+              onClick={() => navigate(ROUTES.dashboard)}
+              className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
+            >
               <div className="flex items-center gap-3">
-                <Shield size={18} className="text-gray-400" />
-                <span className="text-sm text-gray-700">Mes informations</span>
+                <Store size={18} className="text-primary-500" />
+                <span className="text-sm text-gray-700">Mes commerces</span>
               </div>
               <ChevronRight size={16} className="text-gray-300" />
             </button>
-
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 w-full p-4 hover:bg-gray-50 transition-colors"
-            >
-              <LogOut size={18} className="text-error" />
-              <span className="text-sm text-error font-medium">Se deconnecter</span>
-            </button>
           </div>
+
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 w-full p-4 hover:bg-gray-50 transition-colors"
+          >
+            <LogOut size={18} className="text-error" />
+            <span className="text-sm text-error font-medium">Se deconnecter</span>
+          </button>
         </motion.div>
       </div>
     </PageWrapper>

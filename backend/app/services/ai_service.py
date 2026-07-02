@@ -87,6 +87,42 @@ def compute_etoiles(rating):
     return {"pleines": pleines, "demies": demies, "vides": vides}
 
 
+POSITIVE_WORDS = {
+    "super", "excellent", "genial", "parfait", "merci", "bravo", "tres bien",
+    "satisfait", "recommande", "top", "qualite", "professionnel", "rapide",
+    "accueillant", "sympa", "agreable", "propre", "bon", "bien", "nickel",
+    "impeccable", "exceptionnel", "incroyable", "magnifique", "parfait",
+}
+
+NEGATIVE_WORDS = {
+    "mauvais", "deplorable", "horrible", "null", "deçu", "decevant",
+    "lent", "cher", "impoli", "sale", "casse", "probleme", "arnaque",
+    "insatisfait", "dommage", "pas bien", "pas bon", "mediocre",
+    "a eviter", "fuyez", "derniere fois", "jamais",
+}
+
+
+def _keyword_analysis(commentaires):
+    if not commentaires:
+        return None, "Aucun commentaire."
+
+    total_score = 0.0
+    for c in commentaires:
+        contenu = c["contenu"].lower()
+        pos = sum(1 for w in POSITIVE_WORDS if w in contenu)
+        neg = sum(1 for w in NEGATIVE_WORDS if w in contenu)
+        total = pos + neg
+        if total == 0:
+            score = 3.0
+        else:
+            score = 3.0 + 2.0 * (pos - neg) / total
+        score = max(1.0, min(5.0, score))
+        total_score += score
+
+    avg = round(total_score / len(commentaires), 2)
+    return avg, f"Analyse lexicale: {avg}/5"
+
+
 def analyze_and_update_rating(commerce_id):
     from app.models.commerce import CommerceStats, Commerce
     from app.models.commentaire import Commentaire
@@ -104,7 +140,14 @@ def analyze_and_update_rating(commerce_id):
 
     comment_data = [{"contenu": c.contenu} for c in commentaires]
 
-    note, justification = analyze_commentaires(comment_data)
+    note, justification = None, None
+
+    api_key = current_app.config.get("GEMINI_API_KEY", "")
+    if api_key:
+        note, justification = analyze_commentaires(comment_data)
+
+    if note is None:
+        note, justification = _keyword_analysis(comment_data)
 
     stats = CommerceStats.query.filter_by(commerce_id=commerce_id).first()
     if not stats:
@@ -114,9 +157,7 @@ def analyze_and_update_rating(commerce_id):
     if note is not None:
         stats.average_rating = note
         stats.rating_count = len(commentaires)
-    else:
-        stats.average_rating = 0.00
-        stats.rating_count = 0
+    # Keep previous rating if both AI and fallback fail
 
     db.session.commit()
     logger.info(

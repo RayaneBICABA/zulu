@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff } from 'lucide-react'
@@ -10,16 +10,22 @@ import Input from '../../../components/ui/Input'
 import PageWrapper from '../../../components/layout/PageWrapper'
 
 const LoginPage = () => {
-  const { login } = useAuth()
+  const { login, user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const from = location.state?.from?.pathname || ROUTES.dashboard
+  const from = location.state?.from?.pathname || ROUTES.home
 
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
   const [showPassword, setShowPassword] = useState(false)
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate(ROUTES.home, { replace: true })
+    }
+  }, [authLoading, user, navigate])
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -58,12 +64,8 @@ const LoginPage = () => {
         className="w-full"
       >
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">
-            Connexion
-          </h1>
-          <p className="text-sm text-gray-400">
-            Accedez a votre espace Zawani
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Connexion</h1>
+          <p className="text-sm text-gray-400">Accedez a votre espace Zawani</p>
         </div>
 
         {error && (

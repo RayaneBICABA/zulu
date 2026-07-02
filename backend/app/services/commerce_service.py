@@ -30,7 +30,9 @@ def _get_step(commerce):
 
 class CommerceService:
 
-    def list_public_commerces(self, search=None, categorie_id=None, page=1, per_page=20):
+    def list_public_commerces(self, search=None, categorie_id=None, page=1, per_page=20, lat=None, lng=None):
+        import math
+
         query = Commerce.query.filter_by(is_active=True)
 
         if search:
@@ -46,15 +48,29 @@ class CommerceService:
         if categorie_id:
             query = query.filter_by(categorie_id=categorie_id)
 
-        query = query.order_by(Commerce.created_at.desc())
-        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        commerces = query.all()
 
         results = []
-        for c in pagination.items:
+        for c in commerces:
             photo = next((p.url for p in c.photos if p.is_principale), None)
             if not photo and c.photos:
                 photo = c.photos[0].url
             stats = c.stats
+            if stats and stats.rating_count == 0 and c.commentaires:
+                from app.services.ai_service import analyze_and_update_rating
+                try:
+                    analyze_and_update_rating(c.id)
+                    stats = c.stats
+                except Exception:
+                    pass
+
+            distance = None
+            if lat is not None and lng is not None and c.latitude and c.longitude:
+                dlat = math.radians(float(c.latitude) - lat)
+                dlon = math.radians(float(c.longitude) - lng)
+                a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat)) * math.cos(math.radians(float(c.latitude))) * math.sin(dlon / 2) ** 2
+                distance = 6371 * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
             results.append({
                 "id": c.id,
                 "nom_commercial": c.nom_commercial,
@@ -69,14 +85,25 @@ class CommerceService:
                 "rating_count": stats.rating_count if stats else 0,
                 "nb_favoris": stats.nb_favoris if stats else 0,
                 "nb_commentaires": stats.nb_commentaires if stats else 0,
+                "distance_km": round(distance, 2) if distance is not None else None,
             })
 
+        if lat is not None and lng is not None:
+            results.sort(key=lambda r: r["distance_km"] if r["distance_km"] is not None else float("inf"))
+        else:
+            results.sort(key=lambda r: r["id"], reverse=True)
+
+        total = len(results)
+        start = (page - 1) * per_page
+        end = start + per_page
+        page_results = results[start:end]
+
         return {
-            "commerces": results,
-            "total": pagination.total,
-            "page": pagination.page,
-            "per_page": pagination.per_page,
-            "pages": pagination.pages,
+            "commerces": page_results,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "pages": math.ceil(total / per_page) if total > 0 else 1,
         }
 
     def create_step1(self, user_id, data):
@@ -198,6 +225,27 @@ class CommerceService:
         photo.delete()
         return {"message": "Photo supprimee."}
 
+    def delete_commerce(self, commerce_id, user_id):
+        commerce = Commerce.query.get(commerce_id)
+        if not commerce:
+            raise ValueError("Commerce introuvable.")
+        if commerce.user_id != user_id:
+            raise ValueError("Acces refuse.")
+
+        commerce.delete()
+        return {"message": "Commerce supprime."}
+
+    def toggle_draft(self, commerce_id, user_id):
+        commerce = Commerce.query.get(commerce_id)
+        if not commerce:
+            raise ValueError("Commerce introuvable.")
+        if commerce.user_id != user_id:
+            raise ValueError("Acces refuse.")
+
+        commerce.is_active = False
+        commerce.save()
+        return {"message": "Commerce mis en brouillon.", "is_active": False}
+
     def publish(self, commerce_id, user_id):
         commerce = Commerce.query.get(commerce_id)
         if not commerce:
@@ -220,8 +268,8 @@ class CommerceService:
         commerce = Commerce.query.get(commerce_id)
         if not commerce:
             raise ValueError("Commerce introuvable.")
-        if commerce.user_id != user_id:
-            raise ValueError("Acces refuse.")
+        if commerce.user_id != user_id and not commerce.is_active:
+            raise ValueError("Commerce introuvable.")
 
         result = commerce.to_dict()
         result["step"] = _get_step(commerce)
@@ -267,13 +315,17 @@ class CommerceService:
             "nb_commerces_actifs": sum(1 for c in commerces if c.is_active),
         }
 
-    def get_artisan_home(self, user_id):
+    def get_artisan_home(self, user_id, commerce_id=None):
         user = User.query.get(user_id)
         if not user:
             raise ValueError("Utilisateur introuvable.")
 
         commerce = None
-        if user.active_commerce_id:
+        if commerce_id:
+            commerce = Commerce.query.get(commerce_id)
+            if not commerce or commerce.user_id != user_id:
+                raise ValueError("Commerce introuvable.")
+        elif user.active_commerce_id:
             commerce = Commerce.query.get(user.active_commerce_id)
             if not commerce or commerce.user_id != user_id:
                 commerce = None
@@ -285,7 +337,7 @@ class CommerceService:
                 user.save()
 
         if not commerce:
-            raise ValueError("Aucun commerce trouve pour cet artisan.")
+            raise ValueError("Aucun commerce trouve.")
 
         stats = CommerceStats.query.filter_by(commerce_id=commerce.id).first()
         if not stats:
@@ -564,6 +616,33 @@ class CommerceService:
             "message": f"Commerce '{commerce.nom_commercial}' active.",
             "active_commerce_id": commerce.id,
         }
+
+    def list_my_commerces(self, user_id):
+        user = User.query.get(user_id)
+        if not user:
+            raise ValueError("Utilisateur introuvable.")
+
+        commerces = Commerce.query.filter_by(user_id=user_id).all()
+
+        results = []
+        for c in commerces:
+            photo = CommercePhoto.query.filter_by(
+                commerce_id=c.id, is_principale=True
+            ).first()
+            if not photo:
+                photo = CommercePhoto.query.filter_by(
+                    commerce_id=c.id
+                ).order_by(CommercePhoto.ordre.asc()).first()
+
+            results.append({
+                "id": c.id,
+                "nom_commercial": c.nom_commercial,
+                "description": (c.description or "")[:80],
+                "first_image_url": photo.url if photo else None,
+                "is_active": c.is_active,
+            })
+
+        return {"commerces": results}
 
     def get_commerces_cards(self, user_id):
         user = User.query.get(user_id)

@@ -5,6 +5,7 @@ import StarRating from './StarRating'
 
 const CommerceCard = ({ commerce, isFavorited, onToggleFavori, index = 0 }) => {
   const navigate = useNavigate()
+  const imageUrl = commerce.photo_principale || commerce.photos?.[0]?.url
 
   return (
     <motion.div
@@ -15,8 +16,8 @@ const CommerceCard = ({ commerce, isFavorited, onToggleFavori, index = 0 }) => {
       onClick={() => navigate(`/commerce/${commerce.id}`)}
     >
       <div className="relative h-44 bg-gray-100">
-        {commerce.photo_principale ? (
-          <img src={commerce.photo_principale} alt={commerce.nom_commercial} className="w-full h-full object-cover" />
+        {imageUrl ? (
+          <img src={imageUrl} alt={commerce.nom_commercial} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-300">
             <MapPin size={40} />
@@ -47,12 +48,21 @@ const CommerceCard = ({ commerce, isFavorited, onToggleFavori, index = 0 }) => {
           <p className="text-xs text-primary-500 mb-1 font-medium">{commerce.categorie.nom}</p>
         )}
         <StarRating rating={commerce.average_rating} count={commerce.rating_count} />
-        {commerce.adresse_complete && (
-          <p className="text-xs text-gray-400 flex items-center gap-1 mt-1.5 truncate">
-            <MapPin size={10} className="flex-none" />
-            {commerce.adresse_complete}
-          </p>
-        )}
+        <div className="flex items-center gap-2 mt-1.5">
+          {commerce.distance_km != null && (
+            <span className="text-[10px] font-medium text-primary-500 bg-primary-50 px-1.5 py-0.5 rounded-full flex-none">
+              {commerce.distance_km < 1
+                ? `${Math.round(commerce.distance_km * 1000)}m`
+                : `${commerce.distance_km.toFixed(1)}km`}
+            </span>
+          )}
+          {commerce.adresse_complete && (
+            <p className="text-xs text-gray-400 flex items-center gap-1 truncate">
+              <MapPin size={10} className="flex-none" />
+              {commerce.adresse_complete}
+            </p>
+          )}
+        </div>
       </div>
     </motion.div>
   )
