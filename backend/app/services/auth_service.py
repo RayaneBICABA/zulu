@@ -10,6 +10,7 @@ from .email_service import (
     confirm_reset_token,
     send_verification_email,
     send_reset_password_email,
+    send_reset_password_email_sendgrid,
 )
 from flask import current_app
 
@@ -116,11 +117,17 @@ class AuthService:
             return
 
         try:
-            token = generate_reset_token(email)
-            send_reset_password_email(email, token)
+            from firebase_admin import auth as firebase_auth
+            from app.services.firebase_auth import _firebase_app
+
+            if not _firebase_app:
+                logger.warning("Firebase Admin not initialized — cannot generate reset link")
+                return
+
+            reset_link = firebase_auth.generate_password_reset_link(email)
+            send_reset_password_email_sendgrid(email, reset_link)
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(f"Reset password email failed for {email}: {e}")
+            logger.warning(f"Reset password email failed for {email}: {e}")
 
     def reset_password(self, token, new_password):
         email = confirm_reset_token(token)

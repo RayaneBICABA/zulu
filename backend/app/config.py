@@ -32,6 +32,8 @@ class Config:
     CLEAR_USERS_KEY = os.getenv("CLEAR_USERS_KEY", "")
     AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini")
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+    SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
+    SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "rayanebicaba.dev@gmail.com")
 class DevelopmentConfig(Config):
     DEBUG = True
 

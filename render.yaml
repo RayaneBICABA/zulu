@@ -44,6 +44,10 @@ services:
         value: gemini
       - key: GEMINI_API_KEY
         sync: false
+      - key: SENDGRID_API_KEY
+        value: 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
+      - key: SENDGRID_FROM_EMAIL
+        value: rayanebicaba.dev@gmail.com
     healthCheckPath: /api/health
     autoDeploy: true
 
