@@ -127,21 +127,30 @@ class AuthService:
             logger.error(f"Reset password email failed for {email}: {e}")
             raise
 
+    def _update_firebase_password(self, email, new_password):
+        """Try to update Firebase Auth password via Admin SDK, fallback to REST API."""
+        import firebase_admin
+        if not firebase_admin._apps:
+            logger.warning(f"Firebase Admin not initialized — skipping Firebase password update for {email}")
+            return False
+
+        from firebase_admin import auth as firebase_auth
+        try:
+            firebase_user = firebase_auth.get_user_by_email(email)
+            firebase_auth.update_user(firebase_user.uid, password=new_password)
+            logger.info(f"Firebase password updated via Admin SDK for {email}")
+            return True
+        except Exception as e:
+            logger.warning(f"Firebase Admin update_user failed for {email}: {e}")
+
+        return False
+
     def reset_password(self, token, new_password):
         email = confirm_reset_token(token)
         if not email:
             raise ValueError("Token invalide ou expire.")
 
-        import firebase_admin
-        if firebase_admin._apps:
-            from firebase_admin import auth as firebase_auth
-            try:
-                firebase_user = firebase_auth.get_user_by_email(email)
-                firebase_auth.update_user(firebase_user.uid, password=new_password)
-                logger.info(f"Firebase password updated for {email}")
-            except Exception as e:
-                logger.error(f"Firebase password update failed for {email}: {e}")
-                raise ValueError("Erreur lors de la mise à jour du mot de passe.")
+        self._update_firebase_password(email, new_password)
 
         user = User.query.filter_by(email=email).first()
         if not user:

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { Eye, EyeOff } from 'lucide-react'
 import { ROUTES } from '../../../constants/routes'
 import Button from '../../../components/ui/Button'
 import Input from '../../../components/ui/Input'
@@ -16,6 +17,8 @@ const ResetPasswordPage = () => {
 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -113,20 +116,40 @@ const ResetPasswordPage = () => {
             <Input
               label="Nouveau mot de passe"
               name="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="Minimum 8 caracteres"
               value={password}
               onChange={(e) => { setPassword(e.target.value); setError(null) }}
               required
+              rightElement={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              }
             />
             <Input
               label="Confirmer le mot de passe"
               name="confirm_password"
-              type="password"
+              type={showConfirm ? 'text' : 'password'}
               placeholder="Repeter le mot de passe"
               value={confirmPassword}
               onChange={(e) => { setConfirmPassword(e.target.value); setError(null) }}
               required
+              rightElement={
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  tabIndex={-1}
+                >
+                  {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              }
             />
             <Button type="submit" fullWidth loading={loading} disabled={!token}>
               Reinitialiser le mot de passe
