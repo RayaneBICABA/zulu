@@ -339,3 +339,97 @@ def clear_users():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
+
+@auth_bp.route("/auth/reset-all", methods=["POST"])
+def reset_all():
+    """Tout nettoyer et reinitialiser : categories, roles, utilisateurs."""
+    expected_key = current_app.config.get("CLEAR_USERS_KEY") or current_app.config.get("SECRET_KEY")
+    key = request.args.get("key")
+    if not key or key != expected_key:
+        return jsonify({"error": "Cle invalide."}), 403
+
+    from sqlalchemy import text
+    from ..extensions import db
+    from ..models.categorie import Categorie
+    from ..models.role import Role
+    from ..models.user import User
+
+    try:
+        db.session.execute(text("DELETE FROM produit_images"))
+        db.session.execute(text("DELETE FROM horaires_ouverture"))
+        db.session.execute(text("DELETE FROM commerce_photos"))
+        db.session.execute(text("DELETE FROM commerce_stats"))
+        db.session.execute(text("DELETE FROM commentaires"))
+        db.session.execute(text("DELETE FROM vues_profile"))
+        db.session.execute(text("DELETE FROM favoris"))
+        db.session.execute(text("DELETE FROM user_roles"))
+        db.session.execute(text("DELETE FROM role_permissions"))
+        db.session.execute(text("UPDATE users SET active_commerce_id = NULL"))
+        db.session.execute(text("DELETE FROM commerces"))
+        db.session.execute(text("DELETE FROM categories"))
+        db.session.execute(text("DELETE FROM permissions"))
+        db.session.execute(text("DELETE FROM users"))
+        db.session.execute(text("DELETE FROM roles"))
+        db.session.commit()
+
+        role_names = [
+            ("client", "Client - cherche des services"),
+            ("artisan", "Artisan - prestataire de service"),
+            ("admin", "Administrateur du systeme"),
+        ]
+        role_map = {}
+        for name, desc in role_names:
+            role = Role(name=name, description=desc)
+            db.session.add(role)
+            db.session.flush()
+            role_map[name] = role.id
+
+        categories = [
+            "Maconnerie",
+            "Electricite",
+            "Plomberie",
+            "Menuiserie",
+            "Mecanicien",
+            "Peinture",
+            "Jardinage",
+            "Restauration",
+            "Telephonie",
+            "Habillement",
+        ]
+        for nom in categories:
+            cat = Categorie(nom=nom)
+            db.session.add(cat)
+
+        import secrets
+        admin_email = "admin@zawani.app"
+        admin_password = secrets.token_urlsafe(12)
+        admin = User(
+            email=admin_email,
+            first_name="Admin",
+            last_name="ZAWANI",
+            is_verified=True,
+            is_active=True,
+        )
+        admin.set_password(admin_password)
+        db.session.add(admin)
+        db.session.flush()
+
+        from ..models.role import user_roles
+        db.session.execute(
+            user_roles.insert().values(user_id=admin.id, role_id=role_map["admin"])
+        )
+        db.session.commit()
+
+        return jsonify({
+            "message": "Base de donnee reinitialisee avec succes.",
+            "categories": categories,
+            "admin": {
+                "email": admin_email,
+                "password": admin_password,
+            },
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
