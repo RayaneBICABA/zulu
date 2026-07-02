@@ -23,7 +23,7 @@ services:
           type: keyvalue
           property: connectionString
       - key: FRONTEND_URL
-        value: https://zawani-frontend.onrender.com
+        value: https://zawani-api.onrender.com
       - key: FIREBASE_API_KEY
         value: AIzaSyBbeyWpC0nEEuZIuK5eONt0LDGYuKm038Q
       - key: FIREBASE_AUTH_DOMAIN

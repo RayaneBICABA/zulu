@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AuthContext } from './AuthContext'
 import { auth, onAuthStateChanged, signOut as fbSignOut } from '../../../firebase'
 import { API_URL } from '../../../constants/api'
 
 export const AuthProvider = ({ children }) => {
+  const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [sessionExpired, setSessionExpired] = useState(false)
@@ -84,11 +86,23 @@ export const AuthProvider = ({ children }) => {
       })()
     }
 
-    // Mobile : écouter le deep link zawani://auth?token=xxx
+    // Mobile : écouter les deep links
     if (window.Capacitor?.isNativePlatform?.()) {
       import('@capacitor/app').then(({ App }) => {
         App.addListener('appUrlOpen', async (data) => {
-          if (!data.url.startsWith('zawani://auth')) return
+          const url = data.url
+
+          // Reset password (App Links ou custom scheme)
+          if (url.includes('/reinitialiser-mot-de-passe')) {
+            const params = new URLSearchParams(url.split('?')[1] || '')
+            const token = params.get('token')
+            if (token) {
+              navigate(`/reinitialiser-mot-de-passe?token=${token}`)
+            }
+            return
+          }
+
+          if (!url.startsWith('zawani://auth')) return
 
           try {
             const { Browser } = await import('@capacitor/browser')
@@ -97,8 +111,8 @@ export const AuthProvider = ({ children }) => {
             // Pas de navigation en cours — rien à fermer
           }
 
-          console.log('[DEEPLINK] Received URL:', data.url.substring(0, 80) + '...')
-          const params = new URLSearchParams(data.url.split('?')[1] || '')
+          console.log('[DEEPLINK] Received URL:', url.substring(0, 80) + '...')
+          const params = new URLSearchParams(url.split('?')[1] || '')
           const idToken = params.get('token')
           if (!idToken || idToken.length < 10) {
             console.log('[DEEPLINK] Token invalide, ignoré')
