@@ -1,3 +1,4 @@
+import logging
 from ..extensions import db, jwt
 from ..models.user import User
 from ..models.role import Role
@@ -9,10 +10,11 @@ from .email_service import (
     generate_reset_token,
     confirm_reset_token,
     send_verification_email,
-    send_reset_password_email,
     send_reset_password_email_sendgrid,
 )
 from flask import current_app
+
+logger = logging.getLogger(__name__)
 
 
 class AuthService:
@@ -117,14 +119,8 @@ class AuthService:
             return
 
         try:
-            from firebase_admin import auth as firebase_auth
-            from app.services.firebase_auth import _firebase_app
-
-            if not _firebase_app:
-                logger.warning("Firebase Admin not initialized — cannot generate reset link")
-                return
-
-            reset_link = firebase_auth.generate_password_reset_link(email)
+            token = generate_reset_token(email)
+            reset_link = f"{current_app.config['FRONTEND_URL']}/reinitialiser-mot-de-passe?token={token}"
             send_reset_password_email_sendgrid(email, reset_link)
         except Exception as e:
             logger.warning(f"Reset password email failed for {email}: {e}")
@@ -133,6 +129,17 @@ class AuthService:
         email = confirm_reset_token(token)
         if not email:
             raise ValueError("Token invalide ou expire.")
+
+        import firebase_admin
+        if firebase_admin._apps:
+            from firebase_admin import auth as firebase_auth
+            try:
+                firebase_user = firebase_auth.get_user_by_email(email)
+                firebase_auth.update_user(firebase_user.uid, password=new_password)
+                logger.info(f"Firebase password updated for {email}")
+            except Exception as e:
+                logger.error(f"Firebase password update failed for {email}: {e}")
+                raise ValueError("Erreur lors de la mise à jour du mot de passe.")
 
         user = User.query.filter_by(email=email).first()
         if not user:

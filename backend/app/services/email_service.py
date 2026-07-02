@@ -144,14 +144,11 @@ def send_verification_email(to, token):
 
 
 def send_reset_password_email_sendgrid(to, reset_link):
+    import requests
+
     sg_api_key = current_app.config.get("SENDGRID_API_KEY", "")
     if not sg_api_key:
         raise RuntimeError("SENDGRID_API_KEY non configure. L'envoi d'email est impossible.")
-
-    import sendgrid
-    from sendgrid.helpers.mail import Mail
-
-    sg = sendgrid.SendGridAPIClient(api_key=sg_api_key)
 
     html = f"""
     <!DOCTYPE html>
@@ -231,15 +228,26 @@ def send_reset_password_email_sendgrid(to, reset_link):
     </html>
     """
 
-    message = Mail(
-        from_email=current_app.config.get("SENDGRID_FROM_EMAIL", "rayanebicaba.dev@gmail.com"),
-        to_emails=to,
-        subject="ZAWANI — Reinitialisation de mot de passe",
-        html_content=html,
-    )
+    headers = {
+        "Authorization": f"Bearer {sg_api_key}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "personalizations": [{"to": [{"email": to}]}],
+        "from": {"email": current_app.config.get("SENDGRID_FROM_EMAIL", "rayanebicaba.dev@gmail.com")},
+        "subject": "ZAWANI — Reinitialisation de mot de passe",
+        "content": [{"type": "text/html", "value": html}],
+    }
 
     try:
-        response = sg.send(message)
+        response = requests.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            json=payload,
+            headers=headers,
+            timeout=30,
+        )
+        response.raise_for_status()
         logger.info(f"[SENDGRID] Password reset email sent to {to}, status={response.status_code}")
     except Exception as e:
         logger.error(f"[SENDGRID] Failed to send to {to}: {e}")
