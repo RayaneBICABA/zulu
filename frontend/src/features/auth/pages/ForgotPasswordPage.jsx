@@ -2,12 +2,11 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ROUTES } from '../../../constants/routes'
-import { API_URL } from '../../../constants/api'
 import Button from '../../../components/ui/Button'
 import Input from '../../../components/ui/Input'
 import Card from '../../../components/ui/Card'
 import PageWrapper from '../../../components/layout/PageWrapper'
-import apiClient from '../../../services/apiClient'
+import { auth, sendPasswordResetEmail } from '../../../firebase'
 import { useOnlineStatus } from '../../../hooks/useOnlineStatus'
 
 const ForgotPasswordPage = () => {
@@ -30,12 +29,21 @@ const ForgotPasswordPage = () => {
     setError(null)
     setLoading(true)
     try {
-      // Wake up Render si en veille
-      await fetch(`${API_URL}/health`, { method: 'GET' }).catch(() => {})
-      await apiClient.post('/auth/forgot-password', { email })
+      await sendPasswordResetEmail(auth, email)
       setSent(true)
     } catch (err) {
-      setError(err.message || 'Erreur lors de l\'envoi. Reessayez plus tard.')
+      const code = err.code
+      if (code === 'auth/user-not-found') {
+        setSent(true)
+      } else if (code === 'auth/too-many-requests') {
+        setError('Trop de tentatives. Reessayez plus tard.')
+      } else if (code === 'auth/invalid-email') {
+        setError('Email invalide.')
+      } else if (code === 'auth/network-request-failed') {
+        setError('Erreur reseau. Verifiez votre connexion.')
+      } else {
+        setError(err.message || 'Erreur lors de l\'envoi.')
+      }
     } finally {
       setLoading(false)
     }
