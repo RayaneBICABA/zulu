@@ -167,10 +167,12 @@ VITE_FIREBASE_AUTH_DOMAIN=
 VITE_FIREBASE_PROJECT_ID=
 ```
 
-## Equipe et contributions
+## Core Contributors
 
-Projet realise par la team **ZULU**. ZAWANI est construit sur le template full-stack ZULU qui fournit l'architecture, les conventions et les outils de productivite.
-
-- Une branche par fonctionnalite, jamais directement sur `main`
-- Lancer `npm run lint` et les tests avant de pousser
-- La documentation de reference se trouve dans `docs/`
+| Nom | Role |
+|---|---|
+| **Pankassi Jean-Louis Rayane BICABA** | Lead developer & DevOps |
+| **AllcodIn** | Contributeur |
+| **brecheyn** (NADINGA Yiénouyaba Pharès) | Contributeur |
+| **Patisilga226** (Patricia SILGA) | Contributeur |
+| **Jeannine** | Contributeur |
