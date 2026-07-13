@@ -25,13 +25,13 @@ services:
       - key: FRONTEND_URL
         value: https://zawani-api.onrender.com
       - key: FIREBASE_API_KEY
-        value: AIzaSyBbeyWpC0nEEuZIuK5eONt0LDGYuKm038Q
+        sync: false
       - key: FIREBASE_AUTH_DOMAIN
-        value: zawani-aeba8.firebaseapp.com
+        sync: false
       - key: FIREBASE_PROJECT_ID
-        value: zawani-aeba8
+        sync: false
       - key: FIREBASE_APP_ID
-        value: 1:720010119224:web:5ec800f4f49883bbb43ecd
+        sync: false
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
@@ -39,15 +39,15 @@ services:
       - key: CLOUDINARY_API_SECRET
         sync: false
       - key: CLEAR_USERS_KEY
-        value: zulu-clear-2024
+        sync: false
       - key: AI_PROVIDER
         value: gemini
       - key: GEMINI_API_KEY
         sync: false
       - key: SENDGRID_API_KEY
-        value: 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
+        sync: false
       - key: SENDGRID_FROM_EMAIL
-        value: rayanebicaba.dev@gmail.com
+        sync: false
     healthCheckPath: /api/health
     autoDeploy: true
 

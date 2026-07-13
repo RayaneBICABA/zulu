@@ -147,7 +147,7 @@ Copier `backend/.env.example` vers `backend/.env`.
 ```
 SECRET_KEY=
 JWT_SECRET_KEY=
-DATABASE_URL=postgresql://zulu_user:zulu_pass@localhost:5432/zulu_db
+# DATABASE_URL=postgresql://user:password@localhost:5432/zawani
 FLASK_APP=run.py
 FLASK_ENV=development
 GEMINI_API_KEY=              # Optionnel, pour analyse IA des avis
