@@ -1,21 +1,55 @@
 <p align="center">
-  <img src="ZAWANI.png" alt="ZAWANI" width="180" style="margin-right: 60px;">
-  <img src="ZULU.png" alt="ZULU" width="180">
+  <img src="ShootSplashScreen.png" alt="ZAWANI" width="250">
 </p>
 
 <h1 align="center">ZAWANI</h1>
 
 <p align="center">
-  Application mobile d'annuaire intelligent pour commerces locaux.
+  <strong>Application mobile d'annuaire intelligent pour commerces locaux</strong>
   <br>
-  Developpee par la team <strong>ZULU</strong>.
+  Decouvrez, geolocalisez et interagissez avec les commerces de proximite.
 </p>
 
-## A propos
+<p align="center">
+  <a href="#">
+    <img src="https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android">
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white" alt="Flask">
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React">
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL">
+  </a>
+</p>
 
-ZAWANI est une application mobile de mise en relation entre clients et commerces de proximite. Elle permet la decouverte, la recherche geolocalisee et la gestion de commerces locaux avec des fonctionnalites de notation intelligente, de favoris et de partage.
+---
 
-L'application se distingue par son modele utilisateur unifie : tout utilisateur peut naviguer, commenter, favoriser et creer ses propres commerces sans distinction de role artificiel.
+## Aperçu
+
+<p align="center">
+  <img src="docs/screenshots/01-accueil.png" width="200" alt="Accueil">
+  <img src="docs/screenshots/02-commerce-detail.png" width="200" alt="Fiche commerce">
+  <img src="docs/screenshots/06-commerce-avis.png" width="200" alt="Avis">
+  <img src="docs/screenshots/03-favoris.png" width="200" alt="Favoris">
+  <img src="docs/screenshots/04-profil.png" width="200" alt="Profil">
+  <img src="docs/screenshots/05-commerce-dashboard.png" width="200" alt="Dashboard">
+</p>
+
+## Fonctionnalites
+
+- **Authentification** Firebase (Google, email, anonyme)
+- **Geolocalisation** des commerces avec tri par distance
+- **Recherche et filtre** par categorie
+- **Fiche commerce** detaillee avec photos, horaires, contact
+- **Notation intelligente** des commentaires par analyse semantique
+- **Favoris** avec synchronisation compte
+- **Creation et gestion** de commerces (brouillon / publication)
+- **Dashboard** de statistiques (vues, favoris, avis, note)
+- **Partage** localisation via WhatsApp
+- **Mode hors-ligne** partiel grace au stockage local
 
 ## Stack technique
 
@@ -51,22 +85,8 @@ L'application se distingue par son modele utilisateur unifie : tout utilisateur 
 | Outil | Role |
 |---|---|
 | Docker + Docker Compose | Conteneurisation DB et backend |
-| Vercel | Deploiement frontend (PWA) |
 | Render | Deploiement backend |
 | Firebase Auth | Fournisseur d'identite |
-
-## Fonctionnalites
-
-- Authentification Firebase (Google, email, anonyme)
-- Geolocalisation des commerces avec tri par distance
-- Recherche et filtre par categorie
-- Fiche commerce detaillee avec photos, horaires, contact
-- Notation automatique des commentaires par analyse semantique
-- Favoris avec synchronisation compte
-- Creation et gestion de commerces (brouillon / publication)
-- Dashboard de statistiques (vues, favoris, avis, note)
-- Partage localisation via WhatsApp
-- Mode hors-ligne partiel grace au stockage local
 
 ## Structure du projet
 
@@ -136,35 +156,6 @@ npx cap sync android
 cd android
 ./gradlew assembleDebug
 adb install app/build/outputs/apk/debug/app-debug.apk
-```
-
-## Variables d'environnement
-
-### Backend
-
-Copier `backend/.env.example` vers `backend/.env`.
-
-```
-SECRET_KEY=
-JWT_SECRET_KEY=
-# DATABASE_URL=postgresql://user:password@localhost:5432/zawani
-FLASK_APP=run.py
-FLASK_ENV=development
-GEMINI_API_KEY=              # Optionnel, pour analyse IA des avis
-FIREBASE_PROJECT_ID=
-FIREBASE_PRIVATE_KEY=
-FIREBASE_CLIENT_EMAIL=
-```
-
-### Frontend
-
-Copier `frontend/.env.example` vers `frontend/.env`.
-
-```
-VITE_API_URL=http://localhost:5000/api
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
 ```
 
 ## Collaborateurs
