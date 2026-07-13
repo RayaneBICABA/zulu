@@ -167,12 +167,12 @@ VITE_FIREBASE_AUTH_DOMAIN=
 VITE_FIREBASE_PROJECT_ID=
 ```
 
-## Core Contributors
+## Collaborateurs
 
-| Nom | Role |
+| GitHub | Nom |
 |---|---|
-| **Pankassi Jean-Louis Rayane BICABA** | Lead developer & DevOps |
-| **AllcodIn** | Contributeur |
-| **brecheyn** (NADINGA Yiénouyaba Pharès) | Contributeur |
-| **Patisilga226** (Patricia SILGA) | Contributeur |
-| **Jeannine** | Contributeur |
+| @PANK4SS | Pankassi Jean-Louis Rayane BICABA |
+| @AllcodIn | — |
+| @brecheyn | NADINGA Yiénouyaba Pharès |
+| @noagthiombiano257-gif | Jeannine257 |
+| @Patisilga226 | SILGA Patricia |
