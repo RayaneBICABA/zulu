@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="ShootSplashScreen.png" alt="ZAWANI" width="250">
+  <img src="ShootSplahScreen.png" alt="ZAWANI" width="250">
 </p>
 
 <h1 align="center">ZAWANI</h1>
