@@ -1,5 +1,6 @@
 <p align="center">
-  <img src="ShootSplahScreen.png" alt="ZAWANI" width="250">
+  <img src="ZAWANI.png" alt="ZAWANI" width="180" style="margin-right: 60px;">
+  <img src="ZULU.png" alt="ZULU" width="180">
 </p>
 
 <h1 align="center">ZAWANI</h1>
@@ -10,32 +11,18 @@
   Decouvrez, geolocalisez et interagissez avec les commerces de proximite.
 </p>
 
-<p align="center">
-  <a href="#">
-    <img src="https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android">
-  </a>
-  <a href="#">
-    <img src="https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white" alt="Flask">
-  </a>
-  <a href="#">
-    <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React">
-  </a>
-  <a href="#">
-    <img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL">
-  </a>
-</p>
-
 ---
 
-## Aperçu
+## Apercu
 
 <p align="center">
-  <img src="docs/screenshots/01-accueil.png" width="200" alt="Accueil">
-  <img src="docs/screenshots/02-commerce-detail.png" width="200" alt="Fiche commerce">
-  <img src="docs/screenshots/06-commerce-avis.png" width="200" alt="Avis">
-  <img src="docs/screenshots/03-favoris.png" width="200" alt="Favoris">
-  <img src="docs/screenshots/04-profil.png" width="200" alt="Profil">
-  <img src="docs/screenshots/05-commerce-dashboard.png" width="200" alt="Dashboard">
+  <img src="captures/home.jpeg" width="200" alt="Accueil">
+  <img src="captures/commerces.jpeg" width="200" alt="Commerces">
+  <img src="captures/detailsSurUnCommerce.jpeg" width="200" alt="Details commerce">
+  <img src="captures/favoris.jpeg" width="200" alt="Favoris">
+  <img src="captures/profile.jpeg" width="200" alt="Profil">
+  <img src="captures/login.jpeg" width="200" alt="Connexion">
+  <img src="captures/register.jpeg" width="200" alt="Inscription">
 </p>
 
 ## Fonctionnalites
@@ -65,7 +52,7 @@
 | Marshmallow | Validation et serialisation |
 | PostgreSQL 15 | Base de donnees relationnelle |
 | Flasgger (Swagger) | Documentation interactive des API |
-| Google Generative AI | Analyse automatique des avis (fallback keyword) |
+| Google Generative AI | Analyse automatique des avis |
 
 ### Frontend
 
@@ -88,34 +75,6 @@
 | Render | Deploiement backend |
 | Firebase Auth | Fournisseur d'identite |
 
-## Structure du projet
-
-```
-zawani/
-  +-- backend/              Application Flask (API REST)
-  |   +-- app/
-  |   |   +-- models/       Modeles SQLAlchemy
-  |   |   +-- routes/       Points d'entree HTTP (blueprints)
-  |   |   +-- schemas/      Validation Marshmallow
-  |   |   +-- services/     Logique metier
-  |   +-- tests/            Tests unitaires
-  |   +-- requirements.txt
-  +-- frontend/             Application React (SPA + Capacitor)
-  |   +-- android/          Projet natif Android
-  |   +-- src/
-  |   |   +-- components/   Composants UI
-  |   |   +-- constants/    Configuration
-  |   |   +-- features/     Modules fonctionnels (auth)
-  |   |   +-- hooks/        Hooks reutilisables
-  |   |   +-- pages/        Ecrans de l'application
-  |   |   +-- services/     Appels API
-  |   +-- capacitor.config.ts
-  |   +-- package.json
-  +-- docs/                 Documentation
-  +-- tools/                Outils autonomes
-  +-- docker-compose.yml
-```
-
 ## Demarrage rapide
 
 ### Prerequis
@@ -130,11 +89,7 @@ zawani/
 ```bash
 git clone <url-du-depot>
 cd zawani
-
-# Lancer la base de donnees et le backend
 docker compose up -d
-
-# Le backend est accessible sur http://localhost:5000
 ```
 
 ### Frontend
@@ -144,8 +99,6 @@ cd frontend
 npm install
 npm run dev
 ```
-
-Le frontend est accessible sur `http://localhost:5173`.
 
 ### Application mobile (Android)
 
