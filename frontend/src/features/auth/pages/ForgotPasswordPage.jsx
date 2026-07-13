@@ -30,7 +30,6 @@ const ForgotPasswordPage = () => {
     setError(null)
     setLoading(true)
     try {
-      // Wake up Render si en veille
       await fetch(`${API_URL}/health`, { method: 'GET' }).catch(() => {})
       await apiClient.post('/auth/forgot-password', { email })
       setSent(true)

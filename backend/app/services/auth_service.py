@@ -1,3 +1,4 @@
+import logging
 from ..extensions import db, jwt
 from ..models.user import User
 from ..models.role import Role
@@ -9,9 +10,11 @@ from .email_service import (
     generate_reset_token,
     confirm_reset_token,
     send_verification_email,
-    send_reset_password_email,
+    send_reset_password_email_sendgrid,
 )
 from flask import current_app
+
+logger = logging.getLogger(__name__)
 
 
 class AuthService:
@@ -113,19 +116,41 @@ class AuthService:
     def forgot_password(self, email):
         user = User.query.filter_by(email=email).first()
         if not user:
-            return
+            return False
 
         try:
             token = generate_reset_token(email)
-            send_reset_password_email(email, token)
+            reset_link = f"{current_app.config['FRONTEND_URL']}/reinitialiser-mot-de-passe?token={token}"
+            send_reset_password_email_sendgrid(email, reset_link)
+            return True
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(f"Reset password email failed for {email}: {e}")
+            logger.error(f"Reset password email failed for {email}: {e}")
+            raise
+
+    def _update_firebase_password(self, email, new_password):
+        """Try to update Firebase Auth password via Admin SDK, fallback to REST API."""
+        import firebase_admin
+        if not firebase_admin._apps:
+            logger.warning(f"Firebase Admin not initialized — skipping Firebase password update for {email}")
+            return False
+
+        from firebase_admin import auth as firebase_auth
+        try:
+            firebase_user = firebase_auth.get_user_by_email(email)
+            firebase_auth.update_user(firebase_user.uid, password=new_password)
+            logger.info(f"Firebase password updated via Admin SDK for {email}")
+            return True
+        except Exception as e:
+            logger.warning(f"Firebase Admin update_user failed for {email}: {e}")
+
+        return False
 
     def reset_password(self, token, new_password):
         email = confirm_reset_token(token)
         if not email:
             raise ValueError("Token invalide ou expire.")
+
+        self._update_firebase_password(email, new_password)
 
         user = User.query.filter_by(email=email).first()
         if not user:

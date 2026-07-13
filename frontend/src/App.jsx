@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation, Outlet } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { ROUTES } from './constants/routes'
 import { AuthProvider } from './features/auth/context/AuthProvider'
@@ -18,8 +18,13 @@ import CommerceDetailPage from './pages/CommerceDetailPage'
 import CommerceCreatePage from './pages/CommerceCreatePage'
 import ClientLayout from './components/layout/ClientLayout'
 import ResetPasswordPage from './features/auth/pages/ResetPasswordPage'
-import AdminCategoriesPage from './pages/AdminCategoriesPage'
 import LandingPage from './pages/LandingPage'
+
+const MobileLayout = () => (
+  <MobileOnly>
+    <Outlet />
+  </MobileOnly>
+)
 
 const AnimatedRoutes = () => {
   const location = useLocation()
@@ -27,26 +32,30 @@ const AnimatedRoutes = () => {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path={ROUTES.splash}  element={<SplashScreen />} />
-        <Route path={ROUTES.login}         element={<LoginPage />} />
-        <Route path={ROUTES.register}      element={<RegisterPage />} />
-        <Route path={ROUTES.forgotPassword} element={<ForgotPasswordPage />} />
-        <Route path={ROUTES.resetPassword} element={<ResetPasswordPage />} />
+        <Route path="/" element={<LandingPage />} />
 
-        <Route element={<ProtectedRoute><ClientLayout /></ProtectedRoute>}>
-          <Route path={ROUTES.home}           element={<ClientHomePage />} />
-          <Route path={ROUTES.favoris}         element={<FavorisPage />} />
-          <Route path={ROUTES.profile}         element={<ClientProfilePage />} />
-          <Route path={ROUTES.commerceCreate}  element={<CommerceCreatePage />} />
-          <Route path={ROUTES.dashboard}       element={<ArtisanDashboardPage />} />
+        <Route element={<MobileLayout />}>
+          <Route path={ROUTES.splash}  element={<SplashScreen />} />
+          <Route path={ROUTES.login}         element={<LoginPage />} />
+          <Route path={ROUTES.register}      element={<RegisterPage />} />
+          <Route path={ROUTES.forgotPassword} element={<ForgotPasswordPage />} />
+          <Route path={ROUTES.resetPassword} element={<ResetPasswordPage />} />
+
+          <Route element={<ProtectedRoute><ClientLayout /></ProtectedRoute>}>
+            <Route path={ROUTES.home}           element={<ClientHomePage />} />
+            <Route path={ROUTES.favoris}         element={<FavorisPage />} />
+            <Route path={ROUTES.profile}         element={<ClientProfilePage />} />
+            <Route path={ROUTES.commerceCreate}  element={<CommerceCreatePage />} />
+            <Route path={ROUTES.dashboard}       element={<ArtisanDashboardPage />} />
+          </Route>
+
+          <Route path={ROUTES.commerceDetail} element={
+            <ProtectedRoute>
+              <CommerceDetailPage />
+            </ProtectedRoute>
+          } />
+          <Route path={ROUTES.notFound}      element={<NotFoundPage />} />
         </Route>
-
-        <Route path={ROUTES.commerceDetail} element={
-          <ProtectedRoute>
-            <CommerceDetailPage />
-          </ProtectedRoute>
-        } />
-        <Route path={ROUTES.notFound}      element={<NotFoundPage />} />
       </Routes>
     </AnimatePresence>
   )
@@ -56,19 +65,7 @@ const App = () => (
   <BrowserRouter>
     <ErrorBoundary>
       <AuthProvider>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-        </Routes>
-        <MobileOnly>
-          <AnimatedRoutes />
-        </MobileOnly>
-        <Routes>
-          <Route path={ROUTES.adminCategories} element={
-            <ProtectedRoute role="admin">
-              <AdminCategoriesPage />
-            </ProtectedRoute>
-          } />
-        </Routes>
+        <AnimatedRoutes />
       </AuthProvider>
     </ErrorBoundary>
   </BrowserRouter>
