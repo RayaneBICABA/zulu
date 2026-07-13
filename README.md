@@ -16,13 +16,14 @@
 ## Apercu
 
 <p align="center">
-  <img src="captures/home.jpeg" width="200" alt="Accueil">
-  <img src="captures/commerces.jpeg" width="200" alt="Commerces">
-  <img src="captures/detailsSurUnCommerce.jpeg" width="200" alt="Details commerce">
-  <img src="captures/favoris.jpeg" width="200" alt="Favoris">
-  <img src="captures/profile.jpeg" width="200" alt="Profil">
+  <img src="captures/Splash.jpeg" width="200" alt="Splash">
   <img src="captures/login.jpeg" width="200" alt="Connexion">
   <img src="captures/register.jpeg" width="200" alt="Inscription">
+  <img src="captures/home.jpeg" width="200" alt="Accueil">
+  <img src="captures/detailsSurUnCommerce.jpeg" width="200" alt="Details commerce">
+  <img src="captures/favoris.jpeg" width="200" alt="Favoris">
+  <img src="captures/commerces.jpeg" width="200" alt="Commerces">
+  <img src="captures/profile.jpeg" width="200" alt="Profil">
 </p>
 
 ## Fonctionnalites
