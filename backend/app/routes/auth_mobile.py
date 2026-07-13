@@ -151,10 +151,10 @@ box-shadow:0 2px 12px rgba(0,0,0,0.08);max-width:320px;width:90%;">
 def _firebase_fallback():
     """Fallback si Google OAuth n'est pas configuré côté serveur."""
     firebase_config = {
-        'apiKey': os.environ.get('FIREBASE_API_KEY', 'AIzaSyBbeyWpC0nEEuZIuK5eONt0LDGYuKm038Q'),
-        'authDomain': os.environ.get('FIREBASE_AUTH_DOMAIN', 'zawani-aeba8.firebaseapp.com'),
-        'projectId': os.environ.get('FIREBASE_PROJECT_ID', 'zawani-aeba8'),
-        'appId': os.environ.get('FIREBASE_APP_ID', '1:720010119224:web:5ec800f4f49883bbb43ecd'),
+        'apiKey': os.environ.get('FIREBASE_API_KEY'),
+        'authDomain': os.environ.get('FIREBASE_AUTH_DOMAIN'),
+        'projectId': os.environ.get('FIREBASE_PROJECT_ID'),
+        'appId': os.environ.get('FIREBASE_APP_ID'),
     }
     html = '''<!DOCTYPE html>
 <html lang="fr">

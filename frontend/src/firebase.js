@@ -12,12 +12,12 @@ import {
 } from "firebase/auth"
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBbeyWpC0nEEuZIuK5eONt0LDGYuKm038Q",
-  authDomain: "zawani-aeba8.firebaseapp.com",
-  projectId: "zawani-aeba8",
-  storageBucket: "zawani-aeba8.firebasestorage.app",
-  messagingSenderId: "720010119224",
-  appId: "1:720010119224:web:5ec800f4f49883bbb43ecd",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
 
 let app, auth, googleProvider
